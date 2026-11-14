@@ -18,7 +18,7 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #090b1a;
+            background-color: #1e3a5f;
             user-select: none;
             -webkit-user-select: none;
             touch-action: none;
@@ -286,51 +286,72 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        const WORLD_W = 1400;
-        const WORLD_H = 980;
-        const PLAYER_SPEED = 215;
+        const WORLD_W = 4400;
+        const WORLD_H = 3200;
+        const PLAYER_SPEED = 295;
+        const PROP_COOLDOWN_MS = 1800;
+        const CHAT_MAX_MESSAGES = 5;
+        const CHAT_WINDOW_MS = 5000;
+        const CHAT_TIMEOUT_MS = 2000;
+
+        const PEER_CONFIG = {
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            }
+        };
 
         const AVATAR_COLORS = [
-            { name: 'Strawberry Milk', body: '#fda4af', shade: '#fb7185', hair: '#881337', swatch: '#fb7185' },
-            { name: 'Matcha Cream',    body: '#86efac', shade: '#4ade80', hair: '#14532d', swatch: '#4ade80' },
-            { name: 'Honey Peach',     body: '#fcd34d', shade: '#fbbf24', hair: '#78350f', swatch: '#fbbf24' },
-            { name: 'Blueberry Tart',  body: '#93c5fd', shade: '#60a5fa', hair: '#1e3a8a', swatch: '#60a5fa' },
-            { name: 'Lavender Fog',    body: '#d8b4fe', shade: '#c084fc', hair: '#581c87', swatch: '#c084fc' },
-            { name: 'Toasted Mocha',   body: '#d6d3d1', shade: '#a8a29e', hair: '#44403c', swatch: '#a8a29e' },
-            { name: 'Tangerine Jam',   body: '#fdba74', shade: '#fb923c', hair: '#7c2d12', swatch: '#fb923c' },
-            { name: 'Mint Frost',      body: '#67e8f9', shade: '#22d3ee', hair: '#164e63', swatch: '#22d3ee' }
+            { name: 'Pink Slime', swatch: '#ff85b3', body: '#ff85b3', shade: '#e05288', gloss: '#ffd6e7', hair: '#701a3c' },
+            { name: 'Rad Mint', swatch: '#4ade80', body: '#4ade80', shade: '#16a34a', gloss: '#dcfce7', hair: '#14532d' },
+            { name: 'Honey Plort', swatch: '#fbbf24', body: '#fbbf24', shade: '#d97706', gloss: '#fef3c7', hair: '#78350f' },
+            { name: 'Puddle Blue', swatch: '#38bdf8', body: '#38bdf8', shade: '#0284c7', gloss: '#e0f2fe', hair: '#0c4a6e' },
+            { name: 'Phosphor Lilac', swatch: '#c084fc', body: '#c084fc', shade: '#9333ea', gloss: '#f3e8ff', hair: '#3b0764' },
+            { name: 'Tabby Cream', swatch: '#cbd5e1', body: '#cbd5e1', shade: '#94a3b8', gloss: '#f8fafc', hair: '#334155' },
+            { name: 'Tangle Peach', swatch: '#fb923c', body: '#fb923c', shade: '#ea580c', gloss: '#ffedd5', hair: '#7c2d12' },
+            { name: 'Crystal Aqua', swatch: '#2dd4bf', body: '#2dd4bf', shade: '#0d9488', gloss: '#ccfbf1', hair: '#134e4a' }
         ];
 
         const ACCESSORIES = [
-            'none',
-            '🌿 Sprout',
-            '🎧 Headphones',
-            '🐱 Cat Ears',
-            '🐸 Frog Hood',
-            '🦆 Ducky Hat',
-            '🎉 Party Cone',
-            '⭐ Halo'
+            'None',
+            'Leaf Sprout',
+            'Cozy Headphones',
+            'Cat Ears',
+            'Frog Hood',
+            'Ducky Hat',
+            'Party Cone',
+            'Angel Halo'
         ];
 
-        const FACES = ['•ᴗ•', 'owo', ':P', '^w^', 'o_O'];
+        const FACES = ['•ᴗ•', '^w^', 'owo', ':P'];
 
-        function getTabPlayerId() {
-            let id = sessionStorage.getItem('chillspot_tab_uid');
-            if (!id) {
-                id = 'bean-' + Math.random().toString(36).substring(2, 10);
-                sessionStorage.setItem('chillspot_tab_uid', id);
-            }
-            return id;
-        }
+        let inGame = false;
+        let roomMode = 'solo';
+        let currentRoomCode = 'SOLO';
+        let sessionEpoch = 0;
 
-        let localPlayer = {
-            id: getTabPlayerId(),
+        let p2pPeer = null;
+        let clientToHostConn = null;
+        const hostConnections = new Map();
+        let broadcastChan = null;
+        let heartbeatTimer = null;
+        let staleCleanupTimer = null;
+        let lastSyncTime = 0;
+
+        let auth = null;
+        let db = null;
+        let firestoreUnsub = null;
+
+        const localPlayer = {
+            id: `slime-${Math.random().toString(36).slice(2, 9)}`,
             name: 'Mochi',
             colorIdx: 0,
             accessoryIdx: 1,
             faceIdx: 0,
             x: WORLD_W / 2,
-            y: WORLD_H / 2 + 180,
+            y: WORLD_H / 2 + 165,
             facing: 'down',
             walkCycle: 0,
             isMoving: false,
@@ -340,61 +361,27 @@
             chatTimestamp: 0
         };
 
-        // Multiplayer & Session State
-        let inGame = false;
-        let roomMode = 'solo'; // 'solo' | 'host' | 'client'
-        let currentRoomCode = '';
-        let remotePlayers = new Map();
+        const remotePlayers = new Map();
         let botCompanions = [];
-        let lastSyncTime = 0;
-        let sessionEpoch = 0;
 
-        // Network Transport Handles (PeerJS + BroadcastChannel + Firebase)
-        let p2pPeer = null;
-        let hostConnections = new Map();
-        let clientToHostConn = null;
-        let broadcastChan = null;
-        let heartbeatTimer = null;
-        let staleCleanupTimer = null;
-
-        let db = null;
-        let auth = null;
-        let firestoreUnsub = null;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'chillspot-cozy';
-
-        const PEER_CONFIG = {
-            debug: 0,
-            config: {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:global.stun.twilio.com:3478' }
-                ],
-                sdpSemantics: 'unified-plan'
-            }
-        };
-
-        window.addEventListener('unhandledrejection', (e) => {
-            if (e.reason && String(e.reason).includes('SecurityError')) {
-                e.preventDefault();
-            }
-        });
-
-        // Camera & Input State
-        let camera = { x: WORLD_W / 2, y: WORLD_H / 2 };
-        let keysPressed = {};
+        const camera = { x: WORLD_W / 2, y: WORLD_H / 2 };
+        const keysPressed = {};
         let clickTarget = null;
         let nearbyProp = null;
+        let lastPropUseTime = 0;
         let lastFrameTime = performance.now();
+
         let chatLogCollapsed = false;
         let unreadChatCount = 0;
+        let recentChatTimestamps = [];
+        let chatTimeoutUntil = 0;
 
-        // Interactive Courtyard Props & Anti-Spam Cooldown
-        const PROP_COOLDOWN_MS = 1400;
-        let lastPropUseTime = 0;
-        let pondRipples = [];
+        const propStates = {
+            campfireLit: true,
+            fairyLightsOn: true,
+            lofiPlaying: false
+        };
 
-        // Mini-game States
         let tttState = {
             board: Array(9).fill(''),
             turn: 'X',
@@ -414,83 +401,668 @@
             active: false,
             phase: 'idle',
             biteTimer: 0,
-            bobberX: WORLD_W / 2,
-            bobberY: WORLD_H / 2
+            bobberX: 0,
+            bobberY: 0
         };
 
-        let confettiParticles = [];
+        const pondRipples = [];
+        const confettiParticles = [];
 
-        let propStates = {
-            campfireLit: true,
-            lofiPlaying: false,
-            fairyLightsOn: true,
-            matchaServed: true
-        };
+        // Procedural Pixel-Art Sprite Sheet Baker (Crisp 16-bit Cozy Ranch Assets)
+        const propSprites = {};
+        let bakedGrassPattern = null;
 
-        // Structured Architectural Courtyard Layout (1400 x 980)
+        function bakePixelSprite(gridW, gridH, pixelScale, drawFn) {
+            const off = document.createElement('canvas');
+            off.width = gridW;
+            off.height = gridH;
+            const octx = off.getContext('2d');
+            octx.imageSmoothingEnabled = false;
+
+            const px = (x, y, w, h, color) => {
+                octx.fillStyle = color;
+                octx.fillRect(Math.floor(x), Math.floor(y), Math.floor(w), Math.floor(h));
+            };
+
+            const dither = (x, y, w, h, c1, c2) => {
+                for (let py = y; py < y + h; py++) {
+                    for (let pxX = x; pxX < x + w; pxX++) {
+                        octx.fillStyle = (pxX + py) % 2 === 0 ? c1 : c2;
+                        octx.fillRect(pxX, py, 1, 1);
+                    }
+                }
+            };
+
+            const ellipsePx = (cx, cy, rx, ry, color) => {
+                octx.fillStyle = color;
+                for (let py = Math.floor(cy - ry); py <= Math.ceil(cy + ry); py++) {
+                    for (let pxX = Math.floor(cx - rx); pxX <= Math.ceil(cx + rx); pxX++) {
+                        const nx = (pxX - cx) / rx;
+                        const ny = (py - cy) / ry;
+                        if (nx * nx + ny * ny <= 1.0) {
+                            octx.fillRect(pxX, py, 1, 1);
+                        }
+                    }
+                }
+            };
+
+            const ditherEllipsePx = (cx, cy, rx, ry, c1, c2) => {
+                for (let py = Math.floor(cy - ry); py <= Math.ceil(cy + ry); py++) {
+                    for (let pxX = Math.floor(cx - rx); pxX <= Math.ceil(cx + rx); pxX++) {
+                        const nx = (pxX - cx) / rx;
+                        const ny = (py - cy) / ry;
+                        if (nx * nx + ny * ny <= 1.0) {
+                            octx.fillStyle = (pxX + py) % 2 === 0 ? c1 : c2;
+                            octx.fillRect(pxX, py, 1, 1);
+                        }
+                    }
+                }
+            };
+
+            const circlePx = (cx, cy, r, color) => ellipsePx(cx, cy, r, r, color);
+
+            drawFn({ px, dither, ellipsePx, ditherEllipsePx, circlePx, w: gridW, h: gridH });
+
+            const out = document.createElement('canvas');
+            out.width = gridW * pixelScale;
+            out.height = gridH * pixelScale;
+            const outCtx = out.getContext('2d');
+            outCtx.imageSmoothingEnabled = false;
+            outCtx.drawImage(off, 0, 0, out.width, out.height);
+            return out;
+        }
+
+        function drawSpriteAsset(sprite, dx, dy, dw, dh) {
+            if (!sprite) return;
+            if (sprite instanceof HTMLCanvasElement) {
+                if (sprite.width > 0 && sprite.height > 0) {
+                    ctx.drawImage(sprite, dx, dy, dw, dh);
+                }
+            } else if (sprite.complete && sprite.naturalWidth > 0) {
+                ctx.drawImage(sprite, dx, dy, dw, dh);
+            }
+        }
+
+        function buildPropSpriteAssets() {
+            // 0. Seamless Baked Pixel-Art Meadow Grass Tile Pattern
+            const grassTile = bakePixelSprite(32, 32, 3, ({ px, dither }) => {
+                px(0, 0, 32, 32, '#4ade80');
+                dither(0, 0, 32, 32, '#4ade80', '#44d478');
+                // Pixel grass blades & sunlit speckles
+                const blades = [
+                    [4, 5], [18, 3], [26, 9], [9, 14], [22, 17],
+                    [3, 24], [14, 26], [28, 25], [12, 8], [21, 29]
+                ];
+                blades.forEach(([bx, by], i) => {
+                    px(bx, by, 1, 2, '#16a34a');
+                    px(bx + 1, by - 1, 1, 2, '#22c55e');
+                    if (i % 3 === 0) px(bx - 1, by, 1, 1, '#86efac');
+                });
+            });
+            bakedGrassPattern = ctx.createPattern(grassTile, 'repeat');
+
+            // 1. 2.5D Pixel-Art Stone Masonry Koi Fountain Basin
+            propSprites.fountainBasin = bakePixelSprite(96, 72, 3, ({ px, ellipsePx, ditherEllipsePx }) => {
+                ellipsePx(48, 42, 45, 27, 'rgba(15,23,42,0.28)');
+                // 3D Stone Wall Front Face with Brick Mortar Lines
+                ellipsePx(48, 39, 44, 26, '#334155');
+                ellipsePx(48, 38, 43, 25, '#64748b');
+                for (let bx = 12; bx <= 84; bx += 12) {
+                    px(bx, 46, 1, 13, '#475569');
+                }
+                // Top Stone Rim
+                ellipsePx(48, 34, 44, 25, '#334155');
+                ellipsePx(48, 34, 42, 23, '#cbd5e1');
+                ellipsePx(48, 33, 40, 21, '#f1f5f9');
+                // Deep Lagoon Water + Pixel Dither Shimmer
+                ellipsePx(48, 35, 36, 19, '#0c4a6e');
+                ditherEllipsePx(48, 36, 34, 17, '#0284c7', '#38bdf8');
+                ellipsePx(48, 36, 26, 12, '#38bdf8');
+                ellipsePx(36, 30, 10, 3, '#bae6fd');
+                // Pixel Lily Pads & Pink Lotus
+                ellipsePx(26, 38, 6, 3.5, '#15803d');
+                ellipsePx(26, 37, 5, 2.8, '#4ade80');
+                px(24, 35, 3, 2, '#ff85b3');
+                px(25, 35, 1, 1, '#fde047');
+                ellipsePx(70, 33, 5.5, 3.2, '#15803d');
+                ellipsePx(70, 32, 4.5, 2.5, '#22c55e');
+                px(70, 30, 2, 2, '#fef08a');
+            });
+
+            // 2. 2.5D Pixel-Art Tiered Fountain Spout
+            propSprites.fountainCenter = bakePixelSprite(36, 40, 3, ({ px, ellipsePx }) => {
+                ellipsePx(18, 33, 12, 5, '#334155');
+                ellipsePx(18, 32, 11, 4.5, '#94a3b8');
+                px(13, 19, 10, 13, '#334155');
+                px(14, 19, 8, 13, '#cbd5e1');
+                px(15, 19, 3, 13, '#f1f5f9');
+                ellipsePx(18, 19, 11, 5, '#334155');
+                ellipsePx(18, 18, 10, 4, '#e2e8f0');
+                ellipsePx(18, 18, 8, 3, '#38bdf8');
+                px(15, 9, 6, 9, '#334155');
+                px(16, 9, 4, 9, '#cbd5e1');
+                ellipsePx(18, 9, 6, 3, '#f8fafc');
+                px(16, 4, 4, 4, '#7dd3fc');
+            });
+
+            // 3. Pixel-Art Picnic Tea Table, Floor Cushions & Matcha Set
+            propSprites.picnicTable = bakePixelSprite(60, 48, 3, ({ px, ellipsePx }) => {
+                ellipsePx(30, 37, 24, 9, 'rgba(15,23,42,0.24)');
+                // Plush Pixel Cushions
+                ellipsePx(8, 28, 6, 4, '#881337');
+                ellipsePx(8, 27, 5, 3, '#fb7185');
+                px(6, 26, 3, 1, '#fda4af');
+                ellipsePx(52, 28, 6, 4, '#075985');
+                ellipsePx(52, 27, 5, 3, '#38bdf8');
+                px(50, 26, 3, 1, '#bae6fd');
+                ellipsePx(30, 39, 6, 3.5, '#92400e');
+                ellipsePx(30, 38, 5, 2.8, '#fde047');
+                // Oak Pedestal & Layered Tabletop
+                px(26, 24, 8, 12, '#451a03');
+                px(27, 24, 6, 12, '#78350f');
+                ellipsePx(30, 21, 20, 11, '#451a03');
+                ellipsePx(30, 21, 19, 10, '#b45309');
+                ellipsePx(30, 19, 19, 10, '#fbbf24');
+                ellipsePx(30, 19, 16, 7.5, '#fef3c7');
+                // Checkered Runner + Mini Tic-Tac-Toe Board + Matcha Pot
+                for (let rx = 18; rx <= 40; rx += 2) {
+                    px(rx, 18, 1, 2, '#fda4af');
+                    px(rx + 1, 19, 1, 2, '#fb7185');
+                }
+                px(24, 15, 12, 8, '#78350f');
+                px(25, 16, 10, 6, '#d97706');
+                px(28, 16, 1, 6, '#fef3c7');
+                px(32, 16, 1, 6, '#fef3c7');
+                px(25, 18, 10, 1, '#fef3c7');
+                px(25, 20, 10, 1, '#fef3c7');
+                // Matcha Teapot & Strawberry Tart
+                ellipsePx(18, 19, 3, 2.5, '#166534');
+                ellipsePx(18, 18, 2.5, 2, '#4ade80');
+                ellipsePx(42, 19, 3, 2, '#ffffff');
+                px(41, 18, 2, 1, '#fb7185');
+            });
+
+            // 4. Pixel-Art Chalkboard Easel
+            propSprites.artEasel = bakePixelSprite(48, 48, 3, ({ px, ellipsePx }) => {
+                ellipsePx(24, 43, 16, 4.5, 'rgba(15,23,42,0.24)');
+                // Wooden A-Frame Legs
+                for (let i = 0; i < 36; i++) {
+                    px(23 - Math.floor(i * 0.32), 6 + i, 3, 1, '#78350f');
+                    px(24 + Math.floor(i * 0.32), 6 + i, 3, 1, '#78350f');
+                }
+                px(23, 6, 2, 34, '#92400e');
+                // Oak Frame & Slate Chalkboard
+                px(9, 11, 30, 21, '#451a03');
+                px(10, 12, 28, 19, '#b45309');
+                px(12, 14, 24, 15, '#1e293b');
+                // Pixel Chalk Heart & Star
+                px(16, 18, 2, 2, '#fda4af');
+                px(19, 18, 2, 2, '#fda4af');
+                px(15, 19, 7, 2, '#fda4af');
+                px(16, 21, 5, 1, '#fda4af');
+                px(17, 22, 3, 1, '#fda4af');
+                px(18, 23, 1, 1, '#fda4af');
+                px(28, 17, 1, 5, '#fde047');
+                px(26, 19, 5, 1, '#fde047');
+                // Chalk Tray
+                px(7, 31, 34, 3, '#451a03');
+                px(8, 31, 32, 2, '#d97706');
+                px(12, 30, 4, 1, '#ff85b3');
+                px(18, 30, 4, 1, '#7dd3fc');
+                px(30, 29, 3, 2, '#fde047');
+            });
+
+            // 5. Pixel-Art Carved Rune Hot Potato Pedestal
+            propSprites.potatoPedestal = bakePixelSprite(44, 44, 3, ({ px, dither, ellipsePx }) => {
+                ellipsePx(22, 38, 15, 5, 'rgba(15,23,42,0.25)');
+                px(12, 23, 20, 14, '#334155');
+                dither(13, 24, 18, 12, '#94a3b8', '#64748b');
+                px(15, 26, 14, 8, '#475569');
+                px(20, 28, 4, 4, '#fb923c');
+                px(21, 29, 2, 2, '#fde047');
+                ellipsePx(22, 23, 11, 4.5, '#334155');
+                ellipsePx(22, 23, 10, 4, '#cbd5e1');
+                ellipsePx(22, 23, 7, 2.5, '#fed7aa');
+            });
+
+            // 6. Pixel-Art Stone Hearth Firepit
+            propSprites.firepitBase = bakePixelSprite(48, 44, 3, ({ px, ditherEllipsePx, ellipsePx, circlePx }) => {
+                ellipsePx(24, 29, 19, 9.5, 'rgba(15,23,42,0.26)');
+                ellipsePx(24, 26, 17, 8.5, '#1c1917');
+                ditherEllipsePx(24, 26, 14, 6.5, '#7c2d12', '#9a3412');
+                // Crossed Pixel Logs
+                for (let i = -7; i <= 7; i++) {
+                    px(23 + i, 24 + Math.floor(i * 0.4), 3, 3, '#451a03');
+                    px(23 + i, 25 + Math.floor(i * 0.4), 2, 2, '#78350f');
+                    px(23 + i, 24 - Math.floor(i * 0.4), 3, 3, '#451a03');
+                    px(23 + i, 25 - Math.floor(i * 0.4), 2, 2, '#92400e');
+                }
+                // Ring of Pixel Boulders
+                const stones = [[9, 24], [39, 24], [15, 32], [33, 32], [24, 34]];
+                stones.forEach(([sx, sy]) => {
+                    circlePx(sx, sy, 3.8, '#334155');
+                    circlePx(sx, sy - 0.5, 3, '#cbd5e1');
+                    px(sx - 1, sy - 2, 2, 1, '#f8fafc');
+                });
+            });
+
+            // 7. Pixel-Art Retro Pastel Lofi Boombox
+            propSprites.lofiBoombox = bakePixelSprite(40, 36, 3, ({ px, ellipsePx, circlePx }) => {
+                ellipsePx(20, 30, 15, 4, 'rgba(15,23,42,0.25)');
+                // Antenna & Handle
+                for (let i = 0; i < 8; i++) px(30 + Math.floor(i * 0.6), 12 - i, 1, 1, '#64748b');
+                px(34, 4, 2, 2, '#fde047');
+                px(12, 8, 16, 2, '#475569');
+                px(12, 10, 2, 3, '#475569');
+                px(26, 10, 2, 3, '#475569');
+                // Pink Boombox Body
+                px(6, 13, 28, 16, '#881337');
+                px(7, 14, 26, 14, '#fb7185');
+                px(8, 15, 24, 3, '#fda4af');
+                // Dual Woofers & Cassette Deck
+                circlePx(13, 22, 4.5, '#fecdd3');
+                circlePx(13, 22, 3.5, '#1e293b');
+                circlePx(13, 22, 1.5, '#64748b');
+                circlePx(27, 22, 4.5, '#fecdd3');
+                circlePx(27, 22, 3.5, '#1e293b');
+                circlePx(27, 22, 1.5, '#64748b');
+                px(18, 19, 4, 6, '#881337');
+                px(19, 20, 2, 4, '#fef3c7');
+            });
+
+            // 8. Pixel-Art Pagoda Lantern Switch Totem
+            propSprites.lanternSwitch = bakePixelSprite(32, 38, 3, ({ px, ellipsePx }) => {
+                ellipsePx(16, 33, 10, 3.5, 'rgba(15,23,42,0.25)');
+                px(9, 28, 14, 5, '#334155');
+                px(10, 28, 12, 4, '#94a3b8');
+                px(14, 17, 4, 11, '#451a03');
+                px(15, 17, 2, 11, '#92400e');
+                px(10, 8, 12, 10, '#78350f');
+                px(11, 9, 10, 8, '#fef3c7');
+                for (let r = 0; r < 6; r++) {
+                    px(8 + r, 8 - r, 16 - r * 2, 1, '#b45309');
+                }
+                px(15, 2, 2, 2, '#fbbf24');
+            });
+
+            // 9. Pixel-Art Terracotta Flower Planter Box
+            propSprites.flowerPlanterBox = bakePixelSprite(90, 24, 3, ({ px, dither }) => {
+                px(2, 4, 86, 18, '#7c2d12');
+                px(2, 2, 86, 17, '#ea580c');
+                px(3, 3, 84, 2, '#fb923c');
+                dither(6, 5, 78, 11, '#5c3a21', '#452713');
+            });
+
+            // 10. Pixel-Art 5-Petal Ranch Flower Clusters
+            const makePixelFlower = (petal, center) => bakePixelSprite(16, 16, 3, ({ px }) => {
+                px(3, 11, 3, 2, '#15803d');
+                px(10, 11, 3, 2, '#15803d');
+                px(7, 8, 2, 6, '#16a34a');
+                px(6, 3, 4, 3, petal);
+                px(4, 5, 3, 3, petal);
+                px(9, 5, 3, 3, petal);
+                px(5, 8, 3, 3, petal);
+                px(8, 8, 3, 3, petal);
+                px(7, 6, 2, 2, center);
+            });
+            propSprites.flowerPink = makePixelFlower('#ff85b3', '#fde047');
+            propSprites.flowerGold = makePixelFlower('#fde047', '#fb923c');
+            propSprites.flowerLilac = makePixelFlower('#c084fc', '#fef08a');
+            propSprites.flowerSky = makePixelFlower('#7dd3fc', '#fde047');
+
+            // 11. Pixel-Art Sanctuary Lantern Pillar, Pogofruit Bush & Clover
+            propSprites.lanternPillar = bakePixelSprite(26, 34, 3, ({ px, ellipsePx }) => {
+                ellipsePx(13, 30, 8, 3, 'rgba(15,23,42,0.24)');
+                px(8, 25, 10, 5, '#334155');
+                px(9, 25, 8, 4, '#94a3b8');
+                px(11, 14, 4, 11, '#451a03');
+                px(12, 14, 2, 11, '#92400e');
+                px(9, 6, 8, 8, '#78350f');
+                px(10, 7, 6, 6, '#fef9c3');
+                for (let r = 0; r < 5; r++) {
+                    px(7 + r, 6 - r, 12 - r * 2, 1, '#b45309');
+                }
+            });
+
+            propSprites.berryBush = bakePixelSprite(34, 28, 3, ({ px, ellipsePx, circlePx }) => {
+                ellipsePx(17, 23, 13, 4, 'rgba(15,23,42,0.22)');
+                circlePx(10, 16, 6.5, '#14532d');
+                circlePx(24, 16, 6.5, '#14532d');
+                circlePx(17, 12, 8, '#14532d');
+                circlePx(10, 15, 5.5, '#16a34a');
+                circlePx(24, 15, 5.5, '#16a34a');
+                circlePx(17, 11, 7, '#22c55e');
+                circlePx(15, 9, 4, '#4ade80');
+                px(12, 14, 2, 2, '#fb7185');
+                px(21, 15, 2, 2, '#fb7185');
+                px(17, 9, 2, 2, '#fde047');
+            });
+
+            propSprites.cloverPatch = bakePixelSprite(12, 12, 3, ({ px }) => {
+                px(5, 6, 1, 4, '#15803d');
+                px(5, 2, 2, 2, '#4ade80');
+                px(3, 4, 2, 2, '#22c55e');
+                px(7, 4, 2, 2, '#22c55e');
+                px(5, 4, 2, 2, '#bbf7d0');
+            });
+
+            // 12. Pixel-Art Bouncy Slime Trampoline Pad
+            propSprites.bouncyPad = bakePixelSprite(44, 34, 3, ({ px, ellipsePx }) => {
+                ellipsePx(22, 23, 18, 9.5, 'rgba(15,23,42,0.24)');
+                ellipsePx(22, 20, 17, 9, '#831843');
+                ellipsePx(22, 20, 16, 8, '#db2777');
+                ellipsePx(22, 17, 17, 9, '#831843');
+                ellipsePx(22, 17, 16, 8, '#ff85b3');
+                ellipsePx(22, 17, 11, 5.5, '#fbcfe8');
+                px(21, 14, 2, 2, '#be185d');
+                px(19, 16, 2, 2, '#be185d');
+                px(23, 16, 2, 2, '#be185d');
+            });
+
+            // 13. Pixel-Art Outdoor Boba & Dango Cart
+            propSprites.snackCart = bakePixelSprite(52, 48, 3, ({ px, ellipsePx, circlePx }) => {
+                ellipsePx(26, 41, 19, 5.5, 'rgba(15,23,42,0.24)');
+                circlePx(17, 37, 4.5, '#451a03');
+                circlePx(17, 37, 3.5, '#78350f');
+                px(16, 36, 2, 2, '#fde68a');
+                circlePx(35, 37, 4.5, '#451a03');
+                circlePx(35, 37, 3.5, '#78350f');
+                px(34, 36, 2, 2, '#fde68a');
+                px(10, 23, 32, 13, '#78350f');
+                px(11, 24, 30, 11, '#f59e0b');
+                px(9, 21, 34, 3, '#fef3c7');
+                px(15, 16, 4, 5, '#fbcfe8');
+                px(17, 13, 1, 3, '#be185d');
+                px(22, 16, 4, 5, '#bbf7d0');
+                px(24, 13, 1, 3, '#15803d');
+                px(12, 10, 2, 11, '#78350f');
+                px(38, 10, 2, 11, '#78350f');
+                for (let r = 0; r < 6; r++) {
+                    px(8 + r, 10 - r, 36 - r * 2, 1, r % 2 === 0 ? '#fb7185' : '#fff1f2');
+                }
+            });
+
+            // 14. Pixel-Art Rainbow Ranch Xylophone
+            propSprites.kalimbaToy = bakePixelSprite(44, 36, 3, ({ px, ellipsePx }) => {
+                ellipsePx(22, 29, 16, 5, 'rgba(15,23,42,0.22)');
+                px(8, 14, 28, 14, '#451a03');
+                px(9, 15, 26, 12, '#d97706');
+                px(11, 17, 22, 8, '#fef3c7');
+                const keys = ['#fb7185', '#fbbf24', '#4ade80', '#38bdf8', '#c084fc'];
+                keys.forEach((col, i) => {
+                    px(13 + i * 4, 14 + (i === 2 ? 2 : (i % 2)), 3, 10 - (i === 2 ? 2 : 0), col);
+                });
+            });
+
+            // 15. Pixel-Art Cozy Glamping Blanket Tent
+            propSprites.cozyTent = bakePixelSprite(60, 50, 3, ({ px, ellipsePx }) => {
+                ellipsePx(30, 43, 25, 6, 'rgba(15,23,42,0.25)');
+                for (let r = 0; r < 34; r++) {
+                    const halfW = Math.floor(r * 0.68);
+                    px(30 - halfW, 8 + r, halfW * 2, 1, '#92400e');
+                    if (halfW > 1) px(30 - halfW + 1, 8 + r, (halfW - 1) * 2, 1, '#fef08a');
+                    if (halfW > 5) px(30 - Math.floor(halfW * 0.55), 8 + r, Math.floor(halfW * 1.1), 1, '#fda4af');
+                }
+                for (let r = 0; r < 18; r++) {
+                    const halfW = Math.floor(r * 0.42);
+                    px(30 - halfW, 24 + r, halfW * 2, 1, '#312e81');
+                }
+                ellipsePx(30, 39, 5, 2.5, '#fbcfe8');
+                px(30, 3, 1, 5, '#78350f');
+                px(31, 3, 6, 3, '#38bdf8');
+            });
+
+            // 16. Pixel-Art Stargazing Brass Telescope
+            propSprites.telescope = bakePixelSprite(40, 42, 3, ({ px, ellipsePx }) => {
+                ellipsePx(20, 37, 11, 3.5, 'rgba(15,23,42,0.22)');
+                for (let i = 0; i < 14; i++) {
+                    px(19 - Math.floor(i * 0.5), 22 + i, 2, 1, '#78350f');
+                    px(20 + Math.floor(i * 0.5), 22 + i, 2, 1, '#78350f');
+                    px(19, 22 + i, 2, 1, '#92400e');
+                }
+                for (let t = 0; t < 20; t++) {
+                    const tx = 10 + t;
+                    const ty = 21 - Math.floor(t * 0.55);
+                    px(tx, ty - 2, 2, 5, t > 14 ? '#075985' : '#78350f');
+                    px(tx, ty - 1, 2, 3, t > 14 ? '#38bdf8' : '#fbbf24');
+                }
+            });
+
+            // 17. Pixel-Art Sakura Blossom Tree
+            propSprites.sakuraTree = bakePixelSprite(62, 66, 3, ({ px, ellipsePx, circlePx }) => {
+                ellipsePx(31, 58, 18, 5, 'rgba(15,23,42,0.22)');
+                px(26, 34, 10, 23, '#451a03');
+                px(27, 34, 8, 23, '#78350f');
+                px(28, 34, 3, 23, '#92400e');
+                // Lush Layered Sakura Pixel Canopy
+                circlePx(18, 29, 11, '#9d174d');
+                circlePx(44, 29, 11, '#9d174d');
+                circlePx(31, 19, 14, '#9d174d');
+                circlePx(18, 28, 10, '#f472b6');
+                circlePx(44, 28, 10, '#f472b6');
+                circlePx(31, 18, 13, '#ff85b3');
+                circlePx(24, 24, 9, '#fbcfe8');
+                circlePx(37, 23, 8, '#fbcfe8');
+                ellipsePx(28, 11, 6, 3, '#fff1f2');
+            });
+
+            // 18. Pixel-Art Golden King Slime Monument
+            propSprites.slimeStatue = bakePixelSprite(54, 58, 3, ({ px, dither, ellipsePx }) => {
+                ellipsePx(27, 51, 20, 6, 'rgba(15,23,42,0.28)');
+                px(11, 38, 32, 13, '#334155');
+                dither(12, 39, 30, 11, '#94a3b8', '#cbd5e1');
+                // Golden Slime Body
+                ellipsePx(27, 29, 14, 12, '#78350f');
+                ellipsePx(27, 29, 13, 11, '#fbbf24');
+                ellipsePx(27, 27, 11, 9, '#fde047');
+                px(21, 21, 4, 2, '#fef9c3');
+                // Cute Statue Face
+                px(22, 28, 2, 3, '#451a03');
+                px(30, 28, 2, 3, '#451a03');
+                px(25, 32, 4, 1, '#451a03');
+                // Golden Crown
+                px(21, 13, 12, 4, '#92400e');
+                px(22, 14, 10, 3, '#fde047');
+                px(21, 11, 2, 2, '#fde047');
+                px(26, 10, 2, 3, '#fde047');
+                px(31, 11, 2, 2, '#fde047');
+            });
+
+            // 19. Pixel-Art Cozy Wooden Hammock Stand
+            propSprites.hammock = bakePixelSprite(56, 36, 3, ({ px, ellipsePx }) => {
+                ellipsePx(28, 30, 23, 4.5, 'rgba(15,23,42,0.22)');
+                for (let i = 0; i < 18; i++) {
+                    px(8 - Math.floor(i * 0.25), 11 + i, 3, 1, '#78350f');
+                    px(46 + Math.floor(i * 0.25), 11 + i, 3, 1, '#78350f');
+                }
+                for (let hx = 8; hx <= 48; hx++) {
+                    const sag = Math.sin(((hx - 8) / 40) * Math.PI) * 11;
+                    px(hx, 13 + sag, 1, 5, '#0369a1');
+                    px(hx, 14 + sag, 1, 3, '#38bdf8');
+                    if (hx % 4 === 0) px(hx, 14 + sag, 2, 2, '#bae6fd');
+                }
+                ellipsePx(15, 16, 4, 2.5, '#fef08a');
+            });
+
+            // 20. Pixel-Art Ancient Plort Wishing Well
+            propSprites.wishingWell = bakePixelSprite(48, 52, 3, ({ px, dither, ellipsePx }) => {
+                ellipsePx(24, 45, 16, 5, 'rgba(15,23,42,0.25)');
+                px(11, 29, 26, 15, '#334155');
+                dither(12, 30, 24, 13, '#94a3b8', '#64748b');
+                ellipsePx(24, 29, 13, 5, '#cbd5e1');
+                ellipsePx(24, 29, 9, 3.5, '#0284c7');
+                px(13, 14, 2, 15, '#78350f');
+                px(33, 14, 2, 15, '#78350f');
+                for (let r = 0; r < 11; r++) {
+                    px(8 + r, 15 - r, 32 - r * 2, 1, '#7c2d12');
+                    if (r > 0) px(9 + r, 15 - r, 30 - r * 2, 1, '#ea580c');
+                }
+            });
+        }
+
+        // Expansive 4400 x 3200 Multi-Zone Slime Rancher Sanctuary (18 Interactive Hangout Spots!)
         const PROPS = [
             {
                 id: 'pond',
-                name: 'Central Koi Fountain',
+                name: 'Grand Central Koi Lagoon',
                 icon: '🎣',
-                x: WORLD_W / 2,
-                y: WORLD_H / 2,
-                radius: 105,
-                getPrompt: () => fishingState.active ? 'Reel in or pull up fishing line' : 'Go fishing in the Koi Fountain'
+                x: 2200,
+                y: 1600,
+                radius: 135,
+                getPrompt: () => fishingState.active ? 'Reel in or pull up fishing line' : 'Go fishing in the Grand Koi Lagoon'
             },
             {
                 id: 'table',
-                name: 'Picnic Tea Table (Tic-Tac-Toe)',
+                name: 'Maple Grove Picnic Table (Tic-Tac-Toe)',
                 icon: '🍵',
-                x: WORLD_W / 2 - 340,
-                y: WORLD_H / 2 - 210,
-                radius: 85,
+                x: 1120,
+                y: 880,
+                radius: 105,
                 getPrompt: () => 'Play Picnic Table Tic-Tac-Toe'
             },
             {
                 id: 'easel',
-                name: 'Pastel Chalkboard Easel',
+                name: 'Sakura Ridge Chalkboard Studio',
                 icon: '🎨',
-                x: WORLD_W / 2 + 340,
-                y: WORLD_H / 2 - 210,
-                radius: 85,
-                getPrompt: () => 'Draw together on the Chalkboard'
+                x: 3280,
+                y: 860,
+                radius: 105,
+                getPrompt: () => 'Draw together on the Shared Chalkboard'
             },
             {
                 id: 'potato',
-                name: 'Hot Potato Tag Pedestal',
+                name: 'Twilight Hot Potato Arena',
                 icon: '🥔',
-                x: WORLD_W / 2 - 340,
-                y: WORLD_H / 2 + 210,
-                radius: 85,
+                x: 1100,
+                y: 2360,
+                radius: 105,
                 getPrompt: () => hotPotatoState.active ? 'Hot Potato round in progress!' : 'Start a 20s Hot Potato Tag round!'
             },
             {
                 id: 'campfire',
-                name: 'Hearth Firepit & Lounge',
+                name: 'Sunset Hearth Campfire',
                 icon: '🔥',
-                x: WORLD_W / 2 + 340,
-                y: WORLD_H / 2 + 210,
-                radius: 85,
-                getPrompt: () => propStates.campfireLit ? 'Warm your paws by the hearth' : 'Light the hearth firepit'
+                x: 3280,
+                y: 2360,
+                radius: 105,
+                getPrompt: () => propStates.campfireLit ? 'Warm your paws by the campfire' : 'Light the campfire hearth'
             },
             {
                 id: 'boombox',
-                name: 'Courtyard Lofi Radio',
+                name: 'Plaza Lofi Boombox',
                 icon: '📻',
-                x: WORLD_W / 2 + 165,
-                y: WORLD_H / 2 - 295,
-                radius: 75,
-                getPrompt: () => propStates.lofiPlaying ? 'Pause courtyard lofi beats' : 'Play courtyard lofi beats'
+                x: 2480,
+                y: 1390,
+                radius: 85,
+                getPrompt: () => propStates.lofiPlaying ? 'Pause sanctuary lofi beats' : 'Play sanctuary lofi beats'
             },
             {
                 id: 'sofa',
-                name: 'Pergola Lantern Switch',
+                name: 'Lantern Switch Pagoda',
                 icon: '🏮',
-                x: WORLD_W / 2 - 165,
-                y: WORLD_H / 2 - 295,
-                radius: 75,
-                getPrompt: () => propStates.fairyLightsOn ? 'Dim courtyard lanterns' : 'Light courtyard lanterns'
+                x: 1920,
+                y: 1390,
+                radius: 85,
+                getPrompt: () => propStates.fairyLightsOn ? 'Dim sanctuary lanterns' : 'Light sanctuary lanterns'
+            },
+            {
+                id: 'trampoline',
+                name: 'Bouncy Pink Slime Pad (West)',
+                icon: '🩷',
+                x: 1620,
+                y: 1980,
+                radius: 85,
+                getPrompt: () => 'Boing! Super Slime Bounce!'
+            },
+            {
+                id: 'snackcart',
+                name: 'Strawberry Boba & Dango Cart',
+                icon: '🧋',
+                x: 1580,
+                y: 720,
+                radius: 95,
+                getPrompt: () => 'Grab a sweet strawberry boba & dango!'
+            },
+            {
+                id: 'kalimba',
+                name: 'Rainbow Ranch Xylophone',
+                icon: '🎶',
+                x: 2820,
+                y: 1980,
+                radius: 90,
+                getPrompt: () => 'Play a cheerful melody chime!'
+            },
+            {
+                id: 'tent',
+                name: 'East Meadow Glamping Tent',
+                icon: '⛺',
+                x: 3740,
+                y: 1620,
+                radius: 105,
+                getPrompt: () => 'Snuggle into the cozy pillow fort!'
+            },
+            {
+                id: 'telescope',
+                name: 'West Overlook Brass Telescope',
+                icon: '🔭',
+                x: 640,
+                y: 1580,
+                radius: 90,
+                getPrompt: () => 'Peer through the telescope at the stars!'
+            },
+            {
+                id: 'statue',
+                name: 'Golden King Slime Monument',
+                icon: '👑',
+                x: 2200,
+                y: 520,
+                radius: 105,
+                getPrompt: () => 'Make an offering at the King Slime Statue!'
+            },
+            {
+                id: 'hammock',
+                name: 'Breezy Sky-Blue Hammock',
+                icon: '🏖️',
+                x: 3760,
+                y: 2680,
+                radius: 100,
+                getPrompt: () => 'Sway gently in the breezy hammock!'
+            },
+            {
+                id: 'wishingwell',
+                name: 'Ancient Plort Wishing Well',
+                icon: '🪙',
+                x: 640,
+                y: 2680,
+                radius: 95,
+                getPrompt: () => 'Toss a shiny plort into the Wishing Well!'
+            },
+            {
+                id: 'trampoline2',
+                name: 'Bouncy Pink Slime Pad (North)',
+                icon: '🩷',
+                x: 2820,
+                y: 720,
+                radius: 85,
+                getPrompt: () => 'Boing! Super Slime Bounce!'
+            },
+            {
+                id: 'hammock2',
+                name: 'Lakeside Nap Hammock',
+                icon: '💤',
+                x: 620,
+                y: 520,
+                radius: 100,
+                getPrompt: () => 'Take a sunny nap by the crystal brook!'
+            },
+            {
+                id: 'snackcart2',
+                name: 'South Promenade Honey Tea Stand',
+                icon: '🍯',
+                x: 2200,
+                y: 2740,
+                radius: 95,
+                getPrompt: () => 'Sip warm golden honey-slime tea!'
             }
         ];
 
@@ -508,59 +1080,135 @@
         });
 
         let shootingStar = null;
-        let nextShootingStarTime = performance.now() + 5000;
+        let nextShootingStarTime = performance.now() + 4000;
 
-        // Decorative Courtyard Flowerbeds (Placed neatly inside brick planters)
+        // Decorative Courtyard Flowerbeds & Clover Patches across the 2200x1600 Sanctuary
         const planterFlowers = [
-            { x: 205, y: 125, c: '#fda4af' }, { x: 235, y: 125, c: '#fde047' }, { x: 265, y: 125, c: '#f0abfc' },
-            { x: WORLD_W - 205, y: 125, c: '#fde047' }, { x: WORLD_W - 235, y: 125, c: '#bae6fd' }, { x: WORLD_W - 265, y: 125, c: '#fda4af' },
-            { x: 205, y: WORLD_H - 125, c: '#f0abfc' }, { x: 235, y: WORLD_H - 125, c: '#fda4af' }, { x: 265, y: WORLD_H - 125, c: '#fde047' },
-            { x: WORLD_W - 205, y: WORLD_H - 125, c: '#bae6fd' }, { x: WORLD_W - 235, y: WORLD_H - 125, c: '#fde047' }, { x: WORLD_W - 265, y: WORLD_H - 125, c: '#fda4af' }
+            { x: 395, y: 225, c: '#ff85b3' }, { x: 430, y: 225, c: '#fde047' }, { x: 465, y: 225, c: '#c084fc' },
+            { x: 1735, y: 225, c: '#fde047' }, { x: 1770, y: 225, c: '#7dd3fc' }, { x: 1805, y: 225, c: '#ff85b3' },
+            { x: 395, y: 1375, c: '#c084fc' }, { x: 430, y: 1375, c: '#ff85b3' }, { x: 465, y: 1375, c: '#fde047' },
+            { x: 1735, y: 1375, c: '#7dd3fc' }, { x: 1770, y: 1375, c: '#fde047' }, { x: 1805, y: 1375, c: '#ff85b3' }
         ];
 
-        const fireflies = Array.from({ length: 24 }, () => ({
+        const cloverTufts = Array.from({ length: 78 }, (_, i) => ({
+            x: 90 + ((i * 257) % (WORLD_W - 180)),
+            y: 90 + ((i * 173) % (WORLD_H - 180)),
+            scale: 0.75 + (i % 4) * 0.18
+        }));
+
+        const fireflies = Array.from({ length: 42 }, () => ({
             x: 120 + Math.random() * (WORLD_W - 240),
             y: 120 + Math.random() * (WORLD_H - 240),
-            vx: (Math.random() - 0.5) * 16,
-            vy: (Math.random() - 0.5) * 16,
+            vx: (Math.random() - 0.5) * 18,
+            vy: (Math.random() - 0.5) * 18,
             phase: Math.random() * Math.PI * 2,
-            size: 2 + Math.random() * 2.2
+            size: 2.5 + Math.random() * 2.5
+        }));
+
+        // Living Ranch Wildlife, Drifting Petals, Brook Fish & Interactive Swaying Flora
+        const wildSlimes = Array.from({ length: 14 }, (_, i) => ({
+            id: `wild-slime-${i}`,
+            colorIdx: i % AVATAR_COLORS.length,
+            x: 320 + ((i * 613) % (WORLD_W - 640)),
+            y: 280 + ((i * 457) % (WORLD_H - 560)),
+            homeX: 320 + ((i * 613) % (WORLD_W - 640)),
+            homeY: 280 + ((i * 457) % (WORLD_H - 560)),
+            vx: 0,
+            vy: 0,
+            hopHeight: 0,
+            hopVel: 0,
+            nextHopTime: performance.now() + 600 + i * 320,
+            scale: 0.58 + (i % 3) * 0.08,
+            happyHearts: 0
+        }));
+
+        const ranchButterflies = Array.from({ length: 28 }, (_, i) => {
+            const wingColors = ['#ff85b3', '#fde047', '#7dd3fc', '#d8b4fe', '#fda4af'];
+            return {
+                x: 200 + Math.random() * (WORLD_W - 400),
+                y: 200 + Math.random() * (WORLD_H - 400),
+                angle: Math.random() * Math.PI * 2,
+                speed: 36 + Math.random() * 28,
+                wingPhase: Math.random() * Math.PI * 2,
+                color: wingColors[i % wingColors.length]
+            };
+        });
+
+        const sakuraPetals = Array.from({ length: 46 }, () => ({
+            x: 2700 + Math.random() * 1450,
+            y: 250 + Math.random() * 1250,
+            vx: -18 - Math.random() * 18,
+            vy: 14 + Math.random() * 16,
+            swayPhase: Math.random() * Math.PI * 2,
+            size: 3.5 + Math.random() * 2.5
+        }));
+
+        const brookSplashFish = Array.from({ length: 5 }, (_, i) => ({
+            y: 340 + i * 580,
+            jumpOffset: 0,
+            timer: i * 1.4,
+            active: false
+        }));
+
+        const swayFloraPatches = Array.from({ length: 120 }, (_, i) => {
+            const flowerColors = [null, null, '#ff85b3', '#fde047', '#c084fc', '#7dd3fc'];
+            return {
+                x: 130 + ((i * 349) % (WORLD_W - 260)),
+                y: 130 + ((i * 271) % (WORLD_H - 260)),
+                sway: 0,
+                swayVel: 0,
+                flowerColor: flowerColors[i % flowerColors.length]
+            };
+        });
+
+        const zoneSignposts = [
+            { x: 1940, y: 1510, text: '← Brook & Stargazer Overlook' },
+            { x: 2460, y: 1510, text: 'Sakura Studio & Glamping →' },
+            { x: 2290, y: 1320, text: '↑ King Slime & Boba Lawn' },
+            { x: 2290, y: 1880, text: '↓ Campfire & Tag Arena' }
+        ];
+
+        const steppingStones = Array.from({ length: 44 }, (_, i) => ({
+            x: 240 + ((i * 487) % (WORLD_W - 480)),
+            y: 220 + ((i * 389) % (WORLD_H - 440)),
+            rx: 14 + (i % 3) * 4,
+            ry: 8 + (i % 2) * 3
         }));
 
         // ==========================================
-        // 2. AUDIO ENGINE (WEB AUDIO LOFI & SFX)
+        // 2. COZY WEB AUDIO SYNTH (NO EXTERNAL URLS)
         // ==========================================
         let audioCtx = null;
         let lofiInterval = null;
-        let lofiStep = 0;
 
-        function ensureAudioContext() {
+        function ensureAudioCtx() {
             if (!audioCtx) {
-                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-                if (AudioContextClass) {
-                    audioCtx = new AudioContextClass();
-                }
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) audioCtx = new AudioCtx();
             }
             if (audioCtx && audioCtx.state === 'suspended') {
                 audioCtx.resume().catch(() => {});
             }
+            return audioCtx;
         }
 
-        function playPopSound(freq = 540) {
+        function playPopSound(freq = 560) {
             try {
-                ensureAudioContext();
-                if (!audioCtx) return;
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
+                const ctxA = ensureAudioCtx();
+                if (!ctxA) return;
+                const osc = ctxA.createOscillator();
+                const gain = ctxA.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(freq * 1.45, audioCtx.currentTime + 0.09);
-                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.11);
+                osc.frequency.setValueAtTime(freq, ctxA.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(freq * 1.35, ctxA.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.08, ctxA.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctxA.currentTime + 0.11);
+
                 osc.connect(gain);
-                gain.connect(audioCtx.destination);
+                gain.connect(ctxA.destination);
                 osc.start();
-                osc.stop(audioCtx.currentTime + 0.12);
+                osc.stop(ctxA.currentTime + 0.12);
             } catch (e) {}
         }
 
@@ -577,25 +1225,29 @@
             }
 
             if (nextState) {
-                ensureAudioContext();
+                const ctxA = ensureAudioCtx();
+                if (!ctxA) return;
                 const chords = [
                     [261.63, 329.63, 392.00, 493.88], // Cmaj7
                     [220.00, 261.63, 329.63, 392.00], // Am7
                     [174.61, 220.00, 261.63, 329.63], // Fmaj7
                     [196.00, 246.94, 293.66, 349.23]  // G7
                 ];
+                let step = 0;
                 const playChord = () => {
-                    if (!audioCtx || !propStates.lofiPlaying) return;
-                    const chord = chords[lofiStep % chords.length];
-                    lofiStep++;
+                    if (!propStates.lofiPlaying || !audioCtx) return;
+                    const chord = chords[step % chords.length];
+                    step++;
                     chord.forEach((hz, idx) => {
                         const osc = audioCtx.createOscillator();
                         const gain = audioCtx.createGain();
                         osc.type = 'triangle';
                         osc.frequency.setValueAtTime(hz, audioCtx.currentTime + idx * 0.04);
-                        gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
-                        gain.gain.linearRampToValueAtTime(0.025, audioCtx.currentTime + 0.25);
+
+                        gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + idx * 0.04);
+                        gain.gain.linearRampToValueAtTime(0.025, audioCtx.currentTime + idx * 0.04 + 0.25);
                         gain.gain.exponentialRampToValueAtTime(0.0008, audioCtx.currentTime + 2.1);
+
                         osc.connect(gain);
                         gain.connect(audioCtx.destination);
                         osc.start(audioCtx.currentTime + idx * 0.04);
@@ -731,8 +1383,8 @@
         function enterGameWorld(modeLabel, isMultiplayer) {
             inGame = true;
             // Spawn cleanly on the south cobblestone promenade
-            localPlayer.x = WORLD_W / 2 + (Math.random() - 0.5) * 90;
-            localPlayer.y = WORLD_H / 2 + 195 + (Math.random() - 0.5) * 40;
+            localPlayer.x = WORLD_W / 2 + (Math.random() - 0.5) * 110;
+            localPlayer.y = WORLD_H / 2 + 165 + (Math.random() - 0.5) * 45;
             camera.x = localPlayer.x;
             camera.y = localPlayer.y;
             clickTarget = null;
@@ -1131,7 +1783,60 @@
                 return;
             } else if (prop.id === 'sofa') {
                 propStates.fairyLightsOn = !propStates.fairyLightsOn;
-                triggerSpeechBubble(propStates.fairyLightsOn ? 'Lit courtyard lanterns 🏮' : 'Dimmed lanterns 🌙');
+                triggerSpeechBubble(propStates.fairyLightsOn ? 'Lit sanctuary lanterns 🏮' : 'Dimmed lanterns 🌙');
+            } else if (prop.id === 'trampoline' || prop.id === 'trampoline2') {
+                localPlayer.jumpVel = 460;
+                playPopSound(820);
+                spawnConfettiBurst(prop.x, prop.y);
+                triggerSpeechBubble('BOING!! Wheeee! 🩷✨');
+                return;
+            } else if (prop.id === 'snackcart' || prop.id === 'snackcart2') {
+                const treats = [
+                    'Sipping iced strawberry boba! 🧋🍓',
+                    'Munched a trio of rainbow dango! 🍡✨',
+                    'Enjoying warm honey-slime tea! 🍯🍵',
+                    'Got a frosty mango slushie! 🥭🧊'
+                ];
+                playPopSound(690);
+                triggerSpeechBubble(treats[Math.floor(Math.random() * treats.length)]);
+                return;
+            } else if (prop.id === 'kalimba') {
+                const notes = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
+                notes.forEach((hz, idx) => {
+                    setTimeout(() => playPopSound(hz), idx * 95);
+                });
+                triggerSpeechBubble('♪ ♫ Playing a sunny ranch tune! 🎶');
+                return;
+            } else if (prop.id === 'tent') {
+                localPlayer.jumpVel = 160;
+                playPopSound(500);
+                triggerSpeechBubble('Cozy nap inside the pillow fort~ ⛺💤');
+                return;
+            } else if (prop.id === 'telescope') {
+                const sightings = [
+                    'Spotted a constellation shaped like a Pink Slime! ✨🔭',
+                    'Whoa, a shooting star just zoomed past! 🌠',
+                    'I can see the glowing Phosphor Nebula! 🌌',
+                    'The crescent moon looks like a giant banana! 🌙'
+                ];
+                playPopSound(740);
+                triggerSpeechBubble(sightings[Math.floor(Math.random() * sightings.length)]);
+                return;
+            } else if (prop.id === 'statue') {
+                spawnConfettiBurst(prop.x, prop.y);
+                playPopSound(880);
+                triggerSpeechBubble('All hail the Golden King Slime! 👑✨');
+                return;
+            } else if (prop.id === 'hammock' || prop.id === 'hammock2') {
+                localPlayer.jumpVel = 140;
+                playPopSound(480);
+                triggerSpeechBubble('Swaying in the breeze~ so peaceful 🏖️💤');
+                return;
+            } else if (prop.id === 'wishingwell') {
+                pondRipples.push({ x: prop.x, y: prop.y, r: 8, alpha: 1 });
+                playPopSound(760);
+                triggerSpeechBubble('Tossed a lucky plort into the Wishing Well! 🪙✨');
+                return;
             }
 
             syncPropStateToRoom();
@@ -1506,15 +2211,15 @@
                     colorIdx: 2,
                     accessoryIdx: 4, // Frog Hood
                     faceIdx: 1,
-                    x: WORLD_W / 2 - 220,
-                    y: WORLD_H / 2 + 60,
-                    targetX: WORLD_W / 2 - 260,
-                    targetY: WORLD_H / 2 - 140,
+                    x: 840,
+                    y: 780,
+                    targetX: 560,
+                    targetY: 480,
                     facing: 'down',
                     walkCycle: 0,
                     isMoving: false,
                     jumpHeight: 0,
-                    chatText: 'Ribbit~ welcome to the courtyard! 🐸',
+                    chatText: 'Ribbit~ let’s explore the whole ranch! 🐸',
                     chatTimestamp: Date.now(),
                     nextMoveTime: performance.now() + 2500
                 },
@@ -1524,15 +2229,15 @@
                     colorIdx: 3,
                     accessoryIdx: 5, // Ducky Hat
                     faceIdx: 2,
-                    x: WORLD_W / 2 + 230,
-                    y: WORLD_H / 2 + 80,
-                    targetX: WORLD_W / 2 + 280,
-                    targetY: WORLD_H / 2 + 160,
+                    x: 1360,
+                    y: 820,
+                    targetX: 1640,
+                    targetY: 480,
                     facing: 'left',
                     walkCycle: 0,
                     isMoving: false,
                     jumpHeight: 0,
-                    chatText: 'Want to draw on the chalkboard or fish? 🦆',
+                    chatText: 'Have you tried the bouncy slime pad yet? 🦆',
                     chatTimestamp: Date.now(),
                     nextMoveTime: performance.now() + 4000
                 }
@@ -1588,10 +2293,10 @@
 
         function drawStringFairyLights(now) {
             const strands = [
-                { x1: 180, y1: 155, x2: WORLD_W / 2, y2: 125 },
-                { x1: WORLD_W / 2, y1: 125, x2: WORLD_W - 180, y2: 155 },
-                { x1: 180, y1: WORLD_H - 155, x2: WORLD_W / 2, y2: WORLD_H - 125 },
-                { x1: WORLD_W / 2, y1: WORLD_H - 125, x2: WORLD_W - 180, y2: WORLD_H - 155 }
+                { x1: 380, y1: 255, x2: 1100, y2: 210 },
+                { x1: 1100, y1: 210, x2: 1820, y2: 255 },
+                { x1: 380, y1: 1345, x2: 1100, y2: 1390 },
+                { x1: 1100, y1: 1390, x2: 1820, y2: 1345 }
             ];
             const bulbColors = ['#fde047', '#fda4af', '#bae6fd', '#86efac'];
 
@@ -1630,42 +2335,54 @@
         }
 
         function drawCourtyardWorld(now) {
-            // Deep Tranquil Twilight Starry Sky Background
+            // Dreamy Slime Rancher Sunset-Twilight Pastel Sky Background
             const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            skyGrad.addColorStop(0, '#090b1a');
-            skyGrad.addColorStop(0.5, '#131631');
-            skyGrad.addColorStop(1, '#1c1836');
+            skyGrad.addColorStop(0, '#1e2952');
+            skyGrad.addColorStop(0.5, '#3b387a');
+            skyGrad.addColorStop(1, '#6b4c8c');
             ctx.fillStyle = skyGrad;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Subtle Drifting Aurora Mist
+            // Soft Pastel Rainbow / Phosphor Glow Mist
             const auroraShift = Math.sin(now * 0.00035) * 90;
             const auroraGrad = ctx.createRadialGradient(
                 canvas.width * 0.3 + auroraShift, canvas.height * 0.22, 20,
-                canvas.width * 0.3 + auroraShift, canvas.height * 0.22, canvas.width * 0.45
+                canvas.width * 0.3 + auroraShift, canvas.height * 0.22, canvas.width * 0.48
             );
-            auroraGrad.addColorStop(0, 'rgba(94, 234, 212, 0.075)');
-            auroraGrad.addColorStop(0.5, 'rgba(167, 139, 250, 0.045)');
-            auroraGrad.addColorStop(1, 'rgba(9, 11, 26, 0)');
+            auroraGrad.addColorStop(0, 'rgba(255, 182, 219, 0.16)');
+            auroraGrad.addColorStop(0.5, 'rgba(125, 211, 252, 0.1)');
+            auroraGrad.addColorStop(1, 'rgba(30, 41, 82, 0)');
             ctx.fillStyle = auroraGrad;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Fluffy Stylized Ranch Clouds Floating in the Sky
+            for (let c = 0; c < 5; c++) {
+                const cx = ((c * 340 + now * 0.008 - camera.x * 0.08) % (canvas.width + 260)) - 130;
+                const cy = 60 + (c % 3) * 55;
+                ctx.fillStyle = 'rgba(255, 241, 248, 0.14)';
+                ctx.beginPath();
+                ctx.arc(cx, cy, 34, 0, Math.PI * 2);
+                ctx.arc(cx + 28, cy - 8, 28, 0, Math.PI * 2);
+                ctx.arc(cx + 54, cy + 2, 24, 0, Math.PI * 2);
+                ctx.fill();
+            }
 
             // Soft Glowing Crescent Moon
             const moonX = canvas.width * 0.14;
             const moonY = canvas.height * 0.15;
-            const moonGlow = ctx.createRadialGradient(moonX, moonY, 6, moonX, moonY, 75);
-            moonGlow.addColorStop(0, 'rgba(254, 249, 195, 0.28)');
+            const moonGlow = ctx.createRadialGradient(moonX, moonY, 6, moonX, moonY, 80);
+            moonGlow.addColorStop(0, 'rgba(254, 249, 195, 0.35)');
             moonGlow.addColorStop(1, 'rgba(254, 249, 195, 0)');
             ctx.fillStyle = moonGlow;
             ctx.beginPath();
-            ctx.arc(moonX, moonY, 75, 0, Math.PI * 2);
+            ctx.arc(moonX, moonY, 80, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.fillStyle = '#fef9c3';
             ctx.beginPath();
-            ctx.arc(moonX, moonY, 16, 0, Math.PI * 2);
+            ctx.arc(moonX, moonY, 17, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillStyle = '#0d1024';
+            ctx.fillStyle = '#252f5e';
             ctx.beginPath();
             ctx.arc(moonX + 6, moonY - 4, 14, 0, Math.PI * 2);
             ctx.fill();
@@ -1674,21 +2391,12 @@
             nightStars.forEach((st) => {
                 const sx = ((st.rx * canvas.width * 1.4 - camera.x * 0.12) % canvas.width + canvas.width) % canvas.width;
                 const sy = ((st.ry * canvas.height * 1.4 - camera.y * 0.12) % canvas.height + canvas.height) % canvas.height;
-                const twinkle = 0.35 + Math.sin(now * st.speed + st.phase) * 0.55;
+                const twinkle = 0.4 + Math.sin(now * st.speed + st.phase) * 0.55;
                 ctx.fillStyle = st.tint;
-                ctx.globalAlpha = Math.max(0.12, Math.min(0.95, twinkle));
+                ctx.globalAlpha = Math.max(0.15, Math.min(0.95, twinkle));
                 ctx.beginPath();
                 ctx.arc(sx, sy, st.size, 0, Math.PI * 2);
                 ctx.fill();
-
-                if (st.size > 2.2 && twinkle > 0.75) {
-                    ctx.strokeStyle = st.tint;
-                    ctx.lineWidth = 0.8;
-                    ctx.beginPath();
-                    ctx.moveTo(sx - 4.5, sy); ctx.lineTo(sx + 4.5, sy);
-                    ctx.moveTo(sx, sy - 4.5); ctx.lineTo(sx, sy + 4.5);
-                    ctx.stroke();
-                }
             });
             ctx.globalAlpha = 1;
 
@@ -1702,7 +2410,7 @@
                 grad.addColorStop(0, `rgba(254, 249, 195, ${shootingStar.alpha})`);
                 grad.addColorStop(1, 'rgba(254, 249, 195, 0)');
                 ctx.strokeStyle = grad;
-                ctx.lineWidth = 2.2;
+                ctx.lineWidth = 2.5;
                 ctx.lineCap = 'round';
                 ctx.beginPath();
                 ctx.moveTo(shootingStar.x, shootingStar.y);
@@ -1714,142 +2422,252 @@
             ctx.save();
             ctx.translate(canvas.width / 2 - camera.x, canvas.height / 2 - camera.y);
 
-            // 1. Outer Stone Courtyard Perimeter Wall
-            ctx.fillStyle = '#44403c';
+            // 1. 2.5D Extruded Sandstone Ranch Perimeter Wall (Front & Back Depth)
+            ctx.fillStyle = '#9a4e36';
             ctx.beginPath();
-            ctx.roundRect(14, 14, WORLD_W - 28, WORLD_H - 28, 36);
+            ctx.roundRect(10, 10, WORLD_W - 20, WORLD_H - 12, 44);
             ctx.fill();
 
-            ctx.strokeStyle = '#78716c';
+            ctx.fillStyle = '#d97757';
+            ctx.beginPath();
+            ctx.roundRect(10, 10, WORLD_W - 20, WORLD_H - 28, 44);
+            ctx.fill();
+
+            ctx.strokeStyle = '#fed7aa';
             ctx.lineWidth = 5;
             ctx.beginPath();
-            ctx.roundRect(18, 18, WORLD_W - 36, WORLD_H - 36, 32);
+            ctx.roundRect(16, 16, WORLD_W - 32, WORLD_H - 40, 38);
             ctx.stroke();
 
-            // 2. Warm Sandstone & Terracotta Courtyard Flagstone Floor
-            ctx.fillStyle = '#3b3330';
+            // 2. Lush Vibrant Mint-Emerald Ranch Meadow Turf (with recessed inner wall lip)
+            // 2. Lush Baked Pixel-Art Ranch Meadow Turf
+            ctx.fillStyle = bakedGrassPattern || '#34d399';
             ctx.beginPath();
-            ctx.roundRect(36, 36, WORLD_W - 72, WORLD_H - 72, 24);
+            ctx.roundRect(36, 36, WORLD_W - 72, WORLD_H - 80, 32);
             ctx.fill();
 
-            // Subtle Mortar Tile Grid across Courtyard Floor
-            ctx.strokeStyle = 'rgba(254, 243, 199, 0.06)';
-            ctx.lineWidth = 1.5;
-            for (let gx = 90; gx < WORLD_W - 60; gx += 64) {
+            // Subtle Dappled Sunbeams & Meadow Stepping Stones for Ground Texture
+            steppingStones.forEach((st) => {
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.14)';
                 ctx.beginPath();
-                ctx.moveTo(gx, 40);
-                ctx.lineTo(gx, WORLD_H - 40);
-                ctx.stroke();
-            }
-            for (let gy = 90; gy < WORLD_H - 60; gy += 64) {
+                ctx.ellipse(st.x, st.y + 3, st.rx, st.ry, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#e2e8f0';
                 ctx.beginPath();
-                ctx.moveTo(40, gy);
-                ctx.lineTo(WORLD_W - 40, gy);
+                ctx.ellipse(st.x, st.y, st.rx, st.ry, 0, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Distinct Biome Turf Zones across the 4400 x 3200 Grand Sanctuary
+            // Northeast Sakura Blossom Forest
+            ctx.fillStyle = 'rgba(251, 207, 232, 0.36)';
+            ctx.beginPath();
+            ctx.ellipse(3360, 860, 740, 520, -0.1, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Southeast Sunset Campfire Grove
+            ctx.fillStyle = 'rgba(254, 215, 170, 0.34)';
+            ctx.beginPath();
+            ctx.ellipse(3360, 2360, 740, 520, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Southwest Twilight Berry & Tag Meadow
+            ctx.fillStyle = 'rgba(216, 180, 254, 0.26)';
+            ctx.beginPath();
+            ctx.ellipse(1060, 2360, 740, 520, -0.08, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Northwest Golden Picnic & Brook Lawn
+            ctx.fillStyle = 'rgba(254, 240, 138, 0.24)';
+            ctx.beginPath();
+            ctx.ellipse(1060, 860, 740, 520, 0.08, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Winding Crystal Ranch Brook (North-South Stream on West Side + 3 Stepping-Stone Bridges)
+            ctx.save();
+            ctx.strokeStyle = '#0284c7';
+            ctx.lineWidth = 84;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(860, 64);
+            ctx.bezierCurveTo(760, 820, 990, 1520, 840, 2240);
+            ctx.quadraticCurveTo(780, 2720, 890, WORLD_H - 64);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 66;
+            ctx.stroke();
+
+            // Shimmering Water Ripples in the Brook
+            ctx.strokeStyle = 'rgba(224, 242, 254, 0.58)';
+            ctx.lineWidth = 3.5;
+            for (let wy = 160; wy < WORLD_H - 140; wy += 160) {
+                const wx = 855 + Math.sin(wy * 0.005) * 48 + Math.sin(now * 0.003 + wy) * 8;
+                ctx.beginPath();
+                ctx.moveTo(wx - 16, wy);
+                ctx.lineTo(wx + 16, wy);
                 ctx.stroke();
             }
 
-            // 3. Four Symmetrical Brick-Rimmed Garden Planter Beds
+            // Three Cozy Wooden & Sandstone Footbridges crossing the Crystal Brook
+            [880, 1600, 2360].forEach((by, idx) => {
+                const bx = idx === 0 ? 810 : (idx === 1 ? 895 : 835);
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.26)';
+                ctx.beginPath();
+                ctx.roundRect(bx - 64, by - 28, 128, 66, 16);
+                ctx.fill();
+                ctx.fillStyle = '#d97706';
+                ctx.strokeStyle = '#78350f';
+                ctx.lineWidth = 3.5;
+                ctx.beginPath();
+                ctx.roundRect(bx - 64, by - 36, 128, 66, 16);
+                ctx.fill();
+                ctx.stroke();
+                ctx.strokeStyle = '#92400e';
+                ctx.lineWidth = 2.2;
+                for (let px = bx - 44; px <= bx + 44; px += 22) {
+                    ctx.beginPath();
+                    ctx.moveTo(px, by - 34);
+                    ctx.lineTo(px, by + 28);
+                    ctx.stroke();
+                }
+            });
+
+            // Leaping Golden Brook Fish Splashes
+            brookSplashFish.forEach((bf) => {
+                if (!bf.active) return;
+                const bx = 855 + Math.sin(bf.y * 0.005) * 48;
+                const arcY = bf.y - Math.sin(bf.jumpOffset * Math.PI) * 34;
+                const arcX = bx + (bf.jumpOffset - 0.5) * 28;
+                ctx.save();
+                ctx.translate(arcX, arcY);
+                ctx.rotate((bf.jumpOffset - 0.5) * 1.6);
+                ctx.fillStyle = '#fb923c';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 9, 4.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath();
+                ctx.arc(3, -1, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+            ctx.restore();
+
+            // Inner North Wall Base Shadow for 2.5D Depth
+            ctx.fillStyle = 'rgba(20, 83, 45, 0.22)';
+            ctx.beginPath();
+            ctx.roundRect(36, 44, WORLD_W - 72, 16, [28, 28, 0, 0]);
+            ctx.fill();
+
+            cloverTufts.forEach((cl) => {
+                const sz = 28 * cl.scale;
+                drawSpriteAsset(propSprites.cloverPatch, cl.x - sz / 2, cl.y - sz / 2, sz, sz);
+            });
+
+            // Swaying Wildflower & Tall Grass Tufts (rustle when slimes walk past!)
+            swayFloraPatches.forEach((fl) => {
+                const wind = Math.sin(now * 0.0028 + fl.x * 0.01) * 2.5 + fl.sway;
+                ctx.strokeStyle = '#15803d';
+                ctx.lineWidth = 2.4;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(fl.x - 5, fl.y);
+                ctx.quadraticCurveTo(fl.x - 6 + wind * 0.6, fl.y - 8, fl.x - 8 + wind, fl.y - 15);
+                ctx.moveTo(fl.x, fl.y);
+                ctx.quadraticCurveTo(fl.x + wind * 0.6, fl.y - 10, fl.x + wind * 1.15, fl.y - 18);
+                ctx.moveTo(fl.x + 5, fl.y);
+                ctx.quadraticCurveTo(fl.x + 6 + wind * 0.6, fl.y - 8, fl.x + 8 + wind, fl.y - 14);
+                ctx.stroke();
+
+                if (fl.flowerColor) {
+                    ctx.fillStyle = fl.flowerColor;
+                    ctx.beginPath();
+                    ctx.arc(fl.x + wind * 1.15, fl.y - 19, 4.2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#fef9c3';
+                    ctx.beginPath();
+                    ctx.arc(fl.x + wind * 1.15, fl.y - 19, 1.8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            // 3. Winding Creamy Sandstone Trails connecting all 5 Ranch Zones (with 2.5D beveled lip)
+            const drawSanctuaryTrails = (yOffset, color) => {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                // Grand East-West Promenade
+                ctx.roundRect(520, 1600 - 46 + yOffset, WORLD_W - 1040, 92, 30);
+                // Grand North-South Promenade
+                ctx.roundRect(2200 - 60, 440 + yOffset, 120, WORLD_H - 880, 30);
+                // Loop Trails to the 4 Outer Biomes
+                ctx.roundRect(1080, 880 - 34 + yOffset, 1160, 68, 26);
+                ctx.roundRect(2160, 860 - 34 + yOffset, 1160, 68, 26);
+                ctx.roundRect(1080, 2360 - 34 + yOffset, 1160, 68, 26);
+                ctx.roundRect(2160, 2360 - 34 + yOffset, 1160, 68, 26);
+                ctx.fill();
+            };
+            drawSanctuaryTrails(7, '#d97706');
+            drawSanctuaryTrails(0, '#fde68a');
+
+            // 4. 2.5D Foreshortened Elliptical Central Plaza (Puddle Slime Lagoon Plaza)
+            ctx.fillStyle = '#d97706';
+            ctx.beginPath();
+            ctx.ellipse(2200, 1608, 275, 180, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#fef3c7';
+            ctx.beginPath();
+            ctx.ellipse(2200, 1600, 275, 180, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // 5. Pastel Candy-Colored Activity Corrals / Hangout Nooks
+            const alcoves = [
+                { x: 1120, y: 880, fill: '#ffedd5', border: '#fb923c', lip: '#ea580c' },
+                { x: 3280, y: 860, fill: '#fce7f3', border: '#f472b6', lip: '#db2777' },
+                { x: 1100, y: 2360, fill: '#e0e7ff', border: '#818cf8', lip: '#4f46e5' },
+                { x: 3280, y: 2360, fill: '#fef9c3', border: '#facc15', lip: '#ca8a04' },
+                { x: 3740, y: 1620, fill: '#f3e8ff', border: '#c084fc', lip: '#9333ea' },
+                { x: 640, y: 1580, fill: '#e0f2fe', border: '#38bdf8', lip: '#0284c7' },
+                { x: 2200, y: 520, fill: '#fef3c7', border: '#f59e0b', lip: '#d97706' }
+            ];
+            alcoves.forEach((al) => {
+                ctx.fillStyle = al.lip;
+                ctx.beginPath();
+                ctx.roundRect(al.x - 165, al.y - 96, 330, 204, 32);
+                ctx.fill();
+
+                ctx.fillStyle = al.fill;
+                ctx.beginPath();
+                ctx.roundRect(al.x - 165, al.y - 104, 330, 202, 32);
+                ctx.fill();
+
+                ctx.strokeStyle = al.border;
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            });
+
+            // 6. Symmetrical Warm Terracotta Flower Planter Beds
             const planters = [
-                { x: 175, y: 95, w: 260, h: 62 },
-                { x: WORLD_W - 435, y: 95, w: 260, h: 62 },
-                { x: 175, y: WORLD_H - 157, w: 260, h: 62 },
-                { x: WORLD_W - 435, y: WORLD_H - 157, w: 260, h: 62 }
+                { x: 1840, y: 1260, w: 260, h: 62 },
+                { x: 2300, y: 1260, w: 260, h: 62 },
+                { x: 1840, y: 1920, w: 260, h: 62 },
+                { x: 2300, y: 1920, w: 260, h: 62 }
             ];
             planters.forEach((pl) => {
-                ctx.fillStyle = '#9a3412';
-                ctx.beginPath();
-                ctx.roundRect(pl.x, pl.y, pl.w, pl.h, 16);
-                ctx.fill();
-                ctx.fillStyle = '#2d4f32';
-                ctx.beginPath();
-                ctx.roundRect(pl.x + 7, pl.y + 7, pl.w - 14, pl.h - 14, 11);
-                ctx.fill();
+                drawSpriteAsset(propSprites.flowerPlanterBox, pl.x - 5, pl.y - 5, pl.w + 10, pl.h + 10);
             });
 
             planterFlowers.forEach((fl) => {
-                ctx.fillStyle = '#4d7c4f';
-                ctx.beginPath();
-                ctx.arc(fl.x, fl.y, 11, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = fl.c;
-                ctx.beginPath();
-                ctx.arc(fl.x - 3, fl.y - 2, 3.2, 0, Math.PI * 2);
-                ctx.arc(fl.x + 4, fl.y + 2, 3.2, 0, Math.PI * 2);
-                ctx.fill();
-            });
+                let flowerImg = propSprites.flowerPink;
+                if (fl.c === '#fde047') flowerImg = propSprites.flowerGold;
+                else if (fl.c === '#c084fc') flowerImg = propSprites.flowerLilac;
+                else if (fl.c === '#7dd3fc') flowerImg = propSprites.flowerSky;
 
-            // 4. Grand Cobblestone Promenade Cross-Walkways
-            ctx.fillStyle = '#57534e';
-            ctx.beginPath();
-            ctx.roundRect(130, WORLD_H / 2 - 44, WORLD_W - 260, 88, 20);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.roundRect(WORLD_W / 2 - 52, 85, 104, WORLD_H - 170, 20);
-            ctx.fill();
-
-            ctx.strokeStyle = 'rgba(253, 230, 138, 0.25)';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(140, WORLD_H / 2 - 38, WORLD_W - 280, 76);
-
-            // 5. Central Circular Fountain Plaza
-            ctx.fillStyle = '#68615b';
-            ctx.beginPath();
-            ctx.arc(WORLD_W / 2, WORLD_H / 2, 168, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#d6d3d1';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-
-            // 6. Four Dedicated Corner Activity Alcoves
-            const alcoves = [
-                { x: WORLD_W / 2 - 340, y: WORLD_H / 2 - 210, c: '#7c2d12' },
-                { x: WORLD_W / 2 + 340, y: WORLD_H / 2 - 210, c: '#312e81' },
-                { x: WORLD_W / 2 - 340, y: WORLD_H / 2 + 210, c: '#713f12' },
-                { x: WORLD_W / 2 + 340, y: WORLD_H / 2 + 210, c: '#4c1d95' }
-            ];
-            alcoves.forEach((al) => {
-                ctx.fillStyle = 'rgba(24, 18, 22, 0.35)';
-                ctx.beginPath();
-                ctx.roundRect(al.x - 135, al.y - 88, 270, 176, 24);
-                ctx.fill();
-
-                ctx.fillStyle = al.c;
-                ctx.globalAlpha = 0.45;
-                ctx.beginPath();
-                ctx.roundRect(al.x - 130, al.y - 84, 260, 168, 20);
-                ctx.fill();
-                ctx.globalAlpha = 1;
-
-                ctx.strokeStyle = 'rgba(253, 224, 71, 0.24)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            });
-
-            // 7. Stone Lantern Pillars
-            const pillars = [
-                { x: WORLD_W / 2 - 195, y: 155 },
-                { x: WORLD_W / 2 + 195, y: 155 },
-                { x: WORLD_W / 2 - 195, y: WORLD_H - 155 },
-                { x: WORLD_W / 2 + 195, y: WORLD_H - 155 }
-            ];
-            pillars.forEach((pil) => {
-                ctx.fillStyle = '#292524';
-                ctx.beginPath();
-                ctx.roundRect(pil.x - 12, pil.y - 24, 24, 34, 6);
-                ctx.fill();
-                if (propStates.fairyLightsOn) {
-                    const lGlow = ctx.createRadialGradient(pil.x, pil.y - 24, 2, pil.x, pil.y - 24, 48);
-                    lGlow.addColorStop(0, 'rgba(253, 224, 71, 0.42)');
-                    lGlow.addColorStop(1, 'rgba(253, 224, 71, 0)');
-                    ctx.fillStyle = lGlow;
-                    ctx.beginPath();
-                    ctx.arc(pil.x, pil.y - 24, 48, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                ctx.fillStyle = propStates.fairyLightsOn ? '#fef08a' : '#78716c';
-                ctx.beginPath();
-                ctx.roundRect(pil.x - 8, pil.y - 34, 16, 12, 4);
-                ctx.fill();
+                drawSpriteAsset(flowerImg, fl.x - 20, fl.y - 22, 40, 40);
             });
 
             // Click-to-walk target ring
@@ -1862,10 +2680,200 @@
                 ctx.stroke();
             }
 
-            // Draw Interactive Courtyard Props
-            drawCourtyardProps(now);
+            // 7. Unified 2.5D Y-Depth Sorting for All World Objects, Bushes, Trees, Pillars & Slimes!
+            const renderables = [];
 
-            // Draw Active Fishing Line & Bobber if fishing
+            // Blooming Sakura Blossom Trees framing the 4400 x 3200 Ranch Biomes
+            [
+                { x: 3020, y: 560 },
+                { x: 3560, y: 620 },
+                { x: 3920, y: 920 },
+                { x: 3040, y: 1120 },
+                { x: 420, y: 420 },
+                { x: 440, y: 2100 },
+                { x: 3960, y: 2140 },
+                { x: 3960, y: 2920 },
+                { x: 1880, y: 460 },
+                { x: 2520, y: 460 }
+            ].forEach((tr) => {
+                renderables.push({
+                    y: tr.y + 66,
+                    draw: () => {
+                        drawSpriteAsset(propSprites.sakuraTree, tr.x - 93, tr.y - 118, 186, 198);
+                    }
+                });
+            });
+
+            // Lush Pogofruit Berry Bushes scattered across the Sanctuary
+            [
+                { x: 180, y: 180 },
+                { x: WORLD_W - 180, y: 180 },
+                { x: 180, y: WORLD_H - 180 },
+                { x: WORLD_W - 180, y: WORLD_H - 180 },
+                { x: 1480, y: 1260 },
+                { x: 2920, y: 1260 },
+                { x: 1480, y: 2700 },
+                { x: 2920, y: 2700 }
+            ].forEach((b) => {
+                renderables.push({
+                    y: b.y + 22,
+                    draw: () => {
+                        drawSpriteAsset(propSprites.berryBush, b.x - 51, b.y - 41, 102, 82);
+                    }
+                });
+            });
+
+            // Sanctuary Lantern Pillars
+            [
+                { x: 1920, y: 540 },
+                { x: 2480, y: 540 },
+                { x: 1920, y: 2660 },
+                { x: 2480, y: 2660 },
+                { x: 1280, y: 1480 },
+                { x: 3120, y: 1480 }
+            ].forEach((pil) => {
+                renderables.push({
+                    y: pil.y + 20,
+                    draw: () => {
+                        if (propStates.fairyLightsOn) {
+                            const lGlow = ctx.createRadialGradient(pil.x, pil.y - 30, 2, pil.x, pil.y - 30, 66);
+                            lGlow.addColorStop(0, 'rgba(254, 240, 138, 0.55)');
+                            lGlow.addColorStop(1, 'rgba(254, 240, 138, 0)');
+                            ctx.fillStyle = lGlow;
+                            ctx.beginPath();
+                            ctx.arc(pil.x, pil.y - 30, 66, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        drawSpriteAsset(propSprites.lanternPillar, pil.x - 38, pil.y - 64, 76, 98);
+                        ctx.fillStyle = propStates.fairyLightsOn ? '#fde047' : '#cbd5e1';
+                        ctx.beginPath();
+                        ctx.arc(pil.x, pil.y - 36, 7, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+            });
+
+            // Interactive Courtyard Props (Y-sorted so slimes can walk behind or in front!)
+            PROPS.forEach((prop) => {
+                renderables.push({
+                    y: prop.y + (prop.id === 'pond' ? 14 : 18),
+                    draw: () => drawSingleCourtyardProp(prop, now)
+                });
+            });
+
+            // Carved Wooden Directional Signposts along the Central Crossroads
+            zoneSignposts.forEach((sg) => {
+                renderables.push({
+                    y: sg.y + 16,
+                    draw: () => {
+                        ctx.save();
+                        ctx.fillStyle = 'rgba(15, 23, 42, 0.22)';
+                        ctx.beginPath();
+                        ctx.ellipse(sg.x, sg.y + 16, 16, 6, 0, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        ctx.fillStyle = '#78350f';
+                        ctx.fillRect(sg.x - 4, sg.y - 22, 8, 38);
+
+                        ctx.font = '800 11px Nunito, sans-serif';
+                        const tw = ctx.measureText(sg.text).width + 18;
+                        ctx.fillStyle = '#d97706';
+                        ctx.strokeStyle = '#451a03';
+                        ctx.lineWidth = 2.2;
+                        ctx.beginPath();
+                        ctx.roundRect(sg.x - tw / 2, sg.y - 36, tw, 22, 7);
+                        ctx.fill();
+                        ctx.stroke();
+
+                        ctx.fillStyle = '#fef3c7';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(sg.text, sg.x, sg.y - 25);
+                        ctx.restore();
+                    }
+                });
+            });
+
+            // Wild Ambient Baby Slimes hopping around the Sanctuary
+            wildSlimes.forEach((ws) => {
+                renderables.push({
+                    y: ws.y + 12,
+                    draw: () => {
+                        ctx.save();
+                        ctx.translate(ws.x, ws.y);
+                        ctx.scale(ws.scale, ws.scale);
+                        drawAvatarGraphic(
+                            ctx,
+                            0,
+                            0,
+                            ws.colorIdx,
+                            0,
+                            1,
+                            ws.vx >= 0 ? 'right' : 'left',
+                            now * 0.01,
+                            ws.hopHeight > 0,
+                            '',
+                            ws.hopHeight / ws.scale
+                        );
+                        if (ws.happyHearts > 0) {
+                            ctx.font = 'bold 22px Nunito, sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('💕', 0, -42 - (1 - ws.happyHearts) * 24);
+                        }
+                        ctx.restore();
+                    }
+                });
+            });
+
+            // All Players & Companion Bots
+            const allEntities = [
+                localPlayer,
+                ...Array.from(remotePlayers.values()),
+                ...botCompanions
+            ];
+
+            allEntities.forEach((entity) => {
+                renderables.push({
+                    y: entity.y + 18,
+                    draw: () => {
+                        if (hotPotatoState.active && hotPotatoState.holderId === entity.id) {
+                            ctx.save();
+                            ctx.strokeStyle = 'rgba(249, 115, 22, 0.85)';
+                            ctx.lineWidth = 3;
+                            ctx.beginPath();
+                            ctx.ellipse(entity.x, entity.y + 22, 26 + Math.sin(now * 0.02) * 3, 14, 0, 0, Math.PI * 2);
+                            ctx.stroke();
+
+                            const secsLeft = Math.max(0, Math.ceil((hotPotatoState.endTime - Date.now()) / 1000));
+                            ctx.font = '900 15px Nunito, sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.fillStyle = '#fb923c';
+                            ctx.fillText(`🥔 ${secsLeft}s`, entity.x, entity.y - 44);
+                            ctx.restore();
+                        }
+
+                        drawAvatarGraphic(
+                            ctx,
+                            entity.x,
+                            entity.y,
+                            entity.colorIdx,
+                            entity.accessoryIdx,
+                            entity.faceIdx || 0,
+                            entity.facing || 'down',
+                            entity.walkCycle || 0,
+                            entity.isMoving || false,
+                            entity.name,
+                            entity.jumpHeight || 0
+                        );
+                    }
+                });
+            });
+
+            // Sort back-to-front by foot baseline Y and draw everything in unified 2.5D depth
+            renderables.sort((a, b) => a.y - b.y);
+            renderables.forEach((item) => item.draw());
+
+            // Draw Active Fishing Line & Bobber
             if (fishingState.active) {
                 ctx.save();
                 ctx.strokeStyle = '#e0f2fe';
@@ -1899,45 +2907,6 @@
                 ctx.restore();
             }
 
-            // Depth-sort & Draw All Avatars
-            const allEntities = [
-                localPlayer,
-                ...Array.from(remotePlayers.values()),
-                ...botCompanions
-            ].sort((a, b) => a.y - b.y);
-
-            allEntities.forEach((entity) => {
-                if (hotPotatoState.active && hotPotatoState.holderId === entity.id) {
-                    ctx.save();
-                    ctx.strokeStyle = 'rgba(249, 115, 22, 0.85)';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.ellipse(entity.x, entity.y + 22, 26 + Math.sin(now * 0.02) * 3, 14, 0, 0, Math.PI * 2);
-                    ctx.stroke();
-
-                    const secsLeft = Math.max(0, Math.ceil((hotPotatoState.endTime - Date.now()) / 1000));
-                    ctx.font = '900 15px Nunito, sans-serif';
-                    ctx.textAlign = 'center';
-                    ctx.fillStyle = '#fb923c';
-                    ctx.fillText(`🥔 ${secsLeft}s`, entity.x, entity.y - 44);
-                    ctx.restore();
-                }
-
-                drawAvatarGraphic(
-                    ctx,
-                    entity.x,
-                    entity.y,
-                    entity.colorIdx,
-                    entity.accessoryIdx,
-                    entity.faceIdx || 0,
-                    entity.facing || 'down',
-                    entity.walkCycle || 0,
-                    entity.isMoving || false,
-                    entity.name,
-                    entity.jumpHeight || 0
-                );
-            });
-
             // Draw Nameplates & Speech Bubbles on top
             allEntities.forEach((entity) => {
                 drawNameTagAndBubble(ctx, entity);
@@ -1952,252 +2921,360 @@
             // Overhead Hanging String Fairy Lights
             drawStringFairyLights(now);
 
-            // Drifting Golden Fireflies
-            fireflies.forEach((f) => {
-                const glow = 0.35 + Math.sin(now * 0.004 + f.phase) * 0.35;
-                ctx.fillStyle = `rgba(254, 240, 138, ${Math.max(0.05, glow)})`;
+            // Fluttering Pastel Ranch Butterflies
+            ranchButterflies.forEach((bf) => {
+                const flap = Math.abs(Math.sin(now * 0.022 + bf.wingPhase));
+                ctx.save();
+                ctx.translate(bf.x, bf.y);
+                ctx.rotate(bf.angle + Math.PI / 2);
+                ctx.fillStyle = bf.color;
                 ctx.beginPath();
-                ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+                ctx.ellipse(-4.5 * flap - 1.5, 0, 5 * flap + 1.5, 3.8, -0.25, 0, Math.PI * 2);
+                ctx.ellipse(4.5 * flap + 1.5, 0, 5 * flap + 1.5, 3.8, 0.25, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#451a03';
+                ctx.fillRect(-1, -3, 2, 6);
+                ctx.restore();
+            });
+
+            // Drifting Pink Sakura Blossom Petals in the Northeast Forest
+            sakuraPetals.forEach((pt) => {
+                ctx.save();
+                ctx.translate(pt.x, pt.y);
+                ctx.rotate(Math.sin(now * 0.003 + pt.swayPhase) * 0.8);
+                ctx.fillStyle = 'rgba(255, 182, 219, 0.88)';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, pt.size, pt.size * 0.58, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // Drifting Phosphor Plort Sparkles / Fireflies
+            fireflies.forEach((f) => {
+                const glow = 0.45 + Math.sin(now * 0.004 + f.phase) * 0.4;
+                ctx.fillStyle = `rgba(254, 249, 195, ${Math.max(0.15, glow)})`;
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, f.size + 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, f.size * 0.55, 0, Math.PI * 2);
                 ctx.fill();
             });
 
             ctx.restore();
 
-            // Warm Twilight Vignette
+            // Soft Sunlit Dreamy Edge Glow
             const vig = ctx.createRadialGradient(
-                canvas.width / 2, canvas.height / 2, canvas.width * 0.32,
-                canvas.width / 2, canvas.height / 2, canvas.width * 0.75
+                canvas.width / 2, canvas.height / 2, canvas.width * 0.36,
+                canvas.width / 2, canvas.height / 2, canvas.width * 0.78
             );
             vig.addColorStop(0, 'rgba(0,0,0,0)');
-            vig.addColorStop(1, 'rgba(18, 12, 28, 0.48)');
+            vig.addColorStop(1, 'rgba(30, 27, 75, 0.25)');
             ctx.fillStyle = vig;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Cozy Corner Minimap so players can navigate the 4400 x 3200 Sanctuary!
+            if (inGame) {
+                drawSanctuaryMinimap(allEntities);
+            }
         }
 
-        function drawCourtyardProps(now) {
-            // 1. Central Koi Fountain Pond
-            const pond = PROPS[0];
-            ctx.save();
-            ctx.translate(pond.x, pond.y);
+        function drawSanctuaryMinimap(allEntities) {
+            const mapW = 164;
+            const mapH = 120;
+            const padX = canvas.width - mapW - 14;
+            const padY = 66;
 
-            ctx.fillStyle = '#78716c';
+            ctx.save();
+            ctx.fillStyle = 'rgba(28, 25, 23, 0.78)';
+            ctx.strokeStyle = 'rgba(253, 224, 71, 0.45)';
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(0, 0, 88, 0, Math.PI * 2);
+            ctx.roundRect(padX, padY, mapW, mapH, 14);
             ctx.fill();
-            ctx.strokeStyle = '#d6d3d1';
-            ctx.lineWidth = 3;
             ctx.stroke();
 
-            const pondGrad = ctx.createRadialGradient(-12, -12, 10, 0, 0, 78);
-            pondGrad.addColorStop(0, '#38bdf8');
-            pondGrad.addColorStop(0.7, '#0284c7');
-            pondGrad.addColorStop(1, '#0369a1');
-            ctx.fillStyle = pondGrad;
+            // Grass & Brook preview
+            ctx.fillStyle = '#34d399';
             ctx.beginPath();
-            ctx.arc(0, 0, 78, 0, Math.PI * 2);
+            ctx.roundRect(padX + 6, padY + 6, mapW - 12, mapH - 12, 10);
             ctx.fill();
 
-            ctx.fillStyle = '#a8a29e';
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(0, 0, 18, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#bae6fd';
+            ctx.moveTo(padX + 34, padY + 8);
+            ctx.lineTo(padX + 34, padY + mapH - 8);
+            ctx.stroke();
+
+            // Central Lagoon dot
+            ctx.fillStyle = '#0284c7';
             ctx.beginPath();
-            ctx.arc(0, 0, 8 + Math.sin(now * 0.01) * 2, 0, Math.PI * 2);
+            ctx.ellipse(padX + mapW / 2, padY + mapH / 2, 10, 6.5, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            for (let k = 0; k < 2; k++) {
-                const koiAngle = now * 0.0013 * (k === 0 ? 1 : -0.8) + k * Math.PI;
-                const kx = Math.cos(koiAngle) * (42 + k * 12);
-                const ky = Math.sin(koiAngle) * (42 + k * 12);
+            // Activity Nook markers
+            PROPS.forEach((p) => {
+                const mx = padX + 6 + (p.x / WORLD_W) * (mapW - 12);
+                const my = padY + 6 + (p.y / WORLD_H) * (mapH - 12);
+                ctx.fillStyle = '#fef08a';
+                ctx.beginPath();
+                ctx.arc(mx, my, 2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Players & Friends dots
+            allEntities.forEach((ent) => {
+                const mx = padX + 6 + (ent.x / WORLD_W) * (mapW - 12);
+                const my = padY + 6 + (ent.y / WORLD_H) * (mapH - 12);
+                const isSelf = ent.id === localPlayer.id;
+                ctx.fillStyle = isSelf ? '#ffffff' : (AVATAR_COLORS[ent.colorIdx || 0]?.swatch || '#fb7185');
+                ctx.beginPath();
+                ctx.arc(mx, my, isSelf ? 4 : 3, 0, Math.PI * 2);
+                ctx.fill();
+                if (isSelf) {
+                    ctx.strokeStyle = '#1c1917';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                }
+            });
+            ctx.restore();
+        }
+
+        function drawSingleCourtyardProp(prop, now) {
+            if (prop.id === 'pond') {
+                // 1. 2.5D Foreshortened Grand Koi Lagoon Basin + Swimming Koi + Tiered Spout
                 ctx.save();
-                ctx.translate(kx, ky);
-                ctx.rotate(koiAngle + (k === 0 ? Math.PI / 2 : -Math.PI / 2));
-                ctx.fillStyle = k === 0 ? '#fb923c' : '#f43f5e';
+                ctx.translate(prop.x, prop.y);
+
+                drawSpriteAsset(propSprites.fountainBasin, -140, -108, 280, 215);
+
+                // Live Swimming Koi Fish inside the foreshortened elliptical basin
+                for (let k = 0; k < 4; k++) {
+                    const dir = k % 2 === 0 ? 1 : -1;
+                    const koiAngle = now * 0.0012 * dir + k * 1.6;
+                    const rx = 68 + (k % 2) * 18;
+                    const ry = 32 + (k % 2) * 9;
+                    const kx = Math.cos(koiAngle) * rx;
+                    const ky = Math.sin(koiAngle) * ry + 2;
+                    const heading = Math.atan2(Math.cos(koiAngle) * ry * dir, -Math.sin(koiAngle) * rx * dir);
+
+                    ctx.save();
+                    ctx.translate(kx, ky);
+                    ctx.rotate(heading);
+                    const tailWag = Math.sin(now * 0.014 + k) * 0.35;
+                    ctx.fillStyle = k === 0 ? '#fb923c' : (k === 1 ? '#f43f5e' : '#fde047');
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, 11, 4.8, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(-9, 0);
+                    ctx.lineTo(-16, -4.5 + tailWag * 5);
+                    ctx.lineTo(-16, 4.5 + tailWag * 5);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(2, 0, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // Expanding Foreshortened Water Ripples
+                pondRipples.forEach((rip) => {
+                    ctx.strokeStyle = `rgba(224, 242, 254, ${rip.alpha})`;
+                    ctx.lineWidth = 2.4;
+                    ctx.beginPath();
+                    ctx.ellipse(rip.x - prop.x, rip.y - prop.y, rip.r * 1.3, rip.r * 0.68, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                });
+
+                // 2.5D Tiered Fountain Center Spout
+                drawSpriteAsset(propSprites.fountainCenter, -52, -82, 104, 114);
+                ctx.fillStyle = 'rgba(224, 242, 254, 0.88)';
                 ctx.beginPath();
-                ctx.ellipse(0, 0, 8, 3.6, 0, 0, Math.PI * 2);
+                ctx.arc(0, -64, 6.5 + Math.sin(now * 0.01) * 2.2, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.fillStyle = '#ffffff';
+                ctx.restore();
+            } else if (prop.id === 'table') {
+                // 2. Detailed Picnic Tea Table & Matcha Set
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                drawSpriteAsset(propSprites.picnicTable, -88, -70, 176, 138);
+                const steamOffset = (now * 0.015) % 16;
+                ctx.strokeStyle = `rgba(255, 255, 255, ${0.68 - steamOffset / 24})`;
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
                 ctx.beginPath();
-                ctx.arc(-2, 0, 2.2, 0, Math.PI * 2);
+                ctx.moveTo(-36, -18 - steamOffset);
+                ctx.quadraticCurveTo(-31, -25 - steamOffset, -36, -32 - steamOffset);
+                ctx.stroke();
+                ctx.restore();
+            } else if (prop.id === 'easel') {
+                // 3. Artist Chalkboard Easel
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                drawSpriteAsset(propSprites.artEasel, -73, -78, 146, 146);
+                ctx.restore();
+            } else if (prop.id === 'potato') {
+                // 4. Hot Potato Tag Pedestal
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                drawSpriteAsset(propSprites.potatoPedestal, -66, -72, 132, 132);
+                const floatY = -34 + Math.sin(now * 0.006) * 5;
+                ctx.save();
+                ctx.translate(0, floatY);
+                ctx.rotate(Math.sin(now * 0.004) * 0.14);
+                ctx.fillStyle = '#d97706';
+                ctx.strokeStyle = '#78350f';
+                ctx.lineWidth = 2.4;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 18, 13, 0, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = '#fbbf24';
+                ctx.beginPath();
+                ctx.ellipse(-5, -4, 6, 3, -0.3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#451a03';
+                ctx.beginPath();
+                ctx.arc(-6, 1, 1.8, 0, Math.PI * 2);
+                ctx.arc(6, 1, 1.8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#f97316';
+                ctx.beginPath();
+                ctx.arc(0, -15, 5 + Math.sin(now * 0.02) * 1.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                ctx.restore();
+            } else if (prop.id === 'campfire') {
+                // 5. Stone Hearth Firepit
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                if (propStates.campfireLit) {
+                    const glowR = 128 + Math.sin(now * 0.008) * 14;
+                    const fGrad = ctx.createRadialGradient(0, 0, 12, 0, 0, glowR);
+                    fGrad.addColorStop(0, 'rgba(251, 146, 60, 0.48)');
+                    fGrad.addColorStop(1, 'rgba(251, 146, 60, 0)');
+                    ctx.fillStyle = fGrad;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 4, glowR, glowR * 0.68, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                drawSpriteAsset(propSprites.firepitBase, -73, -70, 146, 132);
+                if (propStates.campfireLit) {
+                    const flicker = Math.sin(now * 0.015) * 4;
+                    ctx.fillStyle = '#f97316';
+                    ctx.beginPath();
+                    ctx.moveTo(-18, 6);
+                    ctx.quadraticCurveTo(-20, -24, flicker, -36);
+                    ctx.quadraticCurveTo(20, -24, 18, 6);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = '#fde047';
+                    ctx.beginPath();
+                    ctx.moveTo(-10, 6);
+                    ctx.quadraticCurveTo(-11, -14, -flicker * 0.5, -23);
+                    ctx.quadraticCurveTo(11, -14, 10, 6);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                ctx.restore();
+            } else if (prop.id === 'boombox') {
+                // 6. Retro Pastel Lofi Boombox
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                const pulseScale = propStates.lofiPlaying ? 1 + Math.sin(now * 0.012) * 0.05 : 1;
+                ctx.scale(pulseScale, pulseScale);
+                drawSpriteAsset(propSprites.lofiBoombox, -60, -60, 120, 108);
+                if (propStates.lofiPlaying) {
+                    const noteY = -42 - ((now * 0.025) % 28);
+                    const noteX = Math.sin(now * 0.006) * 9;
+                    ctx.font = 'bold 18px Nunito, sans-serif';
+                    ctx.fillText('🎵', noteX - 8, noteY);
+                }
+                ctx.restore();
+            } else if (prop.id === 'sofa') {
+                // 7. Pagoda Lantern Switch Totem
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                if (propStates.fairyLightsOn) {
+                    const lGlow = ctx.createRadialGradient(0, -18, 2, 0, -18, 56);
+                    lGlow.addColorStop(0, 'rgba(254, 240, 138, 0.58)');
+                    lGlow.addColorStop(1, 'rgba(254, 240, 138, 0)');
+                    ctx.fillStyle = lGlow;
+                    ctx.beginPath();
+                    ctx.arc(0, -18, 56, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                drawSpriteAsset(propSprites.lanternSwitch, -48, -62, 96, 114);
+                ctx.fillStyle = propStates.fairyLightsOn ? '#fde047' : '#94a3b8';
+                ctx.beginPath();
+                ctx.arc(0, -21, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            } else if (prop.id === 'trampoline' || prop.id === 'trampoline2') {
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                const bounceScale = 1 + Math.sin(now * 0.007) * 0.04;
+                ctx.scale(bounceScale, 2 - bounceScale);
+                drawSpriteAsset(propSprites.bouncyPad, -66, -50, 132, 100);
+                ctx.restore();
+            } else if (prop.id === 'snackcart' || prop.id === 'snackcart2') {
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                drawSpriteAsset(propSprites.snackCart, -78, -86, 156, 144);
+                ctx.restore();
+            } else if (prop.id === 'kalimba') {
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                drawSpriteAsset(propSprites.kalimbaToy, -66, -62, 132, 108);
+                ctx.restore();
+            } else if (prop.id === 'tent') {
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                drawSpriteAsset(propSprites.cozyTent, -90, -90, 180, 150);
+                ctx.restore();
+            } else if (prop.id === 'telescope') {
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                drawSpriteAsset(propSprites.telescope, -60, -76, 120, 126);
+                ctx.restore();
+            } else if (prop.id === 'statue') {
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                drawSpriteAsset(propSprites.slimeStatue, -80, -105, 160, 175);
+                ctx.restore();
+            } else if (prop.id === 'hammock' || prop.id === 'hammock2') {
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                drawSpriteAsset(propSprites.hammock, -85, -62, 170, 110);
+                ctx.restore();
+            } else if (prop.id === 'wishingwell') {
+                ctx.save();
+                ctx.translate(prop.x, prop.y);
+                drawSpriteAsset(propSprites.wishingWell, -72, -94, 144, 156);
                 ctx.restore();
             }
 
-            pondRipples.forEach((rip) => {
-                ctx.strokeStyle = `rgba(224, 242, 254, ${rip.alpha})`;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(rip.x - pond.x, rip.y - pond.y, rip.r, 0, Math.PI * 2);
-                ctx.stroke();
-            });
-            ctx.restore();
-
-            // 2. Picnic Tea Table (Tic-Tac-Toe)
-            const table = PROPS[1];
-            ctx.save();
-            ctx.translate(table.x, table.y);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.beginPath();
-            ctx.ellipse(0, 20, 46, 20, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#92400e';
-            ctx.beginPath();
-            ctx.ellipse(0, 4, 44, 24, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#b45309';
-            ctx.beginPath();
-            ctx.ellipse(0, 0, 42, 22, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#fde68a';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(-12, -8, 24, 16);
-            ctx.fillStyle = '#4ade80';
-            ctx.beginPath();
-            ctx.arc(-24, 0, 5, 0, Math.PI * 2);
-            ctx.arc(24, 0, 5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-
-            // 3. Pastel Chalkboard Easel
-            const easel = PROPS[2];
-            ctx.save();
-            ctx.translate(easel.x, easel.y);
-            ctx.strokeStyle = '#92400e';
-            ctx.lineWidth = 4.5;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(-18, 26); ctx.lineTo(0, -32); ctx.lineTo(18, 26);
-            ctx.stroke();
-            ctx.fillStyle = '#b45309';
-            ctx.beginPath();
-            ctx.roundRect(-24, -26, 48, 36, 6);
-            ctx.fill();
-            ctx.fillStyle = '#1e293b';
-            ctx.beginPath();
-            ctx.roundRect(-20, -22, 40, 28, 4);
-            ctx.fill();
-            ctx.strokeStyle = '#fda4af';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(-6, -8, 5, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.strokeStyle = '#fde047';
-            ctx.beginPath();
-            ctx.moveTo(4, -12); ctx.lineTo(12, -4);
-            ctx.stroke();
-            ctx.restore();
-
-            // 4. Hot Potato Tag Pedestal
-            const potatoProp = PROPS[3];
-            ctx.save();
-            ctx.translate(potatoProp.x, potatoProp.y);
-            ctx.fillStyle = '#57534e';
-            ctx.beginPath();
-            ctx.roundRect(-20, -4, 40, 26, 8);
-            ctx.fill();
-            const floatY = -16 + Math.sin(now * 0.006) * 4;
-            ctx.fillStyle = '#d97706';
-            ctx.beginPath();
-            ctx.ellipse(0, floatY, 15, 11, -0.2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#fb923c';
-            ctx.beginPath();
-            ctx.arc(0, floatY - 11, 5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-
-            // 5. Hearth Firepit
-            const fire = PROPS[4];
-            ctx.save();
-            ctx.translate(fire.x, fire.y);
-            if (propStates.campfireLit) {
-                const glowR = 95 + Math.sin(now * 0.008) * 10;
-                const fGrad = ctx.createRadialGradient(0, 0, 8, 0, 0, glowR);
-                fGrad.addColorStop(0, 'rgba(251, 146, 60, 0.42)');
-                fGrad.addColorStop(1, 'rgba(251, 146, 60, 0)');
-                ctx.fillStyle = fGrad;
-                ctx.beginPath();
-                ctx.arc(0, 0, glowR, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            for (let i = 0; i < 10; i++) {
-                const ang = (i / 10) * Math.PI * 2;
-                ctx.fillStyle = i % 2 === 0 ? '#78716c' : '#57534e';
-                ctx.beginPath();
-                ctx.ellipse(Math.cos(ang) * 28, Math.sin(ang) * 20, 8, 6, ang, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            if (propStates.campfireLit) {
-                const flicker = Math.sin(now * 0.015) * 3;
-                ctx.fillStyle = '#f97316';
-                ctx.beginPath();
-                ctx.moveTo(-13, 4);
-                ctx.quadraticCurveTo(-15, -18, flicker, -26);
-                ctx.quadraticCurveTo(15, -18, 13, 4);
-                ctx.closePath();
-                ctx.fill();
-                ctx.fillStyle = '#fde047';
-                ctx.beginPath();
-                ctx.moveTo(-7, 4);
-                ctx.quadraticCurveTo(-8, -10, -flicker * 0.5, -16);
-                ctx.quadraticCurveTo(8, -10, 7, 4);
-                ctx.closePath();
-                ctx.fill();
-            }
-            ctx.restore();
-
-            // 6. Courtyard Lofi Radio
-            const boom = PROPS[5];
-            ctx.save();
-            ctx.translate(boom.x, boom.y);
-            const pulseScale = propStates.lofiPlaying ? 1 + Math.sin(now * 0.012) * 0.04 : 1;
-            ctx.scale(pulseScale, pulseScale);
-            ctx.fillStyle = '#fda4af';
-            ctx.beginPath();
-            ctx.roundRect(-22, -14, 44, 26, 7);
-            ctx.fill();
-            ctx.fillStyle = '#292524';
-            ctx.beginPath();
-            ctx.arc(-11, 0, 7, 0, Math.PI * 2);
-            ctx.arc(11, 0, 7, 0, Math.PI * 2);
-            ctx.fill();
-            if (propStates.lofiPlaying) {
-                const noteY = -26 - ((now * 0.025) % 22);
-                ctx.fillStyle = '#fde047';
-                ctx.font = 'bold 14px sans-serif';
-                ctx.fillText('🎵', -6, noteY);
-            }
-            ctx.restore();
-
-            // 7. Pergola Lantern Switch Box
-            const sw = PROPS[6];
-            ctx.save();
-            ctx.translate(sw.x, sw.y);
-            ctx.fillStyle = '#44403c';
-            ctx.beginPath();
-            ctx.roundRect(-14, -18, 28, 34, 8);
-            ctx.fill();
-            ctx.fillStyle = propStates.fairyLightsOn ? '#fde047' : '#78716c';
-            ctx.beginPath();
-            ctx.arc(0, -4, 7, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-
-            // Highlight ring around nearby interactable prop
-            if (nearbyProp) {
+            // Foreshortened 2.5D highlight ring around nearby interactable prop
+            if (nearbyProp && nearbyProp.id === prop.id) {
                 const cdElapsed = Date.now() - lastPropUseTime;
                 const isCoolingDown = cdElapsed < PROP_COOLDOWN_MS;
+                const rx = prop.radius * 0.78;
+                const ry = prop.radius * 0.48;
                 ctx.save();
-                ctx.strokeStyle = isCoolingDown ? 'rgba(251, 113, 133, 0.7)' : 'rgba(253, 224, 71, 0.65)';
+                ctx.strokeStyle = isCoolingDown ? 'rgba(251, 113, 133, 0.75)' : 'rgba(253, 224, 71, 0.7)';
                 ctx.lineWidth = 2.5;
                 ctx.setLineDash(isCoolingDown ? [] : [6, 6]);
                 ctx.beginPath();
                 if (isCoolingDown) {
                     const pct = Math.min(1, cdElapsed / PROP_COOLDOWN_MS);
-                    ctx.arc(nearbyProp.x, nearbyProp.y, nearbyProp.radius * 0.72, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2);
+                    ctx.ellipse(prop.x, prop.y + 8, rx, ry, 0, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2);
                 } else {
-                    ctx.arc(nearbyProp.x, nearbyProp.y, nearbyProp.radius * 0.72, 0, Math.PI * 2);
+                    ctx.ellipse(prop.x, prop.y + 8, rx, ry, 0, 0, Math.PI * 2);
                 }
                 ctx.stroke();
                 ctx.restore();
@@ -2209,160 +3286,225 @@
             const acc = ACCESSORIES[accessoryIdx % ACCESSORIES.length];
             const face = FACES[faceIdx % FACES.length];
 
-            const bobY = isMoving ? Math.abs(Math.sin(walkCycle)) * 4.5 : Math.sin(performance.now() * 0.004) * 1.5;
-            const squishX = isMoving ? 1 + Math.cos(walkCycle * 2) * 0.06 : 1;
-            const squishY = isMoving ? 1 - Math.cos(walkCycle * 2) * 0.06 : 1;
-            const waddleAngle = isMoving ? Math.sin(walkCycle) * 0.11 : 0;
+            // Bouncy Slime-Rancher squash & stretch rhythm
+            const pulse = performance.now() * 0.0055;
+            const bobY = isMoving ? Math.abs(Math.sin(walkCycle)) * 6 : Math.abs(Math.sin(pulse)) * 2.2;
+            const squishX = isMoving
+                ? 1 + Math.cos(walkCycle * 2) * 0.11
+                : 1 + Math.sin(pulse * 2) * 0.045;
+            const squishY = isMoving
+                ? 1 - Math.cos(walkCycle * 2) * 0.11
+                : 1 - Math.sin(pulse * 2) * 0.045;
+            const waddleAngle = isMoving ? Math.sin(walkCycle) * 0.09 : 0;
 
             targetCtx.save();
-            // Ground drop shadow
-            targetCtx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+            // Soft pastel ground shadow
+            targetCtx.fillStyle = 'rgba(15, 23, 42, 0.22)';
             const shadowScale = Math.max(0.55, 1 - jumpHeight / 140);
             targetCtx.beginPath();
-            targetCtx.ellipse(x, y + 20, 17 * shadowScale, 7.5 * shadowScale, 0, 0, Math.PI * 2);
+            targetCtx.ellipse(x, y + 20, 21 * shadowScale, 8.5 * shadowScale, 0, 0, Math.PI * 2);
             targetCtx.fill();
 
-            targetCtx.translate(x, y - bobY - jumpHeight);
+            // Anchor scaling at the bottom of the slime body so it squishes against the ground!
+            targetCtx.translate(x, y + 18 - bobY - jumpHeight);
             targetCtx.rotate(waddleAngle);
             targetCtx.scale(squishX, squishY);
+            targetCtx.translate(0, -18);
 
-            // Waddling little feet
-            const leftFootY = isMoving ? Math.max(0, Math.sin(walkCycle)) * -4 : 0;
-            const rightFootY = isMoving ? Math.max(0, -Math.sin(walkCycle)) * -4 : 0;
-            targetCtx.fillStyle = '#44403c';
-            targetCtx.beginPath();
-            targetCtx.ellipse(-7, 18 + leftFootY, 5.5, 3.8, 0, 0, Math.PI * 2);
-            targetCtx.ellipse(7, 18 + rightFootY, 5.5, 3.8, 0, 0, Math.PI * 2);
-            targetCtx.fill();
-
-            // Stubby swinging sweater arms
-            const armSwing = isMoving ? Math.sin(walkCycle) * 4 : 0;
+            // Tiny squishy nub feet peeking out underneath
+            const leftFootY = isMoving ? Math.max(0, Math.sin(walkCycle)) * -3.5 : 0;
+            const rightFootY = isMoving ? Math.max(0, -Math.sin(walkCycle)) * -3.5 : 0;
             targetCtx.fillStyle = palette.shade;
             targetCtx.beginPath();
-            targetCtx.ellipse(-18, 4 - armSwing, 4.8, 7, 0.35, 0, Math.PI * 2);
-            targetCtx.ellipse(18, 4 + armSwing, 4.8, 7, -0.35, 0, Math.PI * 2);
+            targetCtx.ellipse(-8, 17 + leftFootY, 5.5, 3.5, 0, 0, Math.PI * 2);
+            targetCtx.ellipse(8, 17 + rightFootY, 5.5, 3.5, 0, 0, Math.PI * 2);
             targetCtx.fill();
 
-            // Cozy Bean Sweater Body
-            targetCtx.fillStyle = palette.body;
+            // Plump Dome-Shaped Slime Body (Slime Rancher silhouette!)
+            const bodyGrad = targetCtx.createRadialGradient(-6, -14, 4, 0, -2, 26);
+            bodyGrad.addColorStop(0, palette.gloss);
+            bodyGrad.addColorStop(0.35, palette.body);
+            bodyGrad.addColorStop(1, palette.shade);
+
+            targetCtx.fillStyle = bodyGrad;
             targetCtx.beginPath();
-            targetCtx.roundRect(-16, -8, 32, 26, 13);
-            targetCtx.fill();
-            targetCtx.strokeStyle = palette.shade;
-            targetCtx.lineWidth = 2;
-            targetCtx.stroke();
-
-            // Front sweater pocket
-            targetCtx.fillStyle = palette.shade;
-            targetCtx.beginPath();
-            targetCtx.roundRect(-7, 5, 14, 9, 4);
+            targetCtx.moveTo(-21, 8);
+            targetCtx.bezierCurveTo(-23, -14, -14, -27, 0, -27);
+            targetCtx.bezierCurveTo(14, -27, 23, -14, 21, 8);
+            targetCtx.bezierCurveTo(20, 17, 11, 19, 0, 19);
+            targetCtx.bezierCurveTo(-11, 19, -20, 17, -21, 8);
+            targetCtx.closePath();
             targetCtx.fill();
 
-            // Chubby Bean Head
-            targetCtx.fillStyle = '#fffbeb';
-            targetCtx.beginPath();
-            targetCtx.arc(0, -14, 15.5, 0, Math.PI * 2);
-            targetCtx.fill();
-            targetCtx.strokeStyle = '#e7e5e4';
-            targetCtx.lineWidth = 1.8;
-            targetCtx.stroke();
-
-            // Bouncy cowlick hair strand
+            // Crisp cute cartoon outline
             targetCtx.strokeStyle = palette.hair;
-            targetCtx.lineWidth = 2.4;
-            targetCtx.lineCap = 'round';
-            targetCtx.beginPath();
-            targetCtx.moveTo(0, -29);
-            targetCtx.quadraticCurveTo(4, -36, 9, -32);
+            targetCtx.lineWidth = 2.2;
             targetCtx.stroke();
 
-            // Rosy Cheeks & Silly Expression
-            const lookOffsetX = facing === 'left' ? -3 : (facing === 'right' ? 3 : 0);
+            // Signature Jelly Glossy Specular Highlight on Forehead
+            targetCtx.fillStyle = 'rgba(255, 255, 255, 0.72)';
+            targetCtx.beginPath();
+            targetCtx.ellipse(-8, -17, 5.5, 3, -0.55, 0, Math.PI * 2);
+            targetCtx.fill();
+            targetCtx.beginPath();
+            targetCtx.arc(-2.5, -21, 1.8, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            // Stubby Little Slime Paws on the Sides
+            const armSwing = isMoving ? Math.sin(walkCycle) * 3.5 : 0;
+            targetCtx.fillStyle = palette.body;
+            targetCtx.strokeStyle = palette.hair;
+            targetCtx.lineWidth = 2;
+            targetCtx.beginPath();
+            targetCtx.ellipse(-21, 4 - armSwing, 4.5, 5.5, 0.3, 0, Math.PI * 2);
+            targetCtx.fill();
+            targetCtx.stroke();
+            targetCtx.beginPath();
+            targetCtx.ellipse(21, 4 + armSwing, 4.5, 5.5, -0.3, 0, Math.PI * 2);
+            targetCtx.fill();
+            targetCtx.stroke();
+
+            // Big Shiny Slime Rancher Eyes, Rosy Cheeks & Happy Smile
+            const lookOffsetX = facing === 'left' ? -3.5 : (facing === 'right' ? 3.5 : 0);
             if (facing !== 'up') {
-                targetCtx.fillStyle = 'rgba(251, 113, 133, 0.45)';
+                // Big glossy dark-berry eyes
+                [-7.5, 7.5].forEach((ex) => {
+                    targetCtx.fillStyle = '#291528';
+                    targetCtx.beginPath();
+                    targetCtx.ellipse(ex + lookOffsetX, -6, 3.6, 4.4, 0, 0, Math.PI * 2);
+                    targetCtx.fill();
+
+                    // Large sparkling eye catchlight
+                    targetCtx.fillStyle = '#ffffff';
+                    targetCtx.beginPath();
+                    targetCtx.arc(ex - 1.1 + lookOffsetX, -7.5, 1.5, 0, Math.PI * 2);
+                    targetCtx.fill();
+                    targetCtx.beginPath();
+                    targetCtx.arc(ex + 1.1 + lookOffsetX, -4.8, 0.75, 0, Math.PI * 2);
+                    targetCtx.fill();
+                });
+
+                // Extra-rosy oval blush cheeks
+                targetCtx.fillStyle = 'rgba(255, 90, 135, 0.52)';
                 targetCtx.beginPath();
-                targetCtx.ellipse(-8.5 + lookOffsetX, -11, 3.2, 2, 0, 0, Math.PI * 2);
-                targetCtx.ellipse(8.5 + lookOffsetX, -11, 3.2, 2, 0, 0, Math.PI * 2);
+                targetCtx.ellipse(-11.5 + lookOffsetX, -1.5, 3.8, 2.2, 0, 0, Math.PI * 2);
+                targetCtx.ellipse(11.5 + lookOffsetX, -1.5, 3.8, 2.2, 0, 0, Math.PI * 2);
                 targetCtx.fill();
 
-                targetCtx.fillStyle = '#292524';
-                targetCtx.font = '900 10px Nunito, sans-serif';
-                targetCtx.textAlign = 'center';
-                targetCtx.textBaseline = 'middle';
-                targetCtx.fillText(face, lookOffsetX, -13.5);
+                // Cute little slime mouth (adapts to chosen face style!)
+                targetCtx.strokeStyle = '#291528';
+                targetCtx.lineWidth = 2;
+                targetCtx.lineCap = 'round';
+                if (face === ':P') {
+                    targetCtx.beginPath();
+                    targetCtx.arc(lookOffsetX, -2, 3.2, 0, Math.PI);
+                    targetCtx.stroke();
+                    targetCtx.fillStyle = '#fb7185';
+                    targetCtx.beginPath();
+                    targetCtx.arc(lookOffsetX, 0.5, 2.3, 0, Math.PI);
+                    targetCtx.fill();
+                } else if (face === 'owo' || face === '^w^') {
+                    targetCtx.beginPath();
+                    targetCtx.arc(-2.2 + lookOffsetX, -2, 2.2, 0, Math.PI);
+                    targetCtx.arc(2.2 + lookOffsetX, -2, 2.2, 0, Math.PI);
+                    targetCtx.stroke();
+                } else {
+                    targetCtx.fillStyle = '#f43f5e';
+                    targetCtx.beginPath();
+                    targetCtx.arc(lookOffsetX, -2.5, 3.4, 0, Math.PI);
+                    targetCtx.fill();
+                    targetCtx.stroke();
+                }
             }
 
-            // Hats & Silly Accessories
+            // Hats & Silly Accessories perched right atop the Slime Dome
             if (acc.includes('Sprout')) {
                 targetCtx.strokeStyle = '#16a34a';
-                targetCtx.lineWidth = 2.5;
+                targetCtx.lineWidth = 2.8;
                 targetCtx.beginPath();
-                targetCtx.moveTo(0, -29);
-                targetCtx.lineTo(0, -37);
+                targetCtx.moveTo(0, -27);
+                targetCtx.lineTo(0, -36);
                 targetCtx.stroke();
                 targetCtx.fillStyle = '#4ade80';
                 targetCtx.beginPath();
-                targetCtx.ellipse(-5, -38, 5, 3, -0.4, 0, Math.PI * 2);
-                targetCtx.ellipse(5, -38, 5, 3, 0.4, 0, Math.PI * 2);
+                targetCtx.ellipse(-5.5, -37, 5.5, 3.2, -0.4, 0, Math.PI * 2);
+                targetCtx.ellipse(5.5, -37, 5.5, 3.2, 0.4, 0, Math.PI * 2);
                 targetCtx.fill();
             } else if (acc.includes('Headphones')) {
                 targetCtx.strokeStyle = '#334155';
-                targetCtx.lineWidth = 3.5;
+                targetCtx.lineWidth = 3.8;
                 targetCtx.beginPath();
-                targetCtx.arc(0, -15, 17, Math.PI, 0);
+                targetCtx.arc(0, -11, 21, Math.PI, 0);
                 targetCtx.stroke();
-                targetCtx.fillStyle = '#fb7185';
+                targetCtx.fillStyle = '#ff6ba3';
                 targetCtx.beginPath();
-                targetCtx.roundRect(-19, -19, 5, 11, 3);
-                targetCtx.roundRect(14, -19, 5, 11, 3);
+                targetCtx.roundRect(-23, -15, 6, 12, 3);
+                targetCtx.roundRect(17, -15, 6, 12, 3);
                 targetCtx.fill();
             } else if (acc.includes('Cat Ears')) {
-                targetCtx.fillStyle = palette.hair;
+                targetCtx.fillStyle = palette.body;
+                targetCtx.strokeStyle = palette.hair;
+                targetCtx.lineWidth = 2;
                 targetCtx.beginPath();
-                targetCtx.moveTo(-13, -24); targetCtx.lineTo(-9, -36); targetCtx.lineTo(-3, -27);
-                targetCtx.moveTo(13, -24); targetCtx.lineTo(9, -36); targetCtx.lineTo(3, -27);
+                targetCtx.moveTo(-15, -20); targetCtx.lineTo(-11, -34); targetCtx.lineTo(-4, -25);
+                targetCtx.closePath();
                 targetCtx.fill();
+                targetCtx.stroke();
+                targetCtx.beginPath();
+                targetCtx.moveTo(15, -20); targetCtx.lineTo(11, -34); targetCtx.lineTo(4, -25);
+                targetCtx.closePath();
+                targetCtx.fill();
+                targetCtx.stroke();
             } else if (acc.includes('Frog Hood')) {
                 targetCtx.fillStyle = '#4ade80';
+                targetCtx.strokeStyle = '#14532d';
+                targetCtx.lineWidth = 1.8;
                 targetCtx.beginPath();
-                targetCtx.arc(-8, -28, 5.5, 0, Math.PI * 2);
-                targetCtx.arc(8, -28, 5.5, 0, Math.PI * 2);
+                targetCtx.arc(-9, -26, 6, 0, Math.PI * 2);
+                targetCtx.arc(9, -26, 6, 0, Math.PI * 2);
                 targetCtx.fill();
+                targetCtx.stroke();
                 targetCtx.fillStyle = '#ffffff';
                 targetCtx.beginPath();
-                targetCtx.arc(-8, -28, 3, 0, Math.PI * 2);
-                targetCtx.arc(8, -28, 3, 0, Math.PI * 2);
+                targetCtx.arc(-9, -26, 3.2, 0, Math.PI * 2);
+                targetCtx.arc(9, -26, 3.2, 0, Math.PI * 2);
                 targetCtx.fill();
                 targetCtx.fillStyle = '#14532d';
                 targetCtx.beginPath();
-                targetCtx.arc(-8, -28, 1.5, 0, Math.PI * 2);
-                targetCtx.arc(8, -28, 1.5, 0, Math.PI * 2);
+                targetCtx.arc(-9, -26, 1.6, 0, Math.PI * 2);
+                targetCtx.arc(9, -26, 1.6, 0, Math.PI * 2);
                 targetCtx.fill();
             } else if (acc.includes('Ducky Hat')) {
                 targetCtx.fillStyle = '#fde047';
+                targetCtx.strokeStyle = '#92400e';
+                targetCtx.lineWidth = 1.6;
                 targetCtx.beginPath();
-                targetCtx.ellipse(0, -31, 8, 5.5, 0, 0, Math.PI * 2);
-                targetCtx.arc(4, -36, 4.5, 0, Math.PI * 2);
+                targetCtx.ellipse(0, -29, 8.5, 5.5, 0, 0, Math.PI * 2);
+                targetCtx.arc(4.5, -34.5, 4.8, 0, Math.PI * 2);
                 targetCtx.fill();
+                targetCtx.stroke();
                 targetCtx.fillStyle = '#f97316';
                 targetCtx.beginPath();
-                targetCtx.ellipse(9, -36, 3, 1.8, 0, 0, Math.PI * 2);
+                targetCtx.ellipse(9.5, -34.5, 3.2, 1.9, 0, 0, Math.PI * 2);
                 targetCtx.fill();
             } else if (acc.includes('Party Cone')) {
                 targetCtx.fillStyle = '#c084fc';
+                targetCtx.strokeStyle = '#581c87';
+                targetCtx.lineWidth = 1.8;
                 targetCtx.beginPath();
-                targetCtx.moveTo(-8, -27); targetCtx.lineTo(0, -43); targetCtx.lineTo(8, -27);
+                targetCtx.moveTo(-8.5, -25); targetCtx.lineTo(0, -42); targetCtx.lineTo(8.5, -25);
                 targetCtx.closePath();
                 targetCtx.fill();
+                targetCtx.stroke();
                 targetCtx.fillStyle = '#fde047';
                 targetCtx.beginPath();
-                targetCtx.arc(0, -44, 3, 0, Math.PI * 2);
+                targetCtx.arc(0, -43, 3.5, 0, Math.PI * 2);
                 targetCtx.fill();
             } else if (acc.includes('Halo')) {
                 targetCtx.strokeStyle = '#fde047';
-                targetCtx.lineWidth = 2.5;
+                targetCtx.lineWidth = 3;
                 targetCtx.beginPath();
-                targetCtx.ellipse(0, -35, 10, 3.5, 0, 0, Math.PI * 2);
+                targetCtx.ellipse(0, -34, 11, 3.8, 0, 0, Math.PI * 2);
                 targetCtx.stroke();
             }
 
@@ -2506,12 +3648,30 @@
 
         function triggerSpeechBubble(text) {
             const clean = (text || '').trim().slice(0, 80);
-            if (!clean) return;
+            if (!clean) return false;
+
+            const now = Date.now();
+            if (now < chatTimeoutUntil) {
+                const secs = ((chatTimeoutUntil - now) / 1000).toFixed(1);
+                showToast(`Slow down! Chat timed out for ${secs}s ⏳`, 'warn');
+                return false;
+            }
+
+            recentChatTimestamps = recentChatTimestamps.filter((ts) => now - ts < CHAT_WINDOW_MS);
+            if (recentChatTimestamps.length >= CHAT_MAX_MESSAGES) {
+                chatTimeoutUntil = now + CHAT_TIMEOUT_MS;
+                recentChatTimestamps = [];
+                showToast(`Too many messages! Timed out for ${(CHAT_TIMEOUT_MS / 1000).toFixed(0)}s ⏳`, 'warn');
+                return false;
+            }
+
+            recentChatTimestamps.push(now);
             localPlayer.chatText = clean;
-            localPlayer.chatTimestamp = Date.now();
+            localPlayer.chatTimestamp = now;
             const col = AVATAR_COLORS[localPlayer.colorIdx]?.swatch || '#fde047';
             appendChatLog(localPlayer.name, clean, col, false);
             syncLocalPlayerState(true);
+            return true;
         }
 
         function updatePlayersListUI() {
@@ -2592,6 +3752,80 @@
                 if (pondRipples[i].alpha <= 0) pondRipples.splice(i, 1);
             }
 
+            // Update Living Wildlife: Wild Baby Slimes, Butterflies, Sakura Petals, Brook Fish & Grass Sway
+            wildSlimes.forEach((ws) => {
+                if (ws.happyHearts > 0) ws.happyHearts = Math.max(0, ws.happyHearts - dt * 0.85);
+                if (now > ws.nextHopTime && ws.hopHeight === 0) {
+                    const ang = Math.atan2(ws.homeY - ws.y, ws.homeX - ws.x) + (Math.random() - 0.5) * 2.4;
+                    const spd = 65 + Math.random() * 55;
+                    ws.vx = Math.cos(ang) * spd;
+                    ws.vy = Math.sin(ang) * spd;
+                    ws.hopVel = 185 + Math.random() * 65;
+                    ws.nextHopTime = now + 1400 + Math.random() * 2400;
+                }
+                if (ws.hopHeight > 0 || ws.hopVel !== 0) {
+                    ws.x += ws.vx * dt;
+                    ws.y += ws.vy * dt;
+                    ws.hopHeight += ws.hopVel * dt;
+                    ws.hopVel -= 680 * dt;
+                    if (ws.hopHeight <= 0) {
+                        ws.hopHeight = 0;
+                        ws.hopVel = 0;
+                    }
+                }
+                // Happy heart reaction when player walks up close to a wild baby slime!
+                if (inGame && Math.hypot(localPlayer.x - ws.x, localPlayer.y - ws.y) < 58 && ws.happyHearts === 0) {
+                    ws.happyHearts = 1;
+                    ws.hopVel = 210;
+                    playPopSound(760);
+                }
+            });
+
+            ranchButterflies.forEach((bf) => {
+                bf.angle += (Math.random() - 0.5) * 3.2 * dt;
+                bf.x += Math.cos(bf.angle) * bf.speed * dt;
+                bf.y += Math.sin(bf.angle) * bf.speed * dt;
+                if (bf.x < 100 || bf.x > WORLD_W - 100) bf.angle = Math.PI - bf.angle;
+                if (bf.y < 100 || bf.y > WORLD_H - 100) bf.angle = -bf.angle;
+            });
+
+            sakuraPetals.forEach((pt) => {
+                pt.x += (pt.vx + Math.sin(now * 0.002 + pt.swayPhase) * 14) * dt;
+                pt.y += pt.vy * dt;
+                if (pt.y > 1480 || pt.x < 2650) {
+                    pt.x = 2850 + Math.random() * 1350;
+                    pt.y = 220 + Math.random() * 240;
+                }
+            });
+
+            brookSplashFish.forEach((bf) => {
+                if (!bf.active) {
+                    bf.timer -= dt;
+                    if (bf.timer <= 0) {
+                        bf.active = true;
+                        bf.jumpOffset = 0;
+                        const bx = 855 + Math.sin(bf.y * 0.005) * 48;
+                        pondRipples.push({ x: bx, y: bf.y, r: 5, alpha: 0.85 });
+                    }
+                } else {
+                    bf.jumpOffset += dt * 1.35;
+                    if (bf.jumpOffset >= 1) {
+                        bf.active = false;
+                        bf.timer = 2.8 + Math.random() * 3.5;
+                        const bx = 855 + Math.sin(bf.y * 0.005) * 48;
+                        pondRipples.push({ x: bx, y: bf.y, r: 6, alpha: 0.9 });
+                    }
+                }
+            });
+
+            swayFloraPatches.forEach((fl) => {
+                if (inGame && localPlayer.isMoving && Math.hypot(localPlayer.x - fl.x, localPlayer.y - fl.y) < 34) {
+                    fl.swayVel = (fl.x >= localPlayer.x ? 1 : -1) * 48;
+                }
+                fl.sway += fl.swayVel * dt;
+                fl.swayVel += (-fl.sway * 28 - fl.swayVel * 5.5) * dt;
+            });
+
             // Confetti particles
             for (let i = confettiParticles.length - 1; i >= 0; i--) {
                 const cp = confettiParticles[i];
@@ -2639,14 +3873,14 @@
                 localPlayer.x = Math.max(58, Math.min(WORLD_W - 58, localPlayer.x));
                 localPlayer.y = Math.max(66, Math.min(WORLD_H - 54, localPlayer.y));
 
-                // Soft collision push-out from central stone fountain basin
+                // Soft elliptical collision push-out matching the 2.5D Koi Fountain basin
                 const pond = PROPS[0];
-                const pdx = localPlayer.x - pond.x;
-                const pdy = localPlayer.y - pond.y;
-                const pDist = Math.hypot(pdx, pdy);
-                if (pDist < 94 && pDist > 0.01) {
-                    localPlayer.x = pond.x + (pdx / pDist) * 94;
-                    localPlayer.y = pond.y + (pdy / pDist) * 94;
+                const epX = (localPlayer.x - pond.x) / 102;
+                const epY = (localPlayer.y - pond.y) / 60;
+                const epDist = Math.hypot(epX, epY);
+                if (epDist < 1 && epDist > 0.001) {
+                    localPlayer.x = pond.x + (epX / epDist) * 102;
+                    localPlayer.y = pond.y + (epY / epDist) * 60;
                 }
 
                 localPlayer.facing = Math.abs(moveX) > Math.abs(moveY)
@@ -2827,19 +4061,21 @@
                 if (!input) return;
                 const msg = input.value.trim();
                 if (msg) {
-                    triggerSpeechBubble(msg);
-                    input.value = '';
+                    if (triggerSpeechBubble(msg)) {
+                        input.value = '';
+                    }
                 }
                 input.blur();
             });
 
-            // Quick Emotes
+            // Quick Emotes (grounded jump check + anti-spam filter)
             document.querySelectorAll('.emote-btn').forEach((btn) => {
                 btn.addEventListener('click', () => {
                     const emote = btn.getAttribute('data-emote');
-                    if (emote) {
-                        localPlayer.jumpVel = 220;
-                        triggerSpeechBubble(emote);
+                    if (emote && triggerSpeechBubble(emote)) {
+                        if (localPlayer.jumpHeight === 0 && localPlayer.jumpVel === 0) {
+                            localPlayer.jumpVel = 220;
+                        }
                         playPopSound(720);
                     }
                 });
@@ -2891,6 +4127,7 @@
 
         window.onload = async function () {
             resizeCanvas();
+            buildPropSpriteAssets();
             buildColorSwatches();
             drawAvatarPreview();
             initChalkboard();
