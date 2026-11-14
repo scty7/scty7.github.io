@@ -1,0 +1,2903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ChillSpot — Cozy Social Hangout</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PeerJS for cross-device online WebRTC multiplayer -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <!-- Google Font: Nunito & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Nunito', 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #090b1a;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        canvas#gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: pointer;
+        }
+
+        .cozy-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+        .cozy-scroll::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 9999px;
+        }
+        .cozy-scroll::-webkit-scrollbar-thumb {
+            background: rgba(251, 191, 36, 0.35);
+            border-radius: 9999px;
+        }
+        .cozy-scroll::-webkit-scrollbar-thumb:hover {
+            background: rgba(251, 191, 36, 0.6);
+        }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+        }
+        .animate-float {
+            animation: floatSlow 3.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="text-stone-800 antialiased">
+
+    <!-- Full-Viewport Interactive Courtyard Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Toast Notification Banner -->
+    <div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-2"></div>
+
+    <!-- LOBBY / AVATAR & ROOM MODAL -->
+    <div id="lobbyOverlay" class="fixed inset-0 z-40 flex items-center justify-center p-4 bg-stone-950/70 backdrop-blur-md transition-opacity duration-300">
+        <div class="w-full max-w-md bg-amber-50/95 border-2 border-amber-200/80 rounded-3xl shadow-2xl p-6 sm:p-7 relative overflow-hidden">
+            <div class="absolute -top-16 -right-16 w-40 h-40 bg-rose-300/30 rounded-full blur-2xl pointer-events-none"></div>
+            <div class="absolute -bottom-16 -left-16 w-40 h-40 bg-amber-300/30 rounded-full blur-2xl pointer-events-none"></div>
+
+            <!-- Header -->
+            <div class="text-center mb-5 relative">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-200/70 text-amber-900 text-xs font-extrabold tracking-wide uppercase mb-2 animate-float">
+                    ✨ Cozy Courtyard Hangout
+                </div>
+                <h1 class="text-3xl font-black text-stone-800 tracking-tight">ChillSpot</h1>
+                <p class="text-xs sm:text-sm text-stone-500 font-semibold mt-0.5">Customize your lil bean & vibe with friends</p>
+            </div>
+
+            <!-- Avatar Customization Row -->
+            <div class="bg-white/80 border border-amber-200/70 rounded-2xl p-4 mb-5 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="relative shrink-0">
+                        <canvas id="avatarPreviewCanvas" width="76" height="76" class="rounded-2xl bg-amber-50 border-2 border-stone-200 shadow-inner"></canvas>
+                        <button id="cycleFaceBtn" type="button" title="Change Silly Face" class="absolute -bottom-1.5 -left-1.5 bg-white hover:bg-amber-50 text-stone-700 border border-stone-200 rounded-full w-7 h-7 flex items-center justify-center shadow-sm text-xs font-bold transition active:scale-90">
+                            🤪
+                        </button>
+                        <button id="cycleAccessoryBtn" type="button" title="Change Hat / Accessory" class="absolute -bottom-1.5 -right-1.5 bg-white hover:bg-rose-50 text-stone-700 border border-stone-200 rounded-full w-7 h-7 flex items-center justify-center shadow-sm text-xs font-bold transition active:scale-90">
+                            ✨
+                        </button>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <label for="playerNameInput" class="block text-xs font-extrabold text-stone-600 uppercase tracking-wider mb-1">Nickname</label>
+                        <input id="playerNameInput" type="text" maxlength="16" value="Mochi" placeholder="Enter nickname..." class="w-full px-3 py-1.5 text-sm font-bold text-stone-800 bg-amber-50/70 border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition">
+
+                        <div class="mt-2.5">
+                            <span class="block text-[11px] font-bold text-stone-500 mb-1">Sweater Color</span>
+                            <div id="colorSwatches" class="flex flex-wrap gap-1.5"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Room Hosting & Joining Actions -->
+            <div class="space-y-3">
+                <button id="hostRoomBtn" type="button" class="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white font-extrabold text-sm sm:text-base shadow-lg shadow-rose-500/25 flex items-center justify-center gap-2 transition transform active:scale-[0.98]">
+                    <span>🏡 Host a New Room</span>
+                </button>
+
+                <div class="flex gap-2">
+                    <input id="joinCodeInput" type="text" maxlength="6" placeholder="ROOM CODE" class="flex-1 min-w-0 px-3.5 py-2.5 rounded-2xl bg-white border-2 border-stone-200 text-center font-black text-stone-800 tracking-widest uppercase text-sm focus:outline-none focus:border-amber-400 transition">
+                    <button id="joinRoomBtn" type="button" class="px-5 py-2.5 rounded-2xl bg-stone-800 hover:bg-stone-700 text-amber-50 font-extrabold text-sm shadow-md transition active:scale-[0.98] shrink-0">
+                        Join Room
+                    </button>
+                </div>
+
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-stone-300/80"></div>
+                    <span class="flex-shrink mx-3 text-[11px] font-bold text-stone-400 uppercase tracking-wider">or</span>
+                    <div class="flex-grow border-t border-stone-300/80"></div>
+                </div>
+
+                <button id="soloPlayBtn" type="button" class="w-full py-2.5 px-4 rounded-2xl bg-emerald-100/80 hover:bg-emerald-200/80 text-emerald-900 border border-emerald-300/80 font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition active:scale-[0.98]">
+                    <span>🍵 Hang Out Solo (with Yuzu & Pip)</span>
+                </button>
+            </div>
+
+            <p class="text-center text-[11px] text-stone-500 font-semibold mt-4">
+                Move with <span class="font-extrabold text-stone-700">WASD / Arrows</span> or <span class="font-extrabold text-stone-700">Click / Tap</span> anywhere in the courtyard!
+            </p>
+        </div>
+    </div>
+
+    <!-- IN-GAME HUD OVERLAY -->
+    <div id="gameHud" class="hidden fixed inset-0 pointer-events-none z-30 flex flex-col justify-between p-3 sm:p-4">
+        <!-- Top Bar: Room Info + Online Players + Leave -->
+        <div class="flex flex-wrap items-start justify-between gap-2">
+            <div class="pointer-events-auto flex items-center gap-2 bg-stone-900/80 backdrop-blur-md text-amber-50 border border-amber-300/25 rounded-2xl px-3.5 py-2 shadow-lg">
+                <div class="flex flex-col">
+                    <div class="flex items-center gap-1.5">
+                        <span id="connectionDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="roomModeLabel" class="text-[11px] font-extrabold uppercase tracking-wider text-amber-300">Room</span>
+                    </div>
+                    <div id="netStatusText" class="text-[10px] font-bold text-stone-300 mt-0.5">Ready</div>
+                    <div class="flex items-center gap-2 mt-0.5">
+                        <span id="hudRoomCode" class="font-black text-base tracking-widest text-white">------</span>
+                        <button id="copyCodeBtn" type="button" title="Copy Room Code" class="px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 text-xs font-bold border border-amber-400/30 transition active:scale-95">
+                            Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pointer-events-auto flex items-center gap-2">
+                <div class="relative">
+                    <button id="playersToggleBtn" type="button" class="flex items-center gap-1.5 bg-stone-900/80 hover:bg-stone-800/90 backdrop-blur-md text-amber-50 border border-amber-300/25 rounded-2xl px-3 py-2 text-xs font-extrabold shadow-lg transition">
+                        <span>👥</span>
+                        <span id="playerCountBadge">1</span>
+                    </button>
+                    <div id="playersDropdown" class="hidden absolute right-0 mt-2 w-52 bg-stone-900/95 backdrop-blur-md border border-amber-300/25 rounded-2xl p-3 shadow-2xl text-amber-50">
+                        <div class="text-[11px] font-extrabold uppercase tracking-wider text-amber-300 mb-2">In Courtyard</div>
+                        <ul id="playersList" class="space-y-1.5 max-h-44 overflow-y-auto cozy-scroll text-xs font-bold"></ul>
+                    </div>
+                </div>
+
+                <button id="hudLofiBtn" type="button" title="Toggle Lofi Beats" class="bg-stone-900/80 hover:bg-stone-800/90 backdrop-blur-md text-amber-200 border border-amber-300/25 rounded-2xl px-3 py-2 text-xs font-extrabold shadow-lg transition active:scale-95">
+                    🎵 <span id="lofiStatusText" class="hidden sm:inline">Lofi Off</span>
+                </button>
+
+                <button id="leaveRoomBtn" type="button" class="bg-rose-950/85 hover:bg-rose-900/95 backdrop-blur-md text-rose-200 border border-rose-400/30 rounded-2xl px-3 py-2 text-xs font-extrabold shadow-lg transition active:scale-95">
+                    Leave
+                </button>
+            </div>
+        </div>
+
+        <!-- Nearby Prop Interaction Prompt -->
+        <div id="propPromptBanner" class="hidden self-center pointer-events-auto bg-stone-900/85 backdrop-blur-md text-amber-100 border border-amber-300/40 rounded-2xl px-4 py-2 shadow-xl flex items-center gap-2.5 transition transform">
+            <span id="propPromptIcon" class="text-lg">🔥</span>
+            <span id="propPromptText" class="text-xs sm:text-sm font-extrabold">Press [E] or tap to interact</span>
+            <button id="propInteractBtn" type="button" class="px-2.5 py-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs transition active:scale-95">
+                Use
+            </button>
+        </div>
+
+        <!-- Bottom Bar: Collapsible Chat Log + Chat Input (Left) & Quick Emotes (Right) -->
+        <div class="flex flex-col md:flex-row items-stretch md:items-end justify-between gap-2.5">
+            <div class="pointer-events-auto w-full md:w-80 flex flex-col items-start gap-1.5">
+                <button id="toggleChatLogBtn" type="button" class="inline-flex items-center gap-1.5 bg-stone-900/80 hover:bg-stone-800/90 backdrop-blur-md text-amber-100 border border-amber-300/25 rounded-full px-3 py-1 text-xs font-extrabold shadow-md transition">
+                    <span>💬 Chat Log</span>
+                    <span id="chatUnreadBadge" class="hidden px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black">0</span>
+                </button>
+
+                <div id="chatLogPanel" class="w-full bg-stone-900/75 backdrop-blur-md border border-amber-300/20 rounded-2xl p-2.5 shadow-xl transition-all">
+                    <div id="chatLogMessages" class="h-28 sm:h-32 overflow-y-auto cozy-scroll space-y-1 text-xs pr-1"></div>
+                </div>
+
+                <form id="chatForm" class="w-full flex items-center gap-1.5 bg-stone-900/85 backdrop-blur-md border border-amber-300/30 rounded-2xl p-1.5 shadow-xl">
+                    <input id="chatInput" type="text" maxlength="80" placeholder="Say something cozy..." autocomplete="off" class="flex-1 min-w-0 bg-transparent text-amber-50 placeholder-stone-400 text-xs sm:text-sm font-semibold px-2.5 py-1.5 focus:outline-none">
+                    <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs sm:text-sm transition active:scale-95 shrink-0">
+                        Send
+                    </button>
+                </form>
+            </div>
+
+            <div class="pointer-events-auto flex items-center justify-center md:justify-end gap-1.5">
+                <button type="button" data-emote="👋" class="emote-btn bg-stone-900/80 hover:bg-stone-800 text-base w-9 h-9 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">👋</button>
+                <button type="button" data-emote="❤️" class="emote-btn bg-stone-900/80 hover:bg-stone-800 text-base w-9 h-9 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">❤️</button>
+                <button type="button" data-emote="✨" class="emote-btn bg-stone-900/80 hover:bg-stone-800 text-base w-9 h-9 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">✨</button>
+                <button type="button" data-emote="🍵" class="emote-btn bg-stone-900/80 hover:bg-stone-800 text-base w-9 h-9 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">🍵</button>
+                <button type="button" data-emote="🐸" class="emote-btn bg-stone-900/80 hover:bg-stone-800 text-base w-9 h-9 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">🐸</button>
+                <button type="button" data-emote="💤" class="emote-btn bg-stone-900/80 hover:bg-stone-800 text-base w-9 h-9 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">💤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MINI-GAME 1: PICNIC TABLE TIC-TAC-TOE MODAL -->
+    <div id="tttModal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-sm">
+        <div class="w-full max-w-xs bg-amber-50 border-2 border-amber-300 rounded-3xl p-5 shadow-2xl text-stone-800">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">🍵</span>
+                    <h2 class="font-black text-base text-stone-800">Picnic Tic-Tac-Toe</h2>
+                </div>
+                <button id="closeTttBtn" type="button" class="w-7 h-7 rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-black text-xs flex items-center justify-center">✕</button>
+            </div>
+            <div class="flex justify-between items-center text-xs font-extrabold mb-3 bg-white/90 rounded-xl px-3 py-2 border border-amber-200">
+                <span id="tttPlayerXLabel" class="text-rose-600 truncate max-w-[45%]">❌ Open</span>
+                <span class="text-stone-400">vs</span>
+                <span id="tttPlayerOLabel" class="text-sky-600 truncate max-w-[45%] text-right">⭕ Open</span>
+            </div>
+            <div id="tttStatusText" class="text-center text-xs font-black text-amber-900 bg-amber-200/70 rounded-xl py-1.5 mb-3">
+                Claim a seat or tap a square!
+            </div>
+            <div id="tttGrid" class="grid grid-cols-3 gap-2 mb-3"></div>
+            <div class="flex gap-2">
+                <button id="tttResetBtn" type="button" class="flex-1 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs transition active:scale-95">
+                    New Round
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MINI-GAME 2: SHARED PASTEL CHALKBOARD MODAL -->
+    <div id="chalkModal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-sm">
+        <div class="w-full max-w-md bg-amber-900 border-4 border-amber-700 rounded-3xl p-4 shadow-2xl text-amber-50">
+            <div class="flex items-center justify-between mb-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">🎨</span>
+                    <h2 class="font-black text-base">Shared Courtyard Chalkboard</h2>
+                </div>
+                <button id="closeChalkBtn" type="button" class="w-7 h-7 rounded-full bg-amber-800 hover:bg-amber-700 text-amber-100 font-black text-xs flex items-center justify-center">✕</button>
+            </div>
+            <canvas id="chalkCanvas" width="420" height="250" class="w-full h-56 bg-slate-800 rounded-2xl border-2 border-amber-950 cursor-crosshair touch-none shadow-inner"></canvas>
+            <div class="flex flex-wrap items-center justify-between gap-2 mt-3">
+                <div id="chalkColors" class="flex items-center gap-1.5"></div>
+                <button id="clearChalkBtn" type="button" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-extrabold text-xs transition active:scale-95">
+                    Wipe Board
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MINI-GAME 4: KOI POND FISHING OVERLAY -->
+    <div id="fishingBanner" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-40 pointer-events-auto bg-sky-950/90 backdrop-blur-md border-2 border-sky-400/50 text-sky-100 rounded-2xl px-4 py-2.5 shadow-2xl flex items-center gap-3">
+        <span id="fishingIcon" class="text-2xl">🎣</span>
+        <div class="flex flex-col">
+            <span id="fishingTitle" class="text-xs font-black uppercase tracking-wider text-sky-300">Koi Pond Fishing</span>
+            <span id="fishingStatus" class="text-xs sm:text-sm font-bold">Waiting for a nibble...</span>
+        </div>
+        <button id="reelFishBtn" type="button" class="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-xs transition active:scale-95">
+            Reel / Cancel
+        </button>
+    </div>
+
+    <!-- Main Game & Multiplayer Engine -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ==========================================
+        // 1. CORE STATE & CONFIGURATION
+        // ==========================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const WORLD_W = 1400;
+        const WORLD_H = 980;
+        const PLAYER_SPEED = 215;
+
+        const AVATAR_COLORS = [
+            { name: 'Strawberry Milk', body: '#fda4af', shade: '#fb7185', hair: '#881337', swatch: '#fb7185' },
+            { name: 'Matcha Cream',    body: '#86efac', shade: '#4ade80', hair: '#14532d', swatch: '#4ade80' },
+            { name: 'Honey Peach',     body: '#fcd34d', shade: '#fbbf24', hair: '#78350f', swatch: '#fbbf24' },
+            { name: 'Blueberry Tart',  body: '#93c5fd', shade: '#60a5fa', hair: '#1e3a8a', swatch: '#60a5fa' },
+            { name: 'Lavender Fog',    body: '#d8b4fe', shade: '#c084fc', hair: '#581c87', swatch: '#c084fc' },
+            { name: 'Toasted Mocha',   body: '#d6d3d1', shade: '#a8a29e', hair: '#44403c', swatch: '#a8a29e' },
+            { name: 'Tangerine Jam',   body: '#fdba74', shade: '#fb923c', hair: '#7c2d12', swatch: '#fb923c' },
+            { name: 'Mint Frost',      body: '#67e8f9', shade: '#22d3ee', hair: '#164e63', swatch: '#22d3ee' }
+        ];
+
+        const ACCESSORIES = [
+            'none',
+            '🌿 Sprout',
+            '🎧 Headphones',
+            '🐱 Cat Ears',
+            '🐸 Frog Hood',
+            '🦆 Ducky Hat',
+            '🎉 Party Cone',
+            '⭐ Halo'
+        ];
+
+        const FACES = ['•ᴗ•', 'owo', ':P', '^w^', 'o_O'];
+
+        function getTabPlayerId() {
+            let id = sessionStorage.getItem('chillspot_tab_uid');
+            if (!id) {
+                id = 'bean-' + Math.random().toString(36).substring(2, 10);
+                sessionStorage.setItem('chillspot_tab_uid', id);
+            }
+            return id;
+        }
+
+        let localPlayer = {
+            id: getTabPlayerId(),
+            name: 'Mochi',
+            colorIdx: 0,
+            accessoryIdx: 1,
+            faceIdx: 0,
+            x: WORLD_W / 2,
+            y: WORLD_H / 2 + 180,
+            facing: 'down',
+            walkCycle: 0,
+            isMoving: false,
+            jumpHeight: 0,
+            jumpVel: 0,
+            chatText: '',
+            chatTimestamp: 0
+        };
+
+        // Multiplayer & Session State
+        let inGame = false;
+        let roomMode = 'solo'; // 'solo' | 'host' | 'client'
+        let currentRoomCode = '';
+        let remotePlayers = new Map();
+        let botCompanions = [];
+        let lastSyncTime = 0;
+        let sessionEpoch = 0;
+
+        // Network Transport Handles (PeerJS + BroadcastChannel + Firebase)
+        let p2pPeer = null;
+        let hostConnections = new Map();
+        let clientToHostConn = null;
+        let broadcastChan = null;
+        let heartbeatTimer = null;
+        let staleCleanupTimer = null;
+
+        let db = null;
+        let auth = null;
+        let firestoreUnsub = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'chillspot-cozy';
+
+        const PEER_CONFIG = {
+            debug: 0,
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:global.stun.twilio.com:3478' }
+                ],
+                sdpSemantics: 'unified-plan'
+            }
+        };
+
+        window.addEventListener('unhandledrejection', (e) => {
+            if (e.reason && String(e.reason).includes('SecurityError')) {
+                e.preventDefault();
+            }
+        });
+
+        // Camera & Input State
+        let camera = { x: WORLD_W / 2, y: WORLD_H / 2 };
+        let keysPressed = {};
+        let clickTarget = null;
+        let nearbyProp = null;
+        let lastFrameTime = performance.now();
+        let chatLogCollapsed = false;
+        let unreadChatCount = 0;
+
+        // Interactive Courtyard Props & Anti-Spam Cooldown
+        const PROP_COOLDOWN_MS = 1400;
+        let lastPropUseTime = 0;
+        let pondRipples = [];
+
+        // Mini-game States
+        let tttState = {
+            board: Array(9).fill(''),
+            turn: 'X',
+            playerX: null,
+            playerO: null,
+            winner: null
+        };
+
+        let hotPotatoState = {
+            active: false,
+            holderId: null,
+            endTime: 0,
+            lastPassTime: 0
+        };
+
+        let fishingState = {
+            active: false,
+            phase: 'idle',
+            biteTimer: 0,
+            bobberX: WORLD_W / 2,
+            bobberY: WORLD_H / 2
+        };
+
+        let confettiParticles = [];
+
+        let propStates = {
+            campfireLit: true,
+            lofiPlaying: false,
+            fairyLightsOn: true,
+            matchaServed: true
+        };
+
+        // Structured Architectural Courtyard Layout (1400 x 980)
+        const PROPS = [
+            {
+                id: 'pond',
+                name: 'Central Koi Fountain',
+                icon: '🎣',
+                x: WORLD_W / 2,
+                y: WORLD_H / 2,
+                radius: 105,
+                getPrompt: () => fishingState.active ? 'Reel in or pull up fishing line' : 'Go fishing in the Koi Fountain'
+            },
+            {
+                id: 'table',
+                name: 'Picnic Tea Table (Tic-Tac-Toe)',
+                icon: '🍵',
+                x: WORLD_W / 2 - 340,
+                y: WORLD_H / 2 - 210,
+                radius: 85,
+                getPrompt: () => 'Play Picnic Table Tic-Tac-Toe'
+            },
+            {
+                id: 'easel',
+                name: 'Pastel Chalkboard Easel',
+                icon: '🎨',
+                x: WORLD_W / 2 + 340,
+                y: WORLD_H / 2 - 210,
+                radius: 85,
+                getPrompt: () => 'Draw together on the Chalkboard'
+            },
+            {
+                id: 'potato',
+                name: 'Hot Potato Tag Pedestal',
+                icon: '🥔',
+                x: WORLD_W / 2 - 340,
+                y: WORLD_H / 2 + 210,
+                radius: 85,
+                getPrompt: () => hotPotatoState.active ? 'Hot Potato round in progress!' : 'Start a 20s Hot Potato Tag round!'
+            },
+            {
+                id: 'campfire',
+                name: 'Hearth Firepit & Lounge',
+                icon: '🔥',
+                x: WORLD_W / 2 + 340,
+                y: WORLD_H / 2 + 210,
+                radius: 85,
+                getPrompt: () => propStates.campfireLit ? 'Warm your paws by the hearth' : 'Light the hearth firepit'
+            },
+            {
+                id: 'boombox',
+                name: 'Courtyard Lofi Radio',
+                icon: '📻',
+                x: WORLD_W / 2 + 165,
+                y: WORLD_H / 2 - 295,
+                radius: 75,
+                getPrompt: () => propStates.lofiPlaying ? 'Pause courtyard lofi beats' : 'Play courtyard lofi beats'
+            },
+            {
+                id: 'sofa',
+                name: 'Pergola Lantern Switch',
+                icon: '🏮',
+                x: WORLD_W / 2 - 165,
+                y: WORLD_H / 2 - 295,
+                radius: 75,
+                getPrompt: () => propStates.fairyLightsOn ? 'Dim courtyard lanterns' : 'Light courtyard lanterns'
+            }
+        ];
+
+        // Relaxing Starry Night Sky Elements (Outside the Courtyard)
+        const nightStars = Array.from({ length: 165 }, () => {
+            const tints = ['#fef9c3', '#e0f2fe', '#fae8ff', '#ffffff'];
+            return {
+                rx: Math.random(),
+                ry: Math.random(),
+                size: 1 + Math.random() * 1.9,
+                speed: 0.0015 + Math.random() * 0.003,
+                phase: Math.random() * Math.PI * 2,
+                tint: tints[Math.floor(Math.random() * tints.length)]
+            };
+        });
+
+        let shootingStar = null;
+        let nextShootingStarTime = performance.now() + 5000;
+
+        // Decorative Courtyard Flowerbeds (Placed neatly inside brick planters)
+        const planterFlowers = [
+            { x: 205, y: 125, c: '#fda4af' }, { x: 235, y: 125, c: '#fde047' }, { x: 265, y: 125, c: '#f0abfc' },
+            { x: WORLD_W - 205, y: 125, c: '#fde047' }, { x: WORLD_W - 235, y: 125, c: '#bae6fd' }, { x: WORLD_W - 265, y: 125, c: '#fda4af' },
+            { x: 205, y: WORLD_H - 125, c: '#f0abfc' }, { x: 235, y: WORLD_H - 125, c: '#fda4af' }, { x: 265, y: WORLD_H - 125, c: '#fde047' },
+            { x: WORLD_W - 205, y: WORLD_H - 125, c: '#bae6fd' }, { x: WORLD_W - 235, y: WORLD_H - 125, c: '#fde047' }, { x: WORLD_W - 265, y: WORLD_H - 125, c: '#fda4af' }
+        ];
+
+        const fireflies = Array.from({ length: 24 }, () => ({
+            x: 120 + Math.random() * (WORLD_W - 240),
+            y: 120 + Math.random() * (WORLD_H - 240),
+            vx: (Math.random() - 0.5) * 16,
+            vy: (Math.random() - 0.5) * 16,
+            phase: Math.random() * Math.PI * 2,
+            size: 2 + Math.random() * 2.2
+        }));
+
+        // ==========================================
+        // 2. AUDIO ENGINE (WEB AUDIO LOFI & SFX)
+        // ==========================================
+        let audioCtx = null;
+        let lofiInterval = null;
+        let lofiStep = 0;
+
+        function ensureAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    audioCtx = new AudioContextClass();
+                }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => {});
+            }
+        }
+
+        function playPopSound(freq = 540) {
+            try {
+                ensureAudioContext();
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(freq * 1.45, audioCtx.currentTime + 0.09);
+                gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.11);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.12);
+            } catch (e) {}
+        }
+
+        function toggleLofiAudio(forceState = null) {
+            const nextState = forceState !== null ? forceState : !propStates.lofiPlaying;
+            propStates.lofiPlaying = nextState;
+
+            const statusEl = document.getElementById('lofiStatusText');
+            if (statusEl) statusEl.textContent = nextState ? 'Lofi On' : 'Lofi Off';
+
+            if (lofiInterval) {
+                clearInterval(lofiInterval);
+                lofiInterval = null;
+            }
+
+            if (nextState) {
+                ensureAudioContext();
+                const chords = [
+                    [261.63, 329.63, 392.00, 493.88], // Cmaj7
+                    [220.00, 261.63, 329.63, 392.00], // Am7
+                    [174.61, 220.00, 261.63, 329.63], // Fmaj7
+                    [196.00, 246.94, 293.66, 349.23]  // G7
+                ];
+                const playChord = () => {
+                    if (!audioCtx || !propStates.lofiPlaying) return;
+                    const chord = chords[lofiStep % chords.length];
+                    lofiStep++;
+                    chord.forEach((hz, idx) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(hz, audioCtx.currentTime + idx * 0.04);
+                        gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+                        gain.gain.linearRampToValueAtTime(0.025, audioCtx.currentTime + 0.25);
+                        gain.gain.exponentialRampToValueAtTime(0.0008, audioCtx.currentTime + 2.1);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(audioCtx.currentTime + idx * 0.04);
+                        osc.stop(audioCtx.currentTime + 2.2);
+                    });
+                };
+                playChord();
+                lofiInterval = setInterval(playChord, 2300);
+            }
+            if (forceState === null && inGame) {
+                syncPropStateToRoom();
+            }
+        }
+
+        // ==========================================
+        // 3. MULTIPLAYER ROOMS (PEERJS + TABS + CLOUD)
+        // ==========================================
+        async function initFirebaseIfAvailable() {
+            try {
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    const cfg = JSON.parse(__firebase_config);
+                    const app = initializeApp(cfg);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                }
+            } catch (e) {
+                db = null;
+            }
+        }
+
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars[Math.floor(Math.random() * chars.length)];
+            }
+            return code;
+        }
+
+        function setNetStatus(text, dotClass = 'bg-emerald-400') {
+            const el = document.getElementById('netStatusText');
+            const dot = document.getElementById('connectionDot');
+            if (el) el.textContent = text;
+            if (dot) dot.className = `w-2 h-2 rounded-full ${dotClass} animate-pulse`;
+        }
+
+        function destroyExistingNetwork() {
+            if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
+            if (staleCleanupTimer) { clearInterval(staleCleanupTimer); staleCleanupTimer = null; }
+            if (firestoreUnsub) { firestoreUnsub(); firestoreUnsub = null; }
+            if (broadcastChan) {
+                try { broadcastChan.close(); } catch (e) {}
+                broadcastChan = null;
+            }
+            hostConnections.forEach((conn) => {
+                try { conn.close(); } catch (e) {}
+            });
+            hostConnections.clear();
+            if (clientToHostConn) {
+                try { clientToHostConn.close(); } catch (e) {}
+                clientToHostConn = null;
+            }
+            if (p2pPeer) {
+                const oldPeer = p2pPeer;
+                p2pPeer = null;
+                try { oldPeer.removeAllListeners(); } catch (e) {}
+                try { oldPeer.disconnect(); } catch (e) {}
+                try { oldPeer.destroy(); } catch (e) {}
+            }
+        }
+
+        function startSoloMode() {
+            sessionEpoch++;
+            destroyExistingNetwork();
+            roomMode = 'solo';
+            currentRoomCode = 'SOLO';
+            remotePlayers.clear();
+            setupSoloBots();
+            enterGameWorld('Solo Courtyard', false);
+            setNetStatus('Cozy Solo Mode', 'bg-emerald-400');
+            appendChatLog('System', 'Welcome to ChillSpot! Yuzu & Pip are hanging out nearby.', '#86efac', true);
+        }
+
+        function startHostRoom(customCode = null) {
+            sessionEpoch++;
+            const epoch = sessionEpoch;
+            destroyExistingNetwork();
+
+            roomMode = 'host';
+            currentRoomCode = (customCode || generateRoomCode()).toUpperCase();
+            remotePlayers.clear();
+            botCompanions = [];
+
+            enterGameWorld('Hosting Room', true);
+            setNetStatus('Opening room...', 'bg-amber-400');
+            appendChatLog('System', `Hosting courtyard ${currentRoomCode}. Share the code with friends!`, '#fde047', true);
+
+            setupLocalBroadcastChannel(currentRoomCode);
+            setupP2PRoomAsHost(currentRoomCode, epoch);
+            startRoomHeartbeats();
+        }
+
+        function joinExistingRoom(rawCode) {
+            const code = (rawCode || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (code.length !== 6) {
+                showToast('Please enter a 6-character Room Code!', 'warn');
+                return;
+            }
+
+            sessionEpoch++;
+            const epoch = sessionEpoch;
+            destroyExistingNetwork();
+
+            roomMode = 'client';
+            currentRoomCode = code;
+            remotePlayers.clear();
+            botCompanions = [];
+
+            enterGameWorld('Joined Room', true);
+            setNetStatus('Connecting to host...', 'bg-amber-400');
+            appendChatLog('System', `Joining courtyard ${currentRoomCode}...`, '#93c5fd', true);
+
+            setupLocalBroadcastChannel(currentRoomCode);
+            setupP2PRoomAsClient(currentRoomCode, epoch);
+            startRoomHeartbeats();
+        }
+
+        function enterGameWorld(modeLabel, isMultiplayer) {
+            inGame = true;
+            // Spawn cleanly on the south cobblestone promenade
+            localPlayer.x = WORLD_W / 2 + (Math.random() - 0.5) * 90;
+            localPlayer.y = WORLD_H / 2 + 195 + (Math.random() - 0.5) * 40;
+            camera.x = localPlayer.x;
+            camera.y = localPlayer.y;
+            clickTarget = null;
+
+            document.getElementById('lobbyOverlay')?.classList.add('hidden');
+            document.getElementById('gameHud')?.classList.remove('hidden');
+            document.getElementById('roomModeLabel').textContent = modeLabel;
+            document.getElementById('hudRoomCode').textContent = currentRoomCode;
+            document.getElementById('copyCodeBtn').style.display = isMultiplayer ? 'inline-block' : 'none';
+
+            updatePlayersListUI();
+        }
+
+        function leaveRoom() {
+            sessionEpoch++;
+            inGame = false;
+            clickTarget = null;
+            stopFishing(true);
+            closeAllMiniGameModals();
+
+            if (roomMode !== 'solo') {
+                broadcastGameEvent({ type: 'leave', id: localPlayer.id });
+            }
+
+            toggleLofiAudio(false);
+            destroyExistingNetwork();
+            remotePlayers.clear();
+            botCompanions = [];
+            hotPotatoState.active = false;
+
+            document.getElementById('gameHud')?.classList.add('hidden');
+            document.getElementById('propPromptBanner')?.classList.add('hidden');
+            document.getElementById('lobbyOverlay')?.classList.remove('hidden');
+            drawAvatarPreview();
+        }
+
+        function setupLocalBroadcastChannel(code) {
+            try {
+                broadcastChan = new BroadcastChannel(`chillspot_room_${code}`);
+                broadcastChan.onmessage = (ev) => {
+                    handleIncomingNetworkPacket(ev.data);
+                };
+                broadcastChan.postMessage({
+                    type: 'player_state',
+                    player: { ...localPlayer, lastSeen: Date.now() },
+                    propStates
+                });
+            } catch (e) {}
+        }
+
+        function setupP2PRoomAsHost(code, epoch) {
+            if (typeof Peer === 'undefined') {
+                setNetStatus('Tab / Local Sync Active', 'bg-sky-400');
+                return;
+            }
+            try {
+                const peer = new Peer(`chillspot-v3-room-${code}`, PEER_CONFIG);
+                p2pPeer = peer;
+
+                peer.on('open', () => {
+                    if (epoch !== sessionEpoch || p2pPeer !== peer) return;
+                    setNetStatus('Online • Waiting for friends', 'bg-emerald-400');
+                });
+
+                peer.on('connection', (conn) => {
+                    if (epoch !== sessionEpoch || p2pPeer !== peer) return;
+
+                    const sendInitialSnapshot = () => {
+                        if (epoch !== sessionEpoch || p2pPeer !== peer || !inGame) return;
+                        hostConnections.set(conn.peer, conn);
+                        setNetStatus(`Online • ${hostConnections.size + 1} connected`, 'bg-emerald-400');
+                        const snapshotPlayers = [
+                            { ...localPlayer, lastSeen: Date.now() },
+                            ...Array.from(remotePlayers.values())
+                        ];
+                        try {
+                            conn.send({
+                                type: 'world_snapshot',
+                                players: snapshotPlayers,
+                                propStates,
+                                tttState,
+                                hotPotatoState,
+                                chalkDataUrl: chalkCanvas ? chalkCanvas.toDataURL('image/png') : null
+                            });
+                        } catch (e) {}
+                    };
+
+                    if (conn.open) sendInitialSnapshot();
+                    conn.on('open', sendInitialSnapshot);
+
+                    conn.on('data', (data) => {
+                        if (epoch !== sessionEpoch || p2pPeer !== peer) return;
+                        handleIncomingNetworkPacket(data);
+                        // Relay packet to all other connected guests
+                        hostConnections.forEach((otherConn, peerKey) => {
+                            if (peerKey !== conn.peer && otherConn.open) {
+                                try { otherConn.send(data); } catch (e) {}
+                            }
+                        });
+                    });
+
+                    conn.on('close', () => {
+                        hostConnections.delete(conn.peer);
+                        if (epoch === sessionEpoch && p2pPeer === peer) {
+                            setNetStatus(
+                                hostConnections.size > 0
+                                    ? `Online • ${hostConnections.size + 1} connected`
+                                    : 'Online • Waiting for friends',
+                                'bg-emerald-400'
+                            );
+                        }
+                    });
+                });
+
+                peer.on('error', (err) => {
+                    if (epoch !== sessionEpoch || p2pPeer !== peer) return;
+                    if (err && err.type === 'unavailable-id') {
+                        setNetStatus('Tab / Local Sync Active', 'bg-sky-400');
+                    } else {
+                        setNetStatus('Local Tab Sync Mode', 'bg-sky-400');
+                    }
+                });
+            } catch (e) {
+                setNetStatus('Local Tab Sync Mode', 'bg-sky-400');
+            }
+        }
+
+        function setupP2PRoomAsClient(code, epoch) {
+            if (typeof Peer === 'undefined') {
+                setNetStatus('Tab / Local Sync Active', 'bg-sky-400');
+                return;
+            }
+            try {
+                const peer = new Peer(PEER_CONFIG);
+                p2pPeer = peer;
+                let attempts = 0;
+
+                const tryConnectToHost = () => {
+                    if (epoch !== sessionEpoch || p2pPeer !== peer || !inGame) return;
+                    attempts++;
+                    const conn = peer.connect(`chillspot-v3-room-${code}`, { reliable: true });
+                    clientToHostConn = conn;
+
+                    const onConnected = () => {
+                        if (epoch !== sessionEpoch || p2pPeer !== peer) return;
+                        setNetStatus('Online • Connected to Host', 'bg-emerald-400');
+                        try {
+                            conn.send({
+                                type: 'player_state',
+                                player: { ...localPlayer, lastSeen: Date.now() }
+                            });
+                        } catch (e) {}
+                    };
+
+                    if (conn.open) onConnected();
+                    conn.on('open', onConnected);
+
+                    conn.on('data', (data) => {
+                        if (epoch !== sessionEpoch || p2pPeer !== peer) return;
+                        handleIncomingNetworkPacket(data);
+                    });
+
+                    conn.on('close', () => {
+                        if (epoch !== sessionEpoch || p2pPeer !== peer || !inGame) return;
+                        setNetStatus('Host disconnected • Promoting...', 'bg-amber-400');
+                        setTimeout(() => {
+                            if (epoch === sessionEpoch && inGame) {
+                                startHostRoom(code);
+                            }
+                        }, 800);
+                    });
+
+                    setTimeout(() => {
+                        if (epoch !== sessionEpoch || p2pPeer !== peer || !inGame) return;
+                        if (!conn.open) {
+                            if (attempts < 3) {
+                                tryConnectToHost();
+                            } else {
+                                setNetStatus('Local / Open Room Mode', 'bg-sky-400');
+                            }
+                        }
+                    }, 2200);
+                };
+
+                peer.on('open', () => {
+                    if (epoch !== sessionEpoch || p2pPeer !== peer) return;
+                    tryConnectToHost();
+                });
+
+                peer.on('error', (err) => {
+                    if (epoch !== sessionEpoch || p2pPeer !== peer) return;
+                    if (err && err.type === 'peer-unavailable') {
+                        setNetStatus('Room empty • Hosting it now!', 'bg-emerald-400');
+                        startHostRoom(code);
+                    } else {
+                        setNetStatus('Local Tab Sync Mode', 'bg-sky-400');
+                    }
+                });
+            } catch (e) {
+                setNetStatus('Local Tab Sync Mode', 'bg-sky-400');
+            }
+        }
+
+        function startRoomHeartbeats() {
+            heartbeatTimer = setInterval(() => {
+                if (!inGame || roomMode === 'solo') return;
+                syncLocalPlayerState(true);
+            }, 1500);
+
+            staleCleanupTimer = setInterval(() => {
+                if (!inGame || roomMode === 'solo') return;
+                const now = Date.now();
+                let changed = false;
+                remotePlayers.forEach((p, id) => {
+                    if (now - (p.lastSeen || 0) > 12000) {
+                        appendChatLog('System', `${p.name} drifted out of the courtyard.`, '#a8a29e', true);
+                        remotePlayers.delete(id);
+                        changed = true;
+                    }
+                });
+                if (changed) updatePlayersListUI();
+            }, 4000);
+        }
+
+        function upsertRemotePlayer(p) {
+            if (!p || !p.id || p.id === localPlayer.id) return;
+            const isNew = !remotePlayers.has(p.id);
+            const existing = remotePlayers.get(p.id) || {};
+            remotePlayers.set(p.id, {
+                ...existing,
+                ...p,
+                targetX: p.x,
+                targetY: p.y,
+                lastSeen: Date.now()
+            });
+            if (isNew) {
+                appendChatLog('System', `${p.name || 'A friend'} hopped into the courtyard!`, '#86efac', true);
+                updatePlayersListUI();
+            }
+            if (p.chatText && p.chatTimestamp && p.chatTimestamp !== existing.chatTimestamp) {
+                const col = AVATAR_COLORS[p.colorIdx || 0]?.swatch || '#fde047';
+                appendChatLog(p.name || 'Friend', p.chatText, col, false);
+            }
+        }
+
+        function applyPropStatesFromNetwork(incoming) {
+            if (!incoming) return;
+            propStates.campfireLit = !!incoming.campfireLit;
+            propStates.fairyLightsOn = !!incoming.fairyLightsOn;
+            if (incoming.lofiPlaying !== propStates.lofiPlaying) {
+                toggleLofiAudio(!!incoming.lofiPlaying);
+            }
+        }
+
+        function handleIncomingNetworkPacket(data) {
+            if (!data || !inGame) return;
+
+            if (data.type === 'world_snapshot') {
+                if (Array.isArray(data.players)) {
+                    data.players.forEach((p) => {
+                        if (p && p.id !== localPlayer.id) {
+                            upsertRemotePlayer(p);
+                        }
+                    });
+                }
+                if (data.propStates) {
+                    applyPropStatesFromNetwork(data.propStates);
+                }
+                if (data.tttState) {
+                    tttState = data.tttState;
+                    renderTttBoard();
+                }
+                if (data.hotPotatoState) {
+                    hotPotatoState = data.hotPotatoState;
+                }
+                if (data.chalkDataUrl && chalkCtx) {
+                    const img = new Image();
+                    img.onload = () => chalkCtx.drawImage(img, 0, 0);
+                    img.src = data.chalkDataUrl;
+                }
+            } else if (data.type === 'player_state' && data.player) {
+                if (data.player.id !== localPlayer.id) {
+                    upsertRemotePlayer(data.player);
+                }
+                if (data.propStates) {
+                    applyPropStatesFromNetwork(data.propStates);
+                }
+            } else if (data.type === 'prop_update' && data.propStates) {
+                applyPropStatesFromNetwork(data.propStates);
+            } else if (data.type === 'ttt_update' && data.tttState) {
+                tttState = data.tttState;
+                renderTttBoard();
+            } else if (data.type === 'chalk_stroke' && data.stroke) {
+                drawChalkStrokeLocal(data.stroke);
+            } else if (data.type === 'chalk_clear') {
+                clearChalkBoardLocal();
+            } else if (data.type === 'potato_update' && data.hotPotatoState) {
+                hotPotatoState = data.hotPotatoState;
+                if (data.announce) {
+                    appendChatLog('Hot Potato', data.announce, '#fb923c', true);
+                }
+            } else if (data.type === 'leave' && data.id) {
+                const leaving = remotePlayers.get(data.id);
+                if (leaving) {
+                    appendChatLog('System', `${leaving.name} left the courtyard.`, '#a8a29e', true);
+                    remotePlayers.delete(data.id);
+                    updatePlayersListUI();
+                }
+            }
+        }
+
+        function syncLocalPlayerState(force = false) {
+            if (!inGame || roomMode === 'solo') return;
+            const now = performance.now();
+            if (!force && now - lastSyncTime < 75) return;
+            lastSyncTime = now;
+
+            broadcastGameEvent({
+                type: 'player_state',
+                player: {
+                    id: localPlayer.id,
+                    name: localPlayer.name,
+                    colorIdx: localPlayer.colorIdx,
+                    accessoryIdx: localPlayer.accessoryIdx,
+                    faceIdx: localPlayer.faceIdx,
+                    x: Math.round(localPlayer.x),
+                    y: Math.round(localPlayer.y),
+                    facing: localPlayer.facing,
+                    isMoving: localPlayer.isMoving,
+                    jumpHeight: Math.round(localPlayer.jumpHeight),
+                    chatText: localPlayer.chatText,
+                    chatTimestamp: localPlayer.chatTimestamp,
+                    lastSeen: Date.now()
+                },
+                propStates: roomMode === 'host' ? propStates : null
+            });
+        }
+
+        function syncPropStateToRoom() {
+            broadcastGameEvent({
+                type: 'prop_update',
+                propStates
+            });
+        }
+
+        function broadcastGameEvent(packet) {
+            if (roomMode === 'solo') return;
+            if (broadcastChan) {
+                try { broadcastChan.postMessage(packet); } catch (e) {}
+            }
+            if (roomMode === 'host') {
+                hostConnections.forEach((conn) => {
+                    if (conn.open) {
+                        try { conn.send(packet); } catch (e) {}
+                    }
+                });
+            } else if (roomMode === 'client' && clientToHostConn && clientToHostConn.open) {
+                try { clientToHostConn.send(packet); } catch (e) {}
+            }
+        }
+
+        function interactWithProp(prop) {
+            if (!prop) return;
+
+            const now = Date.now();
+            const remaining = PROP_COOLDOWN_MS - (now - lastPropUseTime);
+            if (remaining > 0) {
+                const secs = (remaining / 1000).toFixed(1);
+                showToast(`Ready in ${secs}s ⏳`, 'warn');
+                return;
+            }
+            lastPropUseTime = now;
+            playPopSound(620);
+
+            if (prop.id === 'table') {
+                openTttModal();
+                return;
+            } else if (prop.id === 'easel') {
+                openChalkModal();
+                return;
+            } else if (prop.id === 'potato') {
+                startHotPotatoRound();
+                return;
+            } else if (prop.id === 'pond') {
+                if (fishingState.active) {
+                    handleReelOrCancelFishing();
+                } else {
+                    startFishing();
+                }
+                return;
+            } else if (prop.id === 'campfire') {
+                propStates.campfireLit = !propStates.campfireLit;
+                triggerSpeechBubble(propStates.campfireLit ? 'Stoked the hearth fire! 🔥' : 'Banked the embers 💨');
+            } else if (prop.id === 'boombox') {
+                toggleLofiAudio();
+                return;
+            } else if (prop.id === 'sofa') {
+                propStates.fairyLightsOn = !propStates.fairyLightsOn;
+                triggerSpeechBubble(propStates.fairyLightsOn ? 'Lit courtyard lanterns 🏮' : 'Dimmed lanterns 🌙');
+            }
+
+            syncPropStateToRoom();
+        }
+
+        // ==========================================
+        // 3B. ALL 4 MULTIPLAYER MINI-GAMES
+        // ==========================================
+        function closeAllMiniGameModals() {
+            document.getElementById('tttModal')?.classList.add('hidden');
+            document.getElementById('chalkModal')?.classList.add('hidden');
+            document.getElementById('fishingBanner')?.classList.add('hidden');
+        }
+
+        // --- MINI-GAME 1: PICNIC TABLE TIC-TAC-TOE ---
+        function openTttModal() {
+            document.getElementById('tttModal')?.classList.remove('hidden');
+            renderTttBoard();
+        }
+
+        function checkTttWinner(b) {
+            const lines = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                [0, 4, 8], [2, 4, 6]
+            ];
+            for (const [a, c, d] of lines) {
+                if (b[a] && b[a] === b[c] && b[a] === b[d]) return b[a];
+            }
+            if (b.every((cell) => cell !== '')) return 'DRAW';
+            return null;
+        }
+
+        function renderTttBoard() {
+            const grid = document.getElementById('tttGrid');
+            const xLabel = document.getElementById('tttPlayerXLabel');
+            const oLabel = document.getElementById('tttPlayerOLabel');
+            const status = document.getElementById('tttStatusText');
+            if (!grid) return;
+
+            xLabel.textContent = `❌ ${tttState.playerX ? tttState.playerX.name : 'Open'}`;
+            oLabel.textContent = `⭕ ${tttState.playerO ? tttState.playerO.name : 'Open'}`;
+
+            if (tttState.winner === 'DRAW') {
+                status.textContent = "It's a cozy tie! 🤝";
+            } else if (tttState.winner) {
+                const winName = tttState.winner === 'X' ? (tttState.playerX?.name || 'X') : (tttState.playerO?.name || 'O');
+                status.textContent = `🎉 ${winName} (${tttState.winner}) wins!`;
+            } else {
+                status.textContent = `Turn: ${tttState.turn === 'X' ? '❌ X' : '⭕ O'}`;
+            }
+
+            grid.innerHTML = '';
+            tttState.board.forEach((mark, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'h-16 rounded-2xl bg-white hover:bg-amber-100/80 border-2 border-amber-200 font-black text-2xl flex items-center justify-center shadow-sm transition active:scale-95';
+                btn.textContent = mark === 'X' ? '❌' : (mark === 'O' ? '⭕' : '');
+                btn.addEventListener('click', () => handleTttCellClick(idx));
+                grid.appendChild(btn);
+            });
+        }
+
+        function handleTttCellClick(idx) {
+            if (tttState.winner || tttState.board[idx] !== '') return;
+
+            if (!tttState.playerX) {
+                tttState.playerX = { id: localPlayer.id, name: localPlayer.name };
+                if (roomMode === 'solo' && !tttState.playerO) {
+                    tttState.playerO = { id: 'bot-yuzu', name: 'Yuzu (Bot)' };
+                }
+            } else if (!tttState.playerO && tttState.playerX.id !== localPlayer.id) {
+                tttState.playerO = { id: localPlayer.id, name: localPlayer.name };
+            }
+
+            const expectedPlayer = tttState.turn === 'X' ? tttState.playerX : tttState.playerO;
+            if (!expectedPlayer || expectedPlayer.id !== localPlayer.id) {
+                showToast(`Waiting for ${expectedPlayer?.name || 'other player'}'s turn!`, 'warn');
+                return;
+            }
+
+            tttState.board[idx] = tttState.turn;
+            tttState.winner = checkTttWinner(tttState.board);
+            tttState.turn = tttState.turn === 'X' ? 'O' : 'X';
+            playPopSound(660);
+
+            if (tttState.winner) {
+                spawnConfettiBurst(PROPS[1].x, PROPS[1].y);
+                triggerSpeechBubble(tttState.winner === 'DRAW' ? 'Tic-Tac-Toe tie! 🤝' : 'Won Picnic Tic-Tac-Toe! 🎉');
+            }
+
+            renderTttBoard();
+            broadcastGameEvent({ type: 'ttt_update', tttState });
+
+            if (roomMode === 'solo' && !tttState.winner && tttState.turn === 'O') {
+                setTimeout(() => {
+                    const emptyIndices = tttState.board.map((v, i) => v === '' ? i : -1).filter(i => i !== -1);
+                    if (emptyIndices.length > 0 && !tttState.winner) {
+                        const pick = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+                        tttState.board[pick] = 'O';
+                        tttState.winner = checkTttWinner(tttState.board);
+                        tttState.turn = 'X';
+                        renderTttBoard();
+                    }
+                }, 450);
+            }
+        }
+
+        function resetTttBoard() {
+            tttState = {
+                board: Array(9).fill(''),
+                turn: 'X',
+                playerX: null,
+                playerO: null,
+                winner: null
+            };
+            renderTttBoard();
+            broadcastGameEvent({ type: 'ttt_update', tttState });
+        }
+
+        // --- MINI-GAME 2: SHARED PASTEL CHALKBOARD EASEL ---
+        const chalkCanvas = document.getElementById('chalkCanvas');
+        const chalkCtx = chalkCanvas ? chalkCanvas.getContext('2d') : null;
+        const CHALK_PALETTE = ['#ffffff', '#fda4af', '#fde047', '#86efac', '#93c5fd', '#d8b4fe', '#1e293b'];
+        let selectedChalkColor = '#ffffff';
+        let isDrawingChalk = false;
+        let lastChalkPt = null;
+
+        function initChalkboard() {
+            const swatchRow = document.getElementById('chalkColors');
+            if (!swatchRow || !chalkCanvas) return;
+            swatchRow.innerHTML = '';
+            CHALK_PALETTE.forEach((hex, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.title = idx === CHALK_PALETTE.length - 1 ? 'Chalk Eraser' : 'Pastel Chalk';
+                btn.style.backgroundColor = hex;
+                btn.className = `w-6 h-6 rounded-full border-2 transition ${selectedChalkColor === hex ? 'border-amber-300 scale-110' : 'border-amber-950'}`;
+                if (idx === CHALK_PALETTE.length - 1) btn.textContent = '🧽';
+                btn.addEventListener('click', () => {
+                    selectedChalkColor = hex;
+                    initChalkboard();
+                });
+                swatchRow.appendChild(btn);
+            });
+
+            const getCanvasPos = (e) => {
+                const rect = chalkCanvas.getBoundingClientRect();
+                return {
+                    x: ((e.clientX - rect.left) / rect.width) * chalkCanvas.width,
+                    y: ((e.clientY - rect.top) / rect.height) * chalkCanvas.height
+                };
+            };
+
+            chalkCanvas.addEventListener('pointerdown', (e) => {
+                isDrawingChalk = true;
+                lastChalkPt = getCanvasPos(e);
+            });
+
+            chalkCanvas.addEventListener('pointermove', (e) => {
+                if (!isDrawingChalk || !lastChalkPt) return;
+                const pt = getCanvasPos(e);
+                const isEraser = selectedChalkColor === '#1e293b';
+                const stroke = {
+                    x1: lastChalkPt.x,
+                    y1: lastChalkPt.y,
+                    x2: pt.x,
+                    y2: pt.y,
+                    color: selectedChalkColor,
+                    size: isEraser ? 18 : 4
+                };
+                drawChalkStrokeLocal(stroke);
+                broadcastGameEvent({ type: 'chalk_stroke', stroke });
+                lastChalkPt = pt;
+            });
+
+            window.addEventListener('pointerup', () => {
+                isDrawingChalk = false;
+                lastChalkPt = null;
+            });
+        }
+
+        function drawChalkStrokeLocal(s) {
+            if (!chalkCtx) return;
+            chalkCtx.save();
+            chalkCtx.strokeStyle = s.color;
+            chalkCtx.lineWidth = s.size;
+            chalkCtx.lineCap = 'round';
+            chalkCtx.beginPath();
+            chalkCtx.moveTo(s.x1, s.y1);
+            chalkCtx.lineTo(s.x2, s.y2);
+            chalkCtx.stroke();
+            chalkCtx.restore();
+        }
+
+        function clearChalkBoardLocal() {
+            if (!chalkCtx || !chalkCanvas) return;
+            chalkCtx.clearRect(0, 0, chalkCanvas.width, chalkCanvas.height);
+        }
+
+        function openChalkModal() {
+            document.getElementById('chalkModal')?.classList.remove('hidden');
+        }
+
+        // --- MINI-GAME 3: COURTYARD HOT POTATO TAG ---
+        function startHotPotatoRound() {
+            if (hotPotatoState.active) {
+                showToast('Hot Potato Tag is already live! Run or tag someone! 🥔', 'warn');
+                return;
+            }
+            hotPotatoState = {
+                active: true,
+                holderId: localPlayer.id,
+                endTime: Date.now() + 20000,
+                lastPassTime: Date.now()
+            };
+            const msg = `🥔 ${localPlayer.name} grabbed the Hot Potato! Touch someone before 20s is up!`;
+            appendChatLog('Hot Potato', msg, '#fb923c', true);
+            triggerSpeechBubble('AAAH HOT POTATO!! 🥔🔥');
+            broadcastGameEvent({ type: 'potato_update', hotPotatoState, announce: msg });
+        }
+
+        function updateHotPotatoGame(now) {
+            if (!hotPotatoState.active) return;
+
+            const allParticipants = [
+                localPlayer,
+                ...Array.from(remotePlayers.values()),
+                ...botCompanions
+            ];
+
+            const holder = allParticipants.find((p) => p.id === hotPotatoState.holderId);
+            if (!holder) {
+                hotPotatoState.holderId = localPlayer.id;
+            }
+
+            if (holder && now - hotPotatoState.lastPassTime > 1100) {
+                for (const other of allParticipants) {
+                    if (other.id === holder.id) continue;
+                    const dist = Math.hypot(holder.x - other.x, holder.y - other.y);
+                    if (dist < 42) {
+                        hotPotatoState.holderId = other.id;
+                        hotPotatoState.lastPassTime = now;
+                        playPopSound(780);
+                        const passMsg = `🥔 ${holder.name} tagged ${other.name} with the Hot Potato!`;
+                        appendChatLog('Hot Potato', passMsg, '#fb923c', true);
+                        if (other.id === localPlayer.id) {
+                            triggerSpeechBubble('Eep! I got the Hot Potato! 🥔');
+                        }
+                        broadcastGameEvent({ type: 'potato_update', hotPotatoState, announce: passMsg });
+                        break;
+                    }
+                }
+            }
+
+            if (now >= hotPotatoState.endTime) {
+                const loser = allParticipants.find((p) => p.id === hotPotatoState.holderId) || localPlayer;
+                hotPotatoState.active = false;
+                spawnConfettiBurst(loser.x, loser.y);
+                playPopSound(440);
+                const endMsg = `🎉 POP! The Hot Potato burst into confetti on ${loser.name}!`;
+                appendChatLog('Hot Potato', endMsg, '#fde047', true);
+                if (loser.id === localPlayer.id) {
+                    localPlayer.jumpVel = 320;
+                    triggerSpeechBubble('POOF!! Covered in confetti! 🎉🥔');
+                }
+                broadcastGameEvent({ type: 'potato_update', hotPotatoState, announce: endMsg });
+            }
+        }
+
+        function spawnConfettiBurst(x, y) {
+            const colors = ['#fda4af', '#fde047', '#86efac', '#93c5fd', '#d8b4fe', '#fb923c'];
+            for (let i = 0; i < 36; i++) {
+                const ang = Math.random() * Math.PI * 2;
+                const spd = 80 + Math.random() * 210;
+                confettiParticles.push({
+                    x,
+                    y: y - 15,
+                    vx: Math.cos(ang) * spd,
+                    vy: Math.sin(ang) * spd - 140,
+                    color: colors[i % colors.length],
+                    life: 1.6
+                });
+            }
+        }
+
+        // --- MINI-GAME 4: KOI POND FISHING ---
+        const FISHING_CATCHES = [
+            { name: 'Golden Crown Koi', icon: '👑🐟', line: 'Caught a rare Golden Crown Koi!! 👑🐟' },
+            { name: 'Squeaky Rubber Ducky', icon: '🦆', line: 'Fished up a Squeaky Rubber Ducky! 🦆' },
+            { name: 'Starlight Message Bottle', icon: '🍾✨', line: 'Reeled in a glowing Starlight Bottle! ✨' },
+            { name: 'Mossy Old Boot', icon: '🥾', line: 'Pulled up a soggy mossy boot... 🥾😅' },
+            { name: 'Chubby Calico Carp', icon: '🐠', line: 'Caught a chubby Calico Carp! 🐠' }
+        ];
+
+        function startFishing() {
+            const pond = PROPS[0];
+            const angleToPond = Math.atan2(pond.y - localPlayer.y, pond.x - localPlayer.x);
+            fishingState = {
+                active: true,
+                phase: 'waiting',
+                biteTimer: 2.2 + Math.random() * 2.8,
+                bobberX: pond.x - Math.cos(angleToPond) * 32,
+                bobberY: pond.y - Math.sin(angleToPond) * 24
+            };
+            pondRipples.push({ x: fishingState.bobberX, y: fishingState.bobberY, r: 6, alpha: 0.9 });
+            document.getElementById('fishingBanner')?.classList.remove('hidden');
+            document.getElementById('fishingIcon').textContent = '🎣';
+            document.getElementById('fishingStatus').textContent = 'Bobber cast! Wait for a splash...';
+            document.getElementById('reelFishBtn').textContent = 'Cancel';
+        }
+
+        function stopFishing(silent = false) {
+            fishingState.active = false;
+            fishingState.phase = 'idle';
+            document.getElementById('fishingBanner')?.classList.add('hidden');
+            if (!silent) playPopSound(420);
+        }
+
+        function handleReelOrCancelFishing() {
+            if (!fishingState.active) return;
+            if (fishingState.phase === 'bite') {
+                const catchItem = FISHING_CATCHES[Math.floor(Math.random() * FISHING_CATCHES.length)];
+                pondRipples.push({ x: fishingState.bobberX, y: fishingState.bobberY, r: 10, alpha: 1 });
+                spawnConfettiBurst(localPlayer.x, localPlayer.y);
+                localPlayer.jumpVel = 240;
+                playPopSound(860);
+                triggerSpeechBubble(catchItem.line);
+                stopFishing(true);
+            } else {
+                showToast('Pulled the line back early~');
+                stopFishing();
+            }
+        }
+
+        function updateFishingGame(dt) {
+            if (!fishingState.active) return;
+            const pond = PROPS[0];
+            if (Math.hypot(localPlayer.x - pond.x, localPlayer.y - pond.y) > pond.radius + 45) {
+                stopFishing();
+                return;
+            }
+
+            if (fishingState.phase === 'waiting') {
+                fishingState.biteTimer -= dt;
+                if (fishingState.biteTimer <= 0) {
+                    fishingState.phase = 'bite';
+                    fishingState.biteTimer = 2.6;
+                    pondRipples.push({ x: fishingState.bobberX, y: fishingState.bobberY, r: 8, alpha: 1 });
+                    playPopSound(740);
+                    document.getElementById('fishingIcon').textContent = '❗🐟';
+                    document.getElementById('fishingStatus').textContent = 'SPLASH! A fish is biting—REEL NOW!';
+                    document.getElementById('reelFishBtn').textContent = 'REEL IN!';
+                }
+            } else if (fishingState.phase === 'bite') {
+                fishingState.biteTimer -= dt;
+                if (fishingState.biteTimer <= 0) {
+                    showToast('Oh no, the fish nibbled the bait and swam away! 🐟💨', 'warn');
+                    stopFishing();
+                }
+            }
+        }
+
+        // ==========================================
+        // 4. SOLO COMPANION BOTS
+        // ==========================================
+        function setupSoloBots() {
+            botCompanions = [
+                {
+                    id: 'bot-yuzu',
+                    name: 'Yuzu',
+                    colorIdx: 2,
+                    accessoryIdx: 4, // Frog Hood
+                    faceIdx: 1,
+                    x: WORLD_W / 2 - 220,
+                    y: WORLD_H / 2 + 60,
+                    targetX: WORLD_W / 2 - 260,
+                    targetY: WORLD_H / 2 - 140,
+                    facing: 'down',
+                    walkCycle: 0,
+                    isMoving: false,
+                    jumpHeight: 0,
+                    chatText: 'Ribbit~ welcome to the courtyard! 🐸',
+                    chatTimestamp: Date.now(),
+                    nextMoveTime: performance.now() + 2500
+                },
+                {
+                    id: 'bot-pip',
+                    name: 'Pip',
+                    colorIdx: 3,
+                    accessoryIdx: 5, // Ducky Hat
+                    faceIdx: 2,
+                    x: WORLD_W / 2 + 230,
+                    y: WORLD_H / 2 + 80,
+                    targetX: WORLD_W / 2 + 280,
+                    targetY: WORLD_H / 2 + 160,
+                    facing: 'left',
+                    walkCycle: 0,
+                    isMoving: false,
+                    jumpHeight: 0,
+                    chatText: 'Want to draw on the chalkboard or fish? 🦆',
+                    chatTimestamp: Date.now(),
+                    nextMoveTime: performance.now() + 4000
+                }
+            ];
+        }
+
+        function updateSoloBots(dt) {
+            if (roomMode !== 'solo') return;
+            const now = performance.now();
+            const botLines = [
+                'The koi fish look extra sparkly tonight ✨',
+                'Challenge me to Tic-Tac-Toe at the picnic table! 🍵',
+                'Watch out for the Hot Potato!! 🥔',
+                'Quack quack~ 🦆',
+                'So cozy by the hearth fire 🔥'
+            ];
+
+            botCompanions.forEach((bot) => {
+                if (now > bot.nextMoveTime) {
+                    const spot = PROPS[Math.floor(Math.random() * PROPS.length)];
+                    bot.targetX = Math.max(90, Math.min(WORLD_W - 90, spot.x + (Math.random() - 0.5) * 140));
+                    bot.targetY = Math.max(90, Math.min(WORLD_H - 90, spot.y + (Math.random() - 0.5) * 120));
+                    bot.nextMoveTime = now + 4500 + Math.random() * 4000;
+                    if (Math.random() < 0.35) {
+                        bot.chatText = botLines[Math.floor(Math.random() * botLines.length)];
+                        bot.chatTimestamp = Date.now();
+                        appendChatLog(bot.name, bot.chatText, AVATAR_COLORS[bot.colorIdx].swatch, false);
+                    }
+                }
+
+                const dx = bot.targetX - bot.x;
+                const dy = bot.targetY - bot.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist > 6) {
+                    bot.isMoving = true;
+                    bot.walkCycle += dt * 9;
+                    bot.x += (dx / dist) * 95 * dt;
+                    bot.y += (dy / dist) * 95 * dt;
+                    bot.facing = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+                } else {
+                    bot.isMoving = false;
+                }
+            });
+        }
+
+        // ==========================================
+        // 5. RENDERING: COURTYARD & CUTE BEAN AVATARS
+        // ==========================================
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function drawStringFairyLights(now) {
+            const strands = [
+                { x1: 180, y1: 155, x2: WORLD_W / 2, y2: 125 },
+                { x1: WORLD_W / 2, y1: 125, x2: WORLD_W - 180, y2: 155 },
+                { x1: 180, y1: WORLD_H - 155, x2: WORLD_W / 2, y2: WORLD_H - 125 },
+                { x1: WORLD_W / 2, y1: WORLD_H - 125, x2: WORLD_W - 180, y2: WORLD_H - 155 }
+            ];
+            const bulbColors = ['#fde047', '#fda4af', '#bae6fd', '#86efac'];
+
+            strands.forEach((st, sIdx) => {
+                ctx.strokeStyle = 'rgba(41, 37, 36, 0.7)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(st.x1, st.y1);
+                const midX = (st.x1 + st.x2) / 2;
+                const midY = (st.y1 + st.y2) / 2 + 22;
+                ctx.quadraticCurveTo(midX, midY, st.x2, st.y2);
+                ctx.stroke();
+
+                const bulbs = 9;
+                for (let i = 1; i < bulbs; i++) {
+                    const t = i / bulbs;
+                    const bx = (1 - t) * (1 - t) * st.x1 + 2 * (1 - t) * t * midX + t * t * st.x2;
+                    const by = (1 - t) * (1 - t) * st.y1 + 2 * (1 - t) * t * midY + t * t * st.y2;
+                    const color = bulbColors[(i + sIdx) % bulbColors.length];
+
+                    if (propStates.fairyLightsOn) {
+                        const pulse = 0.65 + Math.sin(now * 0.004 + i + sIdx) * 0.25;
+                        ctx.fillStyle = color;
+                        ctx.globalAlpha = pulse * 0.35;
+                        ctx.beginPath();
+                        ctx.arc(bx, by + 3, 11, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.globalAlpha = 1;
+                    }
+                    ctx.fillStyle = propStates.fairyLightsOn ? color : '#57534e';
+                    ctx.beginPath();
+                    ctx.arc(bx, by + 3, 3.6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        }
+
+        function drawCourtyardWorld(now) {
+            // Deep Tranquil Twilight Starry Sky Background
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGrad.addColorStop(0, '#090b1a');
+            skyGrad.addColorStop(0.5, '#131631');
+            skyGrad.addColorStop(1, '#1c1836');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Subtle Drifting Aurora Mist
+            const auroraShift = Math.sin(now * 0.00035) * 90;
+            const auroraGrad = ctx.createRadialGradient(
+                canvas.width * 0.3 + auroraShift, canvas.height * 0.22, 20,
+                canvas.width * 0.3 + auroraShift, canvas.height * 0.22, canvas.width * 0.45
+            );
+            auroraGrad.addColorStop(0, 'rgba(94, 234, 212, 0.075)');
+            auroraGrad.addColorStop(0.5, 'rgba(167, 139, 250, 0.045)');
+            auroraGrad.addColorStop(1, 'rgba(9, 11, 26, 0)');
+            ctx.fillStyle = auroraGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Soft Glowing Crescent Moon
+            const moonX = canvas.width * 0.14;
+            const moonY = canvas.height * 0.15;
+            const moonGlow = ctx.createRadialGradient(moonX, moonY, 6, moonX, moonY, 75);
+            moonGlow.addColorStop(0, 'rgba(254, 249, 195, 0.28)');
+            moonGlow.addColorStop(1, 'rgba(254, 249, 195, 0)');
+            ctx.fillStyle = moonGlow;
+            ctx.beginPath();
+            ctx.arc(moonX, moonY, 75, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#fef9c3';
+            ctx.beginPath();
+            ctx.arc(moonX, moonY, 16, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#0d1024';
+            ctx.beginPath();
+            ctx.arc(moonX + 6, moonY - 4, 14, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Gently Twinkling Night Sky Stars
+            nightStars.forEach((st) => {
+                const sx = ((st.rx * canvas.width * 1.4 - camera.x * 0.12) % canvas.width + canvas.width) % canvas.width;
+                const sy = ((st.ry * canvas.height * 1.4 - camera.y * 0.12) % canvas.height + canvas.height) % canvas.height;
+                const twinkle = 0.35 + Math.sin(now * st.speed + st.phase) * 0.55;
+                ctx.fillStyle = st.tint;
+                ctx.globalAlpha = Math.max(0.12, Math.min(0.95, twinkle));
+                ctx.beginPath();
+                ctx.arc(sx, sy, st.size, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (st.size > 2.2 && twinkle > 0.75) {
+                    ctx.strokeStyle = st.tint;
+                    ctx.lineWidth = 0.8;
+                    ctx.beginPath();
+                    ctx.moveTo(sx - 4.5, sy); ctx.lineTo(sx + 4.5, sy);
+                    ctx.moveTo(sx, sy - 4.5); ctx.lineTo(sx, sy + 4.5);
+                    ctx.stroke();
+                }
+            });
+            ctx.globalAlpha = 1;
+
+            // Occasional Peaceful Shooting Star
+            if (shootingStar) {
+                ctx.save();
+                const grad = ctx.createLinearGradient(
+                    shootingStar.x, shootingStar.y,
+                    shootingStar.x - shootingStar.vx * 0.18, shootingStar.y - shootingStar.vy * 0.18
+                );
+                grad.addColorStop(0, `rgba(254, 249, 195, ${shootingStar.alpha})`);
+                grad.addColorStop(1, 'rgba(254, 249, 195, 0)');
+                ctx.strokeStyle = grad;
+                ctx.lineWidth = 2.2;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(shootingStar.x, shootingStar.y);
+                ctx.lineTo(shootingStar.x - shootingStar.vx * 0.18, shootingStar.y - shootingStar.vy * 0.18);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            ctx.save();
+            ctx.translate(canvas.width / 2 - camera.x, canvas.height / 2 - camera.y);
+
+            // 1. Outer Stone Courtyard Perimeter Wall
+            ctx.fillStyle = '#44403c';
+            ctx.beginPath();
+            ctx.roundRect(14, 14, WORLD_W - 28, WORLD_H - 28, 36);
+            ctx.fill();
+
+            ctx.strokeStyle = '#78716c';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.roundRect(18, 18, WORLD_W - 36, WORLD_H - 36, 32);
+            ctx.stroke();
+
+            // 2. Warm Sandstone & Terracotta Courtyard Flagstone Floor
+            ctx.fillStyle = '#3b3330';
+            ctx.beginPath();
+            ctx.roundRect(36, 36, WORLD_W - 72, WORLD_H - 72, 24);
+            ctx.fill();
+
+            // Subtle Mortar Tile Grid across Courtyard Floor
+            ctx.strokeStyle = 'rgba(254, 243, 199, 0.06)';
+            ctx.lineWidth = 1.5;
+            for (let gx = 90; gx < WORLD_W - 60; gx += 64) {
+                ctx.beginPath();
+                ctx.moveTo(gx, 40);
+                ctx.lineTo(gx, WORLD_H - 40);
+                ctx.stroke();
+            }
+            for (let gy = 90; gy < WORLD_H - 60; gy += 64) {
+                ctx.beginPath();
+                ctx.moveTo(40, gy);
+                ctx.lineTo(WORLD_W - 40, gy);
+                ctx.stroke();
+            }
+
+            // 3. Four Symmetrical Brick-Rimmed Garden Planter Beds
+            const planters = [
+                { x: 175, y: 95, w: 260, h: 62 },
+                { x: WORLD_W - 435, y: 95, w: 260, h: 62 },
+                { x: 175, y: WORLD_H - 157, w: 260, h: 62 },
+                { x: WORLD_W - 435, y: WORLD_H - 157, w: 260, h: 62 }
+            ];
+            planters.forEach((pl) => {
+                ctx.fillStyle = '#9a3412';
+                ctx.beginPath();
+                ctx.roundRect(pl.x, pl.y, pl.w, pl.h, 16);
+                ctx.fill();
+                ctx.fillStyle = '#2d4f32';
+                ctx.beginPath();
+                ctx.roundRect(pl.x + 7, pl.y + 7, pl.w - 14, pl.h - 14, 11);
+                ctx.fill();
+            });
+
+            planterFlowers.forEach((fl) => {
+                ctx.fillStyle = '#4d7c4f';
+                ctx.beginPath();
+                ctx.arc(fl.x, fl.y, 11, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = fl.c;
+                ctx.beginPath();
+                ctx.arc(fl.x - 3, fl.y - 2, 3.2, 0, Math.PI * 2);
+                ctx.arc(fl.x + 4, fl.y + 2, 3.2, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 4. Grand Cobblestone Promenade Cross-Walkways
+            ctx.fillStyle = '#57534e';
+            ctx.beginPath();
+            ctx.roundRect(130, WORLD_H / 2 - 44, WORLD_W - 260, 88, 20);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.roundRect(WORLD_W / 2 - 52, 85, 104, WORLD_H - 170, 20);
+            ctx.fill();
+
+            ctx.strokeStyle = 'rgba(253, 230, 138, 0.25)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(140, WORLD_H / 2 - 38, WORLD_W - 280, 76);
+
+            // 5. Central Circular Fountain Plaza
+            ctx.fillStyle = '#68615b';
+            ctx.beginPath();
+            ctx.arc(WORLD_W / 2, WORLD_H / 2, 168, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#d6d3d1';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // 6. Four Dedicated Corner Activity Alcoves
+            const alcoves = [
+                { x: WORLD_W / 2 - 340, y: WORLD_H / 2 - 210, c: '#7c2d12' },
+                { x: WORLD_W / 2 + 340, y: WORLD_H / 2 - 210, c: '#312e81' },
+                { x: WORLD_W / 2 - 340, y: WORLD_H / 2 + 210, c: '#713f12' },
+                { x: WORLD_W / 2 + 340, y: WORLD_H / 2 + 210, c: '#4c1d95' }
+            ];
+            alcoves.forEach((al) => {
+                ctx.fillStyle = 'rgba(24, 18, 22, 0.35)';
+                ctx.beginPath();
+                ctx.roundRect(al.x - 135, al.y - 88, 270, 176, 24);
+                ctx.fill();
+
+                ctx.fillStyle = al.c;
+                ctx.globalAlpha = 0.45;
+                ctx.beginPath();
+                ctx.roundRect(al.x - 130, al.y - 84, 260, 168, 20);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                ctx.strokeStyle = 'rgba(253, 224, 71, 0.24)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // 7. Stone Lantern Pillars
+            const pillars = [
+                { x: WORLD_W / 2 - 195, y: 155 },
+                { x: WORLD_W / 2 + 195, y: 155 },
+                { x: WORLD_W / 2 - 195, y: WORLD_H - 155 },
+                { x: WORLD_W / 2 + 195, y: WORLD_H - 155 }
+            ];
+            pillars.forEach((pil) => {
+                ctx.fillStyle = '#292524';
+                ctx.beginPath();
+                ctx.roundRect(pil.x - 12, pil.y - 24, 24, 34, 6);
+                ctx.fill();
+                if (propStates.fairyLightsOn) {
+                    const lGlow = ctx.createRadialGradient(pil.x, pil.y - 24, 2, pil.x, pil.y - 24, 48);
+                    lGlow.addColorStop(0, 'rgba(253, 224, 71, 0.42)');
+                    lGlow.addColorStop(1, 'rgba(253, 224, 71, 0)');
+                    ctx.fillStyle = lGlow;
+                    ctx.beginPath();
+                    ctx.arc(pil.x, pil.y - 24, 48, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.fillStyle = propStates.fairyLightsOn ? '#fef08a' : '#78716c';
+                ctx.beginPath();
+                ctx.roundRect(pil.x - 8, pil.y - 34, 16, 12, 4);
+                ctx.fill();
+            });
+
+            // Click-to-walk target ring
+            if (clickTarget) {
+                const pulse = 8 + Math.sin(now * 0.01) * 3;
+                ctx.strokeStyle = 'rgba(253, 224, 71, 0.75)';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.ellipse(clickTarget.x, clickTarget.y, pulse * 1.4, pulse * 0.85, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Draw Interactive Courtyard Props
+            drawCourtyardProps(now);
+
+            // Draw Active Fishing Line & Bobber if fishing
+            if (fishingState.active) {
+                ctx.save();
+                ctx.strokeStyle = '#e0f2fe';
+                ctx.lineWidth = 1.6;
+                ctx.beginPath();
+                ctx.moveTo(localPlayer.x, localPlayer.y - 8);
+                ctx.quadraticCurveTo(
+                    (localPlayer.x + fishingState.bobberX) / 2,
+                    Math.min(localPlayer.y, fishingState.bobberY) - 28,
+                    fishingState.bobberX,
+                    fishingState.bobberY
+                );
+                ctx.stroke();
+
+                const bobJitter = fishingState.phase === 'bite' ? Math.sin(now * 0.04) * 4 : Math.sin(now * 0.005) * 1.5;
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.arc(fishingState.bobberX, fishingState.bobberY + bobJitter, 5.5, Math.PI, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(fishingState.bobberX, fishingState.bobberY + bobJitter, 5.5, 0, Math.PI);
+                ctx.fill();
+
+                if (fishingState.phase === 'bite') {
+                    ctx.font = '900 18px Nunito, sans-serif';
+                    ctx.fillStyle = '#fde047';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('❗', fishingState.bobberX, fishingState.bobberY - 14);
+                }
+                ctx.restore();
+            }
+
+            // Depth-sort & Draw All Avatars
+            const allEntities = [
+                localPlayer,
+                ...Array.from(remotePlayers.values()),
+                ...botCompanions
+            ].sort((a, b) => a.y - b.y);
+
+            allEntities.forEach((entity) => {
+                if (hotPotatoState.active && hotPotatoState.holderId === entity.id) {
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(249, 115, 22, 0.85)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.ellipse(entity.x, entity.y + 22, 26 + Math.sin(now * 0.02) * 3, 14, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    const secsLeft = Math.max(0, Math.ceil((hotPotatoState.endTime - Date.now()) / 1000));
+                    ctx.font = '900 15px Nunito, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = '#fb923c';
+                    ctx.fillText(`🥔 ${secsLeft}s`, entity.x, entity.y - 44);
+                    ctx.restore();
+                }
+
+                drawAvatarGraphic(
+                    ctx,
+                    entity.x,
+                    entity.y,
+                    entity.colorIdx,
+                    entity.accessoryIdx,
+                    entity.faceIdx || 0,
+                    entity.facing || 'down',
+                    entity.walkCycle || 0,
+                    entity.isMoving || false,
+                    entity.name,
+                    entity.jumpHeight || 0
+                );
+            });
+
+            // Draw Nameplates & Speech Bubbles on top
+            allEntities.forEach((entity) => {
+                drawNameTagAndBubble(ctx, entity);
+            });
+
+            // Draw Confetti Particles
+            confettiParticles.forEach((cp) => {
+                ctx.fillStyle = cp.color;
+                ctx.fillRect(cp.x - 3, cp.y - 3, 6, 6);
+            });
+
+            // Overhead Hanging String Fairy Lights
+            drawStringFairyLights(now);
+
+            // Drifting Golden Fireflies
+            fireflies.forEach((f) => {
+                const glow = 0.35 + Math.sin(now * 0.004 + f.phase) * 0.35;
+                ctx.fillStyle = `rgba(254, 240, 138, ${Math.max(0.05, glow)})`;
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.restore();
+
+            // Warm Twilight Vignette
+            const vig = ctx.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, canvas.width * 0.32,
+                canvas.width / 2, canvas.height / 2, canvas.width * 0.75
+            );
+            vig.addColorStop(0, 'rgba(0,0,0,0)');
+            vig.addColorStop(1, 'rgba(18, 12, 28, 0.48)');
+            ctx.fillStyle = vig;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawCourtyardProps(now) {
+            // 1. Central Koi Fountain Pond
+            const pond = PROPS[0];
+            ctx.save();
+            ctx.translate(pond.x, pond.y);
+
+            ctx.fillStyle = '#78716c';
+            ctx.beginPath();
+            ctx.arc(0, 0, 88, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#d6d3d1';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            const pondGrad = ctx.createRadialGradient(-12, -12, 10, 0, 0, 78);
+            pondGrad.addColorStop(0, '#38bdf8');
+            pondGrad.addColorStop(0.7, '#0284c7');
+            pondGrad.addColorStop(1, '#0369a1');
+            ctx.fillStyle = pondGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, 78, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#a8a29e';
+            ctx.beginPath();
+            ctx.arc(0, 0, 18, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#bae6fd';
+            ctx.beginPath();
+            ctx.arc(0, 0, 8 + Math.sin(now * 0.01) * 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            for (let k = 0; k < 2; k++) {
+                const koiAngle = now * 0.0013 * (k === 0 ? 1 : -0.8) + k * Math.PI;
+                const kx = Math.cos(koiAngle) * (42 + k * 12);
+                const ky = Math.sin(koiAngle) * (42 + k * 12);
+                ctx.save();
+                ctx.translate(kx, ky);
+                ctx.rotate(koiAngle + (k === 0 ? Math.PI / 2 : -Math.PI / 2));
+                ctx.fillStyle = k === 0 ? '#fb923c' : '#f43f5e';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 8, 3.6, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(-2, 0, 2.2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            pondRipples.forEach((rip) => {
+                ctx.strokeStyle = `rgba(224, 242, 254, ${rip.alpha})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(rip.x - pond.x, rip.y - pond.y, rip.r, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+            ctx.restore();
+
+            // 2. Picnic Tea Table (Tic-Tac-Toe)
+            const table = PROPS[1];
+            ctx.save();
+            ctx.translate(table.x, table.y);
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath();
+            ctx.ellipse(0, 20, 46, 20, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#92400e';
+            ctx.beginPath();
+            ctx.ellipse(0, 4, 44, 24, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#b45309';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 42, 22, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fde68a';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(-12, -8, 24, 16);
+            ctx.fillStyle = '#4ade80';
+            ctx.beginPath();
+            ctx.arc(-24, 0, 5, 0, Math.PI * 2);
+            ctx.arc(24, 0, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // 3. Pastel Chalkboard Easel
+            const easel = PROPS[2];
+            ctx.save();
+            ctx.translate(easel.x, easel.y);
+            ctx.strokeStyle = '#92400e';
+            ctx.lineWidth = 4.5;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(-18, 26); ctx.lineTo(0, -32); ctx.lineTo(18, 26);
+            ctx.stroke();
+            ctx.fillStyle = '#b45309';
+            ctx.beginPath();
+            ctx.roundRect(-24, -26, 48, 36, 6);
+            ctx.fill();
+            ctx.fillStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.roundRect(-20, -22, 40, 28, 4);
+            ctx.fill();
+            ctx.strokeStyle = '#fda4af';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(-6, -8, 5, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.strokeStyle = '#fde047';
+            ctx.beginPath();
+            ctx.moveTo(4, -12); ctx.lineTo(12, -4);
+            ctx.stroke();
+            ctx.restore();
+
+            // 4. Hot Potato Tag Pedestal
+            const potatoProp = PROPS[3];
+            ctx.save();
+            ctx.translate(potatoProp.x, potatoProp.y);
+            ctx.fillStyle = '#57534e';
+            ctx.beginPath();
+            ctx.roundRect(-20, -4, 40, 26, 8);
+            ctx.fill();
+            const floatY = -16 + Math.sin(now * 0.006) * 4;
+            ctx.fillStyle = '#d97706';
+            ctx.beginPath();
+            ctx.ellipse(0, floatY, 15, 11, -0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fb923c';
+            ctx.beginPath();
+            ctx.arc(0, floatY - 11, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // 5. Hearth Firepit
+            const fire = PROPS[4];
+            ctx.save();
+            ctx.translate(fire.x, fire.y);
+            if (propStates.campfireLit) {
+                const glowR = 95 + Math.sin(now * 0.008) * 10;
+                const fGrad = ctx.createRadialGradient(0, 0, 8, 0, 0, glowR);
+                fGrad.addColorStop(0, 'rgba(251, 146, 60, 0.42)');
+                fGrad.addColorStop(1, 'rgba(251, 146, 60, 0)');
+                ctx.fillStyle = fGrad;
+                ctx.beginPath();
+                ctx.arc(0, 0, glowR, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            for (let i = 0; i < 10; i++) {
+                const ang = (i / 10) * Math.PI * 2;
+                ctx.fillStyle = i % 2 === 0 ? '#78716c' : '#57534e';
+                ctx.beginPath();
+                ctx.ellipse(Math.cos(ang) * 28, Math.sin(ang) * 20, 8, 6, ang, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            if (propStates.campfireLit) {
+                const flicker = Math.sin(now * 0.015) * 3;
+                ctx.fillStyle = '#f97316';
+                ctx.beginPath();
+                ctx.moveTo(-13, 4);
+                ctx.quadraticCurveTo(-15, -18, flicker, -26);
+                ctx.quadraticCurveTo(15, -18, 13, 4);
+                ctx.closePath();
+                ctx.fill();
+                ctx.fillStyle = '#fde047';
+                ctx.beginPath();
+                ctx.moveTo(-7, 4);
+                ctx.quadraticCurveTo(-8, -10, -flicker * 0.5, -16);
+                ctx.quadraticCurveTo(8, -10, 7, 4);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+
+            // 6. Courtyard Lofi Radio
+            const boom = PROPS[5];
+            ctx.save();
+            ctx.translate(boom.x, boom.y);
+            const pulseScale = propStates.lofiPlaying ? 1 + Math.sin(now * 0.012) * 0.04 : 1;
+            ctx.scale(pulseScale, pulseScale);
+            ctx.fillStyle = '#fda4af';
+            ctx.beginPath();
+            ctx.roundRect(-22, -14, 44, 26, 7);
+            ctx.fill();
+            ctx.fillStyle = '#292524';
+            ctx.beginPath();
+            ctx.arc(-11, 0, 7, 0, Math.PI * 2);
+            ctx.arc(11, 0, 7, 0, Math.PI * 2);
+            ctx.fill();
+            if (propStates.lofiPlaying) {
+                const noteY = -26 - ((now * 0.025) % 22);
+                ctx.fillStyle = '#fde047';
+                ctx.font = 'bold 14px sans-serif';
+                ctx.fillText('🎵', -6, noteY);
+            }
+            ctx.restore();
+
+            // 7. Pergola Lantern Switch Box
+            const sw = PROPS[6];
+            ctx.save();
+            ctx.translate(sw.x, sw.y);
+            ctx.fillStyle = '#44403c';
+            ctx.beginPath();
+            ctx.roundRect(-14, -18, 28, 34, 8);
+            ctx.fill();
+            ctx.fillStyle = propStates.fairyLightsOn ? '#fde047' : '#78716c';
+            ctx.beginPath();
+            ctx.arc(0, -4, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Highlight ring around nearby interactable prop
+            if (nearbyProp) {
+                const cdElapsed = Date.now() - lastPropUseTime;
+                const isCoolingDown = cdElapsed < PROP_COOLDOWN_MS;
+                ctx.save();
+                ctx.strokeStyle = isCoolingDown ? 'rgba(251, 113, 133, 0.7)' : 'rgba(253, 224, 71, 0.65)';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash(isCoolingDown ? [] : [6, 6]);
+                ctx.beginPath();
+                if (isCoolingDown) {
+                    const pct = Math.min(1, cdElapsed / PROP_COOLDOWN_MS);
+                    ctx.arc(nearbyProp.x, nearbyProp.y, nearbyProp.radius * 0.72, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2);
+                } else {
+                    ctx.arc(nearbyProp.x, nearbyProp.y, nearbyProp.radius * 0.72, 0, Math.PI * 2);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        function drawAvatarGraphic(targetCtx, x, y, colorIdx, accessoryIdx, faceIdx, facing, walkCycle, isMoving, name, jumpHeight = 0) {
+            const palette = AVATAR_COLORS[colorIdx % AVATAR_COLORS.length];
+            const acc = ACCESSORIES[accessoryIdx % ACCESSORIES.length];
+            const face = FACES[faceIdx % FACES.length];
+
+            const bobY = isMoving ? Math.abs(Math.sin(walkCycle)) * 4.5 : Math.sin(performance.now() * 0.004) * 1.5;
+            const squishX = isMoving ? 1 + Math.cos(walkCycle * 2) * 0.06 : 1;
+            const squishY = isMoving ? 1 - Math.cos(walkCycle * 2) * 0.06 : 1;
+            const waddleAngle = isMoving ? Math.sin(walkCycle) * 0.11 : 0;
+
+            targetCtx.save();
+            // Ground drop shadow
+            targetCtx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+            const shadowScale = Math.max(0.55, 1 - jumpHeight / 140);
+            targetCtx.beginPath();
+            targetCtx.ellipse(x, y + 20, 17 * shadowScale, 7.5 * shadowScale, 0, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            targetCtx.translate(x, y - bobY - jumpHeight);
+            targetCtx.rotate(waddleAngle);
+            targetCtx.scale(squishX, squishY);
+
+            // Waddling little feet
+            const leftFootY = isMoving ? Math.max(0, Math.sin(walkCycle)) * -4 : 0;
+            const rightFootY = isMoving ? Math.max(0, -Math.sin(walkCycle)) * -4 : 0;
+            targetCtx.fillStyle = '#44403c';
+            targetCtx.beginPath();
+            targetCtx.ellipse(-7, 18 + leftFootY, 5.5, 3.8, 0, 0, Math.PI * 2);
+            targetCtx.ellipse(7, 18 + rightFootY, 5.5, 3.8, 0, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            // Stubby swinging sweater arms
+            const armSwing = isMoving ? Math.sin(walkCycle) * 4 : 0;
+            targetCtx.fillStyle = palette.shade;
+            targetCtx.beginPath();
+            targetCtx.ellipse(-18, 4 - armSwing, 4.8, 7, 0.35, 0, Math.PI * 2);
+            targetCtx.ellipse(18, 4 + armSwing, 4.8, 7, -0.35, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            // Cozy Bean Sweater Body
+            targetCtx.fillStyle = palette.body;
+            targetCtx.beginPath();
+            targetCtx.roundRect(-16, -8, 32, 26, 13);
+            targetCtx.fill();
+            targetCtx.strokeStyle = palette.shade;
+            targetCtx.lineWidth = 2;
+            targetCtx.stroke();
+
+            // Front sweater pocket
+            targetCtx.fillStyle = palette.shade;
+            targetCtx.beginPath();
+            targetCtx.roundRect(-7, 5, 14, 9, 4);
+            targetCtx.fill();
+
+            // Chubby Bean Head
+            targetCtx.fillStyle = '#fffbeb';
+            targetCtx.beginPath();
+            targetCtx.arc(0, -14, 15.5, 0, Math.PI * 2);
+            targetCtx.fill();
+            targetCtx.strokeStyle = '#e7e5e4';
+            targetCtx.lineWidth = 1.8;
+            targetCtx.stroke();
+
+            // Bouncy cowlick hair strand
+            targetCtx.strokeStyle = palette.hair;
+            targetCtx.lineWidth = 2.4;
+            targetCtx.lineCap = 'round';
+            targetCtx.beginPath();
+            targetCtx.moveTo(0, -29);
+            targetCtx.quadraticCurveTo(4, -36, 9, -32);
+            targetCtx.stroke();
+
+            // Rosy Cheeks & Silly Expression
+            const lookOffsetX = facing === 'left' ? -3 : (facing === 'right' ? 3 : 0);
+            if (facing !== 'up') {
+                targetCtx.fillStyle = 'rgba(251, 113, 133, 0.45)';
+                targetCtx.beginPath();
+                targetCtx.ellipse(-8.5 + lookOffsetX, -11, 3.2, 2, 0, 0, Math.PI * 2);
+                targetCtx.ellipse(8.5 + lookOffsetX, -11, 3.2, 2, 0, 0, Math.PI * 2);
+                targetCtx.fill();
+
+                targetCtx.fillStyle = '#292524';
+                targetCtx.font = '900 10px Nunito, sans-serif';
+                targetCtx.textAlign = 'center';
+                targetCtx.textBaseline = 'middle';
+                targetCtx.fillText(face, lookOffsetX, -13.5);
+            }
+
+            // Hats & Silly Accessories
+            if (acc.includes('Sprout')) {
+                targetCtx.strokeStyle = '#16a34a';
+                targetCtx.lineWidth = 2.5;
+                targetCtx.beginPath();
+                targetCtx.moveTo(0, -29);
+                targetCtx.lineTo(0, -37);
+                targetCtx.stroke();
+                targetCtx.fillStyle = '#4ade80';
+                targetCtx.beginPath();
+                targetCtx.ellipse(-5, -38, 5, 3, -0.4, 0, Math.PI * 2);
+                targetCtx.ellipse(5, -38, 5, 3, 0.4, 0, Math.PI * 2);
+                targetCtx.fill();
+            } else if (acc.includes('Headphones')) {
+                targetCtx.strokeStyle = '#334155';
+                targetCtx.lineWidth = 3.5;
+                targetCtx.beginPath();
+                targetCtx.arc(0, -15, 17, Math.PI, 0);
+                targetCtx.stroke();
+                targetCtx.fillStyle = '#fb7185';
+                targetCtx.beginPath();
+                targetCtx.roundRect(-19, -19, 5, 11, 3);
+                targetCtx.roundRect(14, -19, 5, 11, 3);
+                targetCtx.fill();
+            } else if (acc.includes('Cat Ears')) {
+                targetCtx.fillStyle = palette.hair;
+                targetCtx.beginPath();
+                targetCtx.moveTo(-13, -24); targetCtx.lineTo(-9, -36); targetCtx.lineTo(-3, -27);
+                targetCtx.moveTo(13, -24); targetCtx.lineTo(9, -36); targetCtx.lineTo(3, -27);
+                targetCtx.fill();
+            } else if (acc.includes('Frog Hood')) {
+                targetCtx.fillStyle = '#4ade80';
+                targetCtx.beginPath();
+                targetCtx.arc(-8, -28, 5.5, 0, Math.PI * 2);
+                targetCtx.arc(8, -28, 5.5, 0, Math.PI * 2);
+                targetCtx.fill();
+                targetCtx.fillStyle = '#ffffff';
+                targetCtx.beginPath();
+                targetCtx.arc(-8, -28, 3, 0, Math.PI * 2);
+                targetCtx.arc(8, -28, 3, 0, Math.PI * 2);
+                targetCtx.fill();
+                targetCtx.fillStyle = '#14532d';
+                targetCtx.beginPath();
+                targetCtx.arc(-8, -28, 1.5, 0, Math.PI * 2);
+                targetCtx.arc(8, -28, 1.5, 0, Math.PI * 2);
+                targetCtx.fill();
+            } else if (acc.includes('Ducky Hat')) {
+                targetCtx.fillStyle = '#fde047';
+                targetCtx.beginPath();
+                targetCtx.ellipse(0, -31, 8, 5.5, 0, 0, Math.PI * 2);
+                targetCtx.arc(4, -36, 4.5, 0, Math.PI * 2);
+                targetCtx.fill();
+                targetCtx.fillStyle = '#f97316';
+                targetCtx.beginPath();
+                targetCtx.ellipse(9, -36, 3, 1.8, 0, 0, Math.PI * 2);
+                targetCtx.fill();
+            } else if (acc.includes('Party Cone')) {
+                targetCtx.fillStyle = '#c084fc';
+                targetCtx.beginPath();
+                targetCtx.moveTo(-8, -27); targetCtx.lineTo(0, -43); targetCtx.lineTo(8, -27);
+                targetCtx.closePath();
+                targetCtx.fill();
+                targetCtx.fillStyle = '#fde047';
+                targetCtx.beginPath();
+                targetCtx.arc(0, -44, 3, 0, Math.PI * 2);
+                targetCtx.fill();
+            } else if (acc.includes('Halo')) {
+                targetCtx.strokeStyle = '#fde047';
+                targetCtx.lineWidth = 2.5;
+                targetCtx.beginPath();
+                targetCtx.ellipse(0, -35, 10, 3.5, 0, 0, Math.PI * 2);
+                targetCtx.stroke();
+            }
+
+            targetCtx.restore();
+        }
+
+        function drawNameTagAndBubble(targetCtx, entity) {
+            const x = entity.x;
+            const y = entity.y - (entity.jumpHeight || 0);
+
+            targetCtx.save();
+            targetCtx.font = '800 11px Nunito, sans-serif';
+            const nameW = targetCtx.measureText(entity.name).width + 14;
+            targetCtx.fillStyle = 'rgba(28, 25, 23, 0.72)';
+            targetCtx.beginPath();
+            targetCtx.roundRect(x - nameW / 2, y + 25, nameW, 17, 8);
+            targetCtx.fill();
+
+            targetCtx.fillStyle = '#fef3c7';
+            targetCtx.textAlign = 'center';
+            targetCtx.textBaseline = 'middle';
+            targetCtx.fillText(entity.name, x, y + 33.5);
+
+            // Floating Speech Bubble (fades after 7 seconds)
+            if (entity.chatText && Date.now() - (entity.chatTimestamp || 0) < 7000) {
+                targetCtx.font = '700 12px Nunito, sans-serif';
+                const textW = Math.min(210, targetCtx.measureText(entity.chatText).width + 20);
+                const bx = x - textW / 2;
+                const by = y - 66;
+
+                targetCtx.fillStyle = 'rgba(255, 251, 235, 0.96)';
+                targetCtx.strokeStyle = '#fcd34d';
+                targetCtx.lineWidth = 2;
+                targetCtx.beginPath();
+                targetCtx.roundRect(bx, by, textW, 26, 12);
+                targetCtx.fill();
+                targetCtx.stroke();
+
+                targetCtx.fillStyle = '#292524';
+                targetCtx.fillText(entity.chatText, x, by + 13, 195);
+            }
+            targetCtx.restore();
+        }
+
+        function drawAvatarPreview() {
+            const pCanvas = document.getElementById('avatarPreviewCanvas');
+            if (!pCanvas) return;
+            const pCtx = pCanvas.getContext('2d');
+            pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+            drawAvatarGraphic(
+                pCtx,
+                pCanvas.width / 2,
+                pCanvas.height / 2 + 12,
+                localPlayer.colorIdx,
+                localPlayer.accessoryIdx,
+                localPlayer.faceIdx,
+                'down',
+                0,
+                false,
+                localPlayer.name,
+                0
+            );
+        }
+
+        // ==========================================
+        // 6. UI HELPERS, CHAT LOG & MAIN LOOP
+        // ==========================================
+        function buildColorSwatches() {
+            const container = document.getElementById('colorSwatches');
+            if (!container) return;
+            container.innerHTML = '';
+            AVATAR_COLORS.forEach((col, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.title = col.name;
+                btn.style.backgroundColor = col.swatch;
+                btn.className = `w-6 h-6 rounded-full border-2 transition transform ${
+                    localPlayer.colorIdx === idx ? 'border-stone-800 scale-110 shadow' : 'border-white/80 hover:scale-105'
+                }`;
+                btn.addEventListener('click', () => {
+                    localPlayer.colorIdx = idx;
+                    buildColorSwatches();
+                    drawAvatarPreview();
+                });
+                container.appendChild(btn);
+            });
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            const colors = type === 'warn'
+                ? 'bg-rose-950/90 text-rose-100 border-rose-400/50'
+                : 'bg-stone-900/90 text-amber-100 border-amber-400/40';
+            toast.className = `px-4 py-2 rounded-2xl border text-xs sm:text-sm font-extrabold shadow-xl backdrop-blur-md transition-all duration-300 ${colors}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-6px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 2600);
+        }
+
+        function appendChatLog(sender, text, colorHex = '#fde047', isSystem = false) {
+            const list = document.getElementById('chatLogMessages');
+            if (!list) return;
+
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const row = document.createElement('div');
+            row.className = isSystem
+                ? 'text-[11px] italic text-stone-300/90 leading-snug'
+                : 'text-xs text-amber-50 leading-snug break-words';
+
+            if (isSystem) {
+                row.innerHTML = `<span class="text-stone-400 text-[10px] mr-1">[${timeStr}]</span> ${escapeHtml(text)}`;
+            } else {
+                row.innerHTML = `<span class="text-stone-400 text-[10px] mr-1">[${timeStr}]</span><span class="font-extrabold" style="color:${colorHex}">${escapeHtml(sender)}:</span> <span>${escapeHtml(text)}</span>`;
+            }
+
+            list.appendChild(row);
+            list.scrollTop = list.scrollHeight;
+
+            if (chatLogCollapsed) {
+                unreadChatCount++;
+                const badge = document.getElementById('chatUnreadBadge');
+                if (badge) {
+                    badge.textContent = String(unreadChatCount);
+                    badge.classList.remove('hidden');
+                }
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function triggerSpeechBubble(text) {
+            const clean = (text || '').trim().slice(0, 80);
+            if (!clean) return;
+            localPlayer.chatText = clean;
+            localPlayer.chatTimestamp = Date.now();
+            const col = AVATAR_COLORS[localPlayer.colorIdx]?.swatch || '#fde047';
+            appendChatLog(localPlayer.name, clean, col, false);
+            syncLocalPlayerState(true);
+        }
+
+        function updatePlayersListUI() {
+            const list = document.getElementById('playersList');
+            const badge = document.getElementById('playerCountBadge');
+            if (!list || !badge) return;
+
+            const members = [
+                { name: `${localPlayer.name} (You)`, colorIdx: localPlayer.colorIdx },
+                ...Array.from(remotePlayers.values()),
+                ...botCompanions
+            ];
+            badge.textContent = String(members.length);
+            list.innerHTML = '';
+            members.forEach((m) => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center gap-2';
+                const dotColor = AVATAR_COLORS[m.colorIdx || 0]?.swatch || '#fde047';
+                li.innerHTML = `<span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${dotColor}"></span><span class="truncate">${escapeHtml(m.name)}</span>`;
+                list.appendChild(li);
+            });
+        }
+
+        function fallbackCopyCode(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                showToast(`Copied Room Code: ${text} 📋`);
+            } catch (e) {
+                showToast(`Room Code: ${text}`);
+            }
+            document.body.removeChild(ta);
+        }
+
+        function screenToWorld(clientX, clientY) {
+            return {
+                x: clientX - canvas.width / 2 + camera.x,
+                y: clientY - canvas.height / 2 + camera.y
+            };
+        }
+
+        function updatePlayerAndWorld(dt, now) {
+            // Update shooting star
+            if (!shootingStar && now > nextShootingStarTime) {
+                shootingStar = {
+                    x: Math.random() * canvas.width * 0.8,
+                    y: Math.random() * canvas.height * 0.25,
+                    vx: 380 + Math.random() * 180,
+                    vy: 140 + Math.random() * 90,
+                    alpha: 0.95
+                };
+                nextShootingStarTime = now + 9000 + Math.random() * 9000;
+            }
+            if (shootingStar) {
+                shootingStar.x += shootingStar.vx * dt;
+                shootingStar.y += shootingStar.vy * dt;
+                shootingStar.alpha -= 0.85 * dt;
+                if (shootingStar.alpha <= 0) shootingStar = null;
+            }
+
+            // Drifting courtyard fireflies
+            fireflies.forEach((f) => {
+                f.x += f.vx * dt;
+                f.y += f.vy * dt;
+                if (f.x < 80 || f.x > WORLD_W - 80) f.vx *= -1;
+                if (f.y < 80 || f.y > WORLD_H - 80) f.vy *= -1;
+            });
+
+            // Pond ripples
+            for (let i = pondRipples.length - 1; i >= 0; i--) {
+                pondRipples[i].r += 24 * dt;
+                pondRipples[i].alpha -= 0.55 * dt;
+                if (pondRipples[i].alpha <= 0) pondRipples.splice(i, 1);
+            }
+
+            // Confetti particles
+            for (let i = confettiParticles.length - 1; i >= 0; i--) {
+                const cp = confettiParticles[i];
+                cp.x += cp.vx * dt;
+                cp.y += cp.vy * dt;
+                cp.vy += 340 * dt;
+                cp.life -= dt;
+                if (cp.life <= 0) confettiParticles.splice(i, 1);
+            }
+
+            if (!inGame) return;
+
+            // Player Movement (Keyboard WASD/Arrows or Click/Tap Target)
+            let moveX = 0;
+            let moveY = 0;
+            if (keysPressed['KeyW'] || keysPressed['ArrowUp']) moveY -= 1;
+            if (keysPressed['KeyS'] || keysPressed['ArrowDown']) moveY += 1;
+            if (keysPressed['KeyA'] || keysPressed['ArrowLeft']) moveX -= 1;
+            if (keysPressed['KeyD'] || keysPressed['ArrowRight']) moveX += 1;
+
+            if (moveX !== 0 || moveY !== 0) {
+                clickTarget = null;
+                const len = Math.hypot(moveX, moveY);
+                moveX /= len;
+                moveY /= len;
+            } else if (clickTarget) {
+                const dx = clickTarget.x - localPlayer.x;
+                const dy = clickTarget.y - localPlayer.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist > 6) {
+                    moveX = dx / dist;
+                    moveY = dy / dist;
+                } else {
+                    clickTarget = null;
+                }
+            }
+
+            if (moveX !== 0 || moveY !== 0) {
+                localPlayer.isMoving = true;
+                localPlayer.walkCycle += dt * 11;
+                localPlayer.x += moveX * PLAYER_SPEED * dt;
+                localPlayer.y += moveY * PLAYER_SPEED * dt;
+
+                // Keep player inside enclosed stone courtyard walls
+                localPlayer.x = Math.max(58, Math.min(WORLD_W - 58, localPlayer.x));
+                localPlayer.y = Math.max(66, Math.min(WORLD_H - 54, localPlayer.y));
+
+                // Soft collision push-out from central stone fountain basin
+                const pond = PROPS[0];
+                const pdx = localPlayer.x - pond.x;
+                const pdy = localPlayer.y - pond.y;
+                const pDist = Math.hypot(pdx, pdy);
+                if (pDist < 94 && pDist > 0.01) {
+                    localPlayer.x = pond.x + (pdx / pDist) * 94;
+                    localPlayer.y = pond.y + (pdy / pDist) * 94;
+                }
+
+                localPlayer.facing = Math.abs(moveX) > Math.abs(moveY)
+                    ? (moveX > 0 ? 'right' : 'left')
+                    : (moveY > 0 ? 'down' : 'up');
+
+                syncLocalPlayerState(false);
+            } else if (localPlayer.isMoving) {
+                localPlayer.isMoving = false;
+                syncLocalPlayerState(true);
+            }
+
+            // Jump physics
+            if (localPlayer.jumpHeight > 0 || localPlayer.jumpVel !== 0) {
+                localPlayer.jumpHeight += localPlayer.jumpVel * dt;
+                localPlayer.jumpVel -= 920 * dt;
+                if (localPlayer.jumpHeight <= 0) {
+                    localPlayer.jumpHeight = 0;
+                    localPlayer.jumpVel = 0;
+                }
+            }
+
+            // Smooth interpolation for remote friends
+            remotePlayers.forEach((rp) => {
+                if (typeof rp.targetX === 'number') {
+                    const rdx = rp.targetX - rp.x;
+                    const rdy = rp.targetY - rp.y;
+                    if (Math.hypot(rdx, rdy) > 1.5) {
+                        rp.x += rdx * Math.min(1, dt * 12);
+                        rp.y += rdy * Math.min(1, dt * 12);
+                        rp.walkCycle = (rp.walkCycle || 0) + dt * 11;
+                    }
+                }
+            });
+
+            // Update solo bots if in solo mode
+            updateSoloBots(dt);
+
+            // Update Hot Potato Tag & Koi Pond Fishing mini-games
+            updateHotPotatoGame(Date.now());
+            updateFishingGame(dt);
+
+            // Check nearby interactive courtyard prop
+            let closest = null;
+            let closestDist = Infinity;
+            PROPS.forEach((prop) => {
+                const d = Math.hypot(localPlayer.x - prop.x, localPlayer.y - prop.y);
+                if (d <= prop.radius && d < closestDist) {
+                    closest = prop;
+                    closestDist = d;
+                }
+            });
+
+            nearbyProp = closest;
+            const promptBanner = document.getElementById('propPromptBanner');
+            if (nearbyProp && promptBanner) {
+                promptBanner.classList.remove('hidden');
+                document.getElementById('propPromptIcon').textContent = nearbyProp.icon;
+                document.getElementById('propPromptText').textContent = nearbyProp.getPrompt();
+                const cdRem = PROP_COOLDOWN_MS - (Date.now() - lastPropUseTime);
+                const useBtn = document.getElementById('propInteractBtn');
+                if (useBtn) {
+                    useBtn.textContent = cdRem > 0 ? `${(cdRem / 1000).toFixed(1)}s` : 'Use';
+                }
+            } else if (promptBanner) {
+                promptBanner.classList.add('hidden');
+            }
+
+            // Smooth camera follow
+            camera.x += (localPlayer.x - camera.x) * Math.min(1, dt * 8);
+            camera.y += (localPlayer.y - camera.y) * Math.min(1, dt * 8);
+        }
+
+        function gameLoop(now) {
+            const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+            lastFrameTime = now;
+
+            updatePlayerAndWorld(dt, now);
+            drawCourtyardWorld(now);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function bindUIEvents() {
+            window.addEventListener('resize', resizeCanvas);
+
+            // Lobby customization controls
+            const nameInput = document.getElementById('playerNameInput');
+            nameInput?.addEventListener('input', () => {
+                localPlayer.name = nameInput.value.trim() || 'Mochi';
+                drawAvatarPreview();
+            });
+
+            document.getElementById('cycleFaceBtn')?.addEventListener('click', () => {
+                localPlayer.faceIdx = (localPlayer.faceIdx + 1) % FACES.length;
+                drawAvatarPreview();
+                playPopSound(600);
+            });
+
+            document.getElementById('cycleAccessoryBtn')?.addEventListener('click', () => {
+                localPlayer.accessoryIdx = (localPlayer.accessoryIdx + 1) % ACCESSORIES.length;
+                drawAvatarPreview();
+                playPopSound(680);
+            });
+
+            // Host / Join / Solo buttons
+            document.getElementById('hostRoomBtn')?.addEventListener('click', () => {
+                localPlayer.name = nameInput?.value.trim() || 'Mochi';
+                startHostRoom();
+            });
+
+            document.getElementById('joinRoomBtn')?.addEventListener('click', () => {
+                localPlayer.name = nameInput?.value.trim() || 'Mochi';
+                const code = document.getElementById('joinCodeInput')?.value || '';
+                joinExistingRoom(code);
+            });
+
+            document.getElementById('soloPlayBtn')?.addEventListener('click', () => {
+                localPlayer.name = nameInput?.value.trim() || 'Mochi';
+                startSoloMode();
+            });
+
+            // HUD Controls
+            document.getElementById('copyCodeBtn')?.addEventListener('click', () => {
+                fallbackCopyCode(currentRoomCode);
+            });
+
+            document.getElementById('playersToggleBtn')?.addEventListener('click', () => {
+                document.getElementById('playersDropdown')?.classList.toggle('hidden');
+            });
+
+            document.getElementById('hudLofiBtn')?.addEventListener('click', () => {
+                toggleLofiAudio();
+            });
+
+            document.getElementById('leaveRoomBtn')?.addEventListener('click', () => {
+                leaveRoom();
+            });
+
+            document.getElementById('propInteractBtn')?.addEventListener('click', () => {
+                if (nearbyProp) interactWithProp(nearbyProp);
+            });
+
+            // Mini-Game Modal Controls
+            document.getElementById('closeTttBtn')?.addEventListener('click', () => {
+                document.getElementById('tttModal')?.classList.add('hidden');
+            });
+            document.getElementById('tttResetBtn')?.addEventListener('click', () => {
+                resetTttBoard();
+            });
+            document.getElementById('closeChalkBtn')?.addEventListener('click', () => {
+                document.getElementById('chalkModal')?.classList.add('hidden');
+            });
+            document.getElementById('clearChalkBtn')?.addEventListener('click', () => {
+                clearChalkBoardLocal();
+                broadcastGameEvent({ type: 'chalk_clear' });
+            });
+            document.getElementById('reelFishBtn')?.addEventListener('click', () => {
+                handleReelOrCancelFishing();
+            });
+
+            // Chat Log Collapse Toggle
+            document.getElementById('toggleChatLogBtn')?.addEventListener('click', () => {
+                chatLogCollapsed = !chatLogCollapsed;
+                const panel = document.getElementById('chatLogPanel');
+                const badge = document.getElementById('chatUnreadBadge');
+                if (panel) panel.classList.toggle('hidden', chatLogCollapsed);
+                if (!chatLogCollapsed && badge) {
+                    unreadChatCount = 0;
+                    badge.classList.add('hidden');
+                }
+            });
+
+            // Chat Input Submit
+            document.getElementById('chatForm')?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const input = document.getElementById('chatInput');
+                if (!input) return;
+                const msg = input.value.trim();
+                if (msg) {
+                    triggerSpeechBubble(msg);
+                    input.value = '';
+                }
+                input.blur();
+            });
+
+            // Quick Emotes
+            document.querySelectorAll('.emote-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const emote = btn.getAttribute('data-emote');
+                    if (emote) {
+                        localPlayer.jumpVel = 220;
+                        triggerSpeechBubble(emote);
+                        playPopSound(720);
+                    }
+                });
+            });
+
+            // Canvas Click / Tap to Walk or Interact
+            canvas.addEventListener('pointerdown', (e) => {
+                if (!inGame) return;
+                const worldPt = screenToWorld(e.clientX, e.clientY);
+
+                // Check if user tapped directly on a nearby prop to interact
+                if (nearbyProp && Math.hypot(worldPt.x - nearbyProp.x, worldPt.y - nearbyProp.y) <= nearbyProp.radius * 0.85) {
+                    interactWithProp(nearbyProp);
+                    return;
+                }
+
+                clickTarget = {
+                    x: Math.max(60, Math.min(WORLD_W - 60, worldPt.x)),
+                    y: Math.max(70, Math.min(WORLD_H - 60, worldPt.y))
+                };
+            });
+
+            // Keyboard Controls
+            window.addEventListener('keydown', (e) => {
+                if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+                    return;
+                }
+                keysPressed[e.code] = true;
+
+                if (!inGame) return;
+                if (e.code === 'KeyE' && nearbyProp) {
+                    interactWithProp(nearbyProp);
+                } else if (e.code === 'Space' && localPlayer.jumpHeight === 0) {
+                    localPlayer.jumpVel = 260;
+                    playPopSound(520);
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                keysPressed[e.code] = false;
+            });
+
+            window.addEventListener('beforeunload', () => {
+                if (inGame && roomMode !== 'solo') {
+                    broadcastGameEvent({ type: 'leave', id: localPlayer.id });
+                }
+            });
+        }
+
+        window.onload = async function () {
+            resizeCanvas();
+            buildColorSwatches();
+            drawAvatarPreview();
+            initChalkboard();
+            bindUIEvents();
+            await initFirebaseIfAvailable();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
