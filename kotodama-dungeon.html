@@ -1096,7 +1096,6 @@
     }
 
     function beginPlayerTurn(isFirstTurn = false) {
-      game.playerBlock = 0;
       game.energy = game.maxEnergy + (isFirstTurn && hasRelic('relic_mask') ? 1 : 0);
       game.forge = { adj: null, noun: null, verb: null };
 
