@@ -80,14 +80,11 @@
 
             <!-- Avatar Customization Row -->
             <div class="bg-white/80 border border-amber-200/70 rounded-2xl p-4 mb-5 shadow-sm">
-                <div class="flex items-center gap-4">
-                    <div class="relative shrink-0">
-                        <canvas id="avatarPreviewCanvas" width="76" height="76" class="rounded-2xl bg-amber-50 border-2 border-stone-200 shadow-inner"></canvas>
-                        <button id="cycleFaceBtn" type="button" title="Change Silly Face" class="absolute -bottom-1.5 -left-1.5 bg-white hover:bg-amber-50 text-stone-700 border border-stone-200 rounded-full w-7 h-7 flex items-center justify-center shadow-sm text-xs font-bold transition active:scale-90">
-                            🤪
-                        </button>
-                        <button id="cycleAccessoryBtn" type="button" title="Change Hat / Accessory" class="absolute -bottom-1.5 -right-1.5 bg-white hover:bg-rose-50 text-stone-700 border border-stone-200 rounded-full w-7 h-7 flex items-center justify-center shadow-sm text-xs font-bold transition active:scale-90">
-                            ✨
+                <div class="flex items-start gap-4">
+                    <div class="relative shrink-0 mt-1">
+                        <canvas id="avatarPreviewCanvas" width="84" height="84" class="rounded-2xl bg-amber-50 border-2 border-stone-200 shadow-inner"></canvas>
+                        <button id="randomizeSlimeBtn" type="button" title="Randomize Slime Style!" class="absolute -top-2 -right-2 bg-amber-400 hover:bg-amber-300 text-stone-900 border border-amber-500 rounded-full w-7 h-7 flex items-center justify-center shadow text-xs font-black transition active:scale-90">
+                            🎲
                         </button>
                     </div>
 
@@ -96,10 +93,26 @@
                         <input id="playerNameInput" type="text" maxlength="16" value="Mochi" placeholder="Enter nickname..." class="w-full px-3 py-1.5 text-sm font-bold text-stone-800 bg-amber-50/70 border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition">
 
                         <div class="mt-2.5">
-                            <span class="block text-[11px] font-bold text-stone-500 mb-1">Sweater Color</span>
+                            <span class="block text-[11px] font-bold text-stone-500 mb-1">Slime Color</span>
                             <div id="colorSwatches" class="flex flex-wrap gap-1.5"></div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Pattern, Hat & Expression Selectors -->
+                <div class="grid grid-cols-3 gap-2 mt-3.5 pt-3 border-t border-amber-200/60">
+                    <button id="cyclePatternBtn" type="button" class="flex flex-col items-center justify-center bg-amber-50/90 hover:bg-amber-100 border border-amber-200 rounded-xl py-1.5 px-2 transition active:scale-95">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">Pattern</span>
+                        <span id="patternLabel" class="text-xs font-black text-stone-700 truncate max-w-full">Solid</span>
+                    </button>
+                    <button id="cycleAccessoryBtn" type="button" class="flex flex-col items-center justify-center bg-amber-50/90 hover:bg-amber-100 border border-amber-200 rounded-xl py-1.5 px-2 transition active:scale-95">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">Hat / Flair</span>
+                        <span id="accessoryLabel" class="text-xs font-black text-stone-700 truncate max-w-full">Sprout</span>
+                    </button>
+                    <button id="cycleFaceBtn" type="button" class="flex flex-col items-center justify-center bg-amber-50/90 hover:bg-amber-100 border border-amber-200 rounded-xl py-1.5 px-2 transition active:scale-95">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-stone-400">Expression</span>
+                        <span id="faceLabel" class="text-xs font-black text-stone-700 truncate max-w-full">•ᴗ•</span>
+                    </button>
                 </div>
             </div>
 
@@ -184,7 +197,7 @@
             </button>
         </div>
 
-        <!-- Bottom Bar: Collapsible Chat Log + Chat Input (Left) & Quick Emotes (Right) -->
+        <!-- Bottom Bar: Collapsible Chat Log, Quick Emotes & Chat Input -->
         <div class="flex flex-col md:flex-row items-stretch md:items-end justify-between gap-2.5">
             <div class="pointer-events-auto w-full md:w-80 flex flex-col items-start gap-1.5">
                 <button id="toggleChatLogBtn" type="button" class="inline-flex items-center gap-1.5 bg-stone-900/80 hover:bg-stone-800/90 backdrop-blur-md text-amber-100 border border-amber-300/25 rounded-full px-3 py-1 text-xs font-extrabold shadow-md transition">
@@ -196,21 +209,22 @@
                     <div id="chatLogMessages" class="h-28 sm:h-32 overflow-y-auto cozy-scroll space-y-1 text-xs pr-1"></div>
                 </div>
 
+                <!-- Quick Emotes positioned directly above the chat input -->
+                <div class="w-full flex items-center justify-between gap-1">
+                    <button type="button" data-emote="👋" class="emote-btn flex-1 bg-stone-900/80 hover:bg-stone-800 text-base h-8 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">👋</button>
+                    <button type="button" data-emote="❤️" class="emote-btn flex-1 bg-stone-900/80 hover:bg-stone-800 text-base h-8 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">❤️</button>
+                    <button type="button" data-emote="✨" class="emote-btn flex-1 bg-stone-900/80 hover:bg-stone-800 text-base h-8 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">✨</button>
+                    <button type="button" data-emote="🍵" class="emote-btn flex-1 bg-stone-900/80 hover:bg-stone-800 text-base h-8 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">🍵</button>
+                    <button type="button" data-emote="🐸" class="emote-btn flex-1 bg-stone-900/80 hover:bg-stone-800 text-base h-8 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">🐸</button>
+                    <button type="button" data-emote="💤" class="emote-btn flex-1 bg-stone-900/80 hover:bg-stone-800 text-base h-8 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">💤</button>
+                </div>
+
                 <form id="chatForm" class="w-full flex items-center gap-1.5 bg-stone-900/85 backdrop-blur-md border border-amber-300/30 rounded-2xl p-1.5 shadow-xl">
                     <input id="chatInput" type="text" maxlength="80" placeholder="Say something cozy..." autocomplete="off" class="flex-1 min-w-0 bg-transparent text-amber-50 placeholder-stone-400 text-xs sm:text-sm font-semibold px-2.5 py-1.5 focus:outline-none">
                     <button type="submit" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-xs sm:text-sm transition active:scale-95 shrink-0">
                         Send
                     </button>
                 </form>
-            </div>
-
-            <div class="pointer-events-auto flex items-center justify-center md:justify-end gap-1.5">
-                <button type="button" data-emote="👋" class="emote-btn bg-stone-900/80 hover:bg-stone-800 text-base w-9 h-9 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">👋</button>
-                <button type="button" data-emote="❤️" class="emote-btn bg-stone-900/80 hover:bg-stone-800 text-base w-9 h-9 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">❤️</button>
-                <button type="button" data-emote="✨" class="emote-btn bg-stone-900/80 hover:bg-stone-800 text-base w-9 h-9 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">✨</button>
-                <button type="button" data-emote="🍵" class="emote-btn bg-stone-900/80 hover:bg-stone-800 text-base w-9 h-9 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">🍵</button>
-                <button type="button" data-emote="🐸" class="emote-btn bg-stone-900/80 hover:bg-stone-800 text-base w-9 h-9 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">🐸</button>
-                <button type="button" data-emote="💤" class="emote-btn bg-stone-900/80 hover:bg-stone-800 text-base w-9 h-9 rounded-xl border border-amber-300/20 shadow flex items-center justify-center transition active:scale-90">💤</button>
             </div>
         </div>
     </div>
@@ -278,7 +292,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // ==========================================
         // 1. CORE STATE & CONFIGURATION
@@ -286,32 +300,37 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        const WORLD_W = 4400;
-        const WORLD_H = 3200;
-        const PLAYER_SPEED = 295;
+        const WORLD_W = 1850;
+        const WORLD_H = 1350;
+        const PLAYER_SPEED = 275;
         const PROP_COOLDOWN_MS = 1800;
         const CHAT_MAX_MESSAGES = 5;
         const CHAT_WINDOW_MS = 5000;
         const CHAT_TIMEOUT_MS = 2000;
 
-        const PEER_CONFIG = {
-            config: {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
-                ]
-            }
-        };
-
+        // Slime-Rancher Inspired Pastel Color Palette
         const AVATAR_COLORS = [
-            { name: 'Pink Slime', swatch: '#ff85b3', body: '#ff85b3', shade: '#e05288', gloss: '#ffd6e7', hair: '#701a3c' },
-            { name: 'Rad Mint', swatch: '#4ade80', body: '#4ade80', shade: '#16a34a', gloss: '#dcfce7', hair: '#14532d' },
-            { name: 'Honey Plort', swatch: '#fbbf24', body: '#fbbf24', shade: '#d97706', gloss: '#fef3c7', hair: '#78350f' },
-            { name: 'Puddle Blue', swatch: '#38bdf8', body: '#38bdf8', shade: '#0284c7', gloss: '#e0f2fe', hair: '#0c4a6e' },
-            { name: 'Phosphor Lilac', swatch: '#c084fc', body: '#c084fc', shade: '#9333ea', gloss: '#f3e8ff', hair: '#3b0764' },
-            { name: 'Tabby Cream', swatch: '#cbd5e1', body: '#cbd5e1', shade: '#94a3b8', gloss: '#f8fafc', hair: '#334155' },
-            { name: 'Tangle Peach', swatch: '#fb923c', body: '#fb923c', shade: '#ea580c', gloss: '#ffedd5', hair: '#7c2d12' },
-            { name: 'Crystal Aqua', swatch: '#2dd4bf', body: '#2dd4bf', shade: '#0d9488', gloss: '#ccfbf1', hair: '#134e4a' }
+            { name: 'Pink Slime', swatch: '#ff85b3', body: '#ff85b3', gloss: '#ffd6e7', shade: '#e11d48', hair: '#831843' },
+            { name: 'Rad Mint', swatch: '#4ade80', body: '#4ade80', gloss: '#dcfce7', shade: '#16a34a', hair: '#14532d' },
+            { name: 'Honey Plort', swatch: '#fbbf24', body: '#fbbf24', gloss: '#fef9c3', shade: '#d97706', hair: '#78350f' },
+            { name: 'Puddle Blue', swatch: '#38bdf8', body: '#38bdf8', gloss: '#e0f2fe', shade: '#0284c7', hair: '#0c4a6e' },
+            { name: 'Phosphor Lilac', swatch: '#c084fc', body: '#c084fc', gloss: '#f3e8ff', shade: '#9333ea', hair: '#581c87' },
+            { name: 'Tabby Cream', swatch: '#cbd5e1', body: '#cbd5e1', gloss: '#f8fafc', shade: '#64748b', hair: '#334155' },
+            { name: 'Tangle Peach', swatch: '#fb923c', body: '#fb923c', gloss: '#ffedd5', shade: '#ea580c', hair: '#7c2d12' },
+            { name: 'Crystal Aqua', swatch: '#2dd4bf', body: '#2dd4bf', gloss: '#ccfbf1', shade: '#0d9488', hair: '#115e59' },
+            { name: 'Berry Rose', swatch: '#fb7185', body: '#fb7185', gloss: '#ffe4e6', shade: '#be123c', hair: '#881337' },
+            { name: 'Lemon Sorbet', swatch: '#fde047', body: '#fde047', gloss: '#fefce8', shade: '#ca8a04', hair: '#713f12' },
+            { name: 'Sakura Mochi', swatch: '#f9a8d4', body: '#f9a8d4', gloss: '#fdf2f8', shade: '#db2777', hair: '#831843' },
+            { name: 'Midnight Indigo', swatch: '#818cf8', body: '#818cf8', gloss: '#e0e7ff', shade: '#4338ca', hair: '#312e81' }
+        ];
+
+        const SLIME_PATTERNS = [
+            'Solid',
+            'Tabby Stripes',
+            'Honey Spots',
+            'Crystal Spikes',
+            'Starlight Belly',
+            'Blush Swirl'
         ];
 
         const ACCESSORIES = [
@@ -322,10 +341,23 @@
             'Frog Hood',
             'Ducky Hat',
             'Party Cone',
-            'Angel Halo'
+            'Star Halo',
+            'Flower Crown',
+            'Tiny Bowtie',
+            'Royal Crown',
+            'Straw Sunhat'
         ];
 
-        const FACES = ['•ᴗ•', '^w^', 'owo', ':P'];
+        const FACES = ['•ᴗ•', '^w^', 'owo', ':P', '✧ᴗ✧', '￣ω￣'];
+
+        const PEER_CONFIG = {
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            }
+        };
 
         let inGame = false;
         let roomMode = 'solo';
@@ -333,30 +365,32 @@
         let sessionEpoch = 0;
 
         let p2pPeer = null;
+        let hostConnections = new Map();
         let clientToHostConn = null;
-        const hostConnections = new Map();
         let broadcastChan = null;
         let heartbeatTimer = null;
         let staleCleanupTimer = null;
-        let lastSyncTime = 0;
-
         let auth = null;
         let db = null;
-        let firestoreUnsub = null;
 
         const localPlayer = {
             id: `slime-${Math.random().toString(36).slice(2, 9)}`,
             name: 'Mochi',
             colorIdx: 0,
+            patternIdx: 0,
             accessoryIdx: 1,
             faceIdx: 0,
             x: WORLD_W / 2,
             y: WORLD_H / 2 + 165,
+            vx: 0,
+            vy: 0,
             facing: 'down',
             walkCycle: 0,
             isMoving: false,
             jumpHeight: 0,
             jumpVel: 0,
+            isSitting: false,
+            seatIdx: -1,
             chatText: '',
             chatTimestamp: 0
         };
@@ -369,6 +403,7 @@
         let clickTarget = null;
         let nearbyProp = null;
         let lastPropUseTime = 0;
+        let lastSyncTime = 0;
         let lastFrameTime = performance.now();
 
         let chatLogCollapsed = false;
@@ -408,68 +443,18 @@
         const pondRipples = [];
         const confettiParticles = [];
 
-        // Procedural Pixel-Art Sprite Sheet Baker (Crisp 16-bit Cozy Ranch Assets)
+        // Unified Smooth Glossy Slime-Rancher Vector Sprite Renderer
         const propSprites = {};
-        let bakedGrassPattern = null;
 
-        function bakePixelSprite(gridW, gridH, pixelScale, drawFn) {
-            const off = document.createElement('canvas');
-            off.width = gridW;
-            off.height = gridH;
-            const octx = off.getContext('2d');
-            octx.imageSmoothingEnabled = false;
-
-            const px = (x, y, w, h, color) => {
-                octx.fillStyle = color;
-                octx.fillRect(Math.floor(x), Math.floor(y), Math.floor(w), Math.floor(h));
-            };
-
-            const dither = (x, y, w, h, c1, c2) => {
-                for (let py = y; py < y + h; py++) {
-                    for (let pxX = x; pxX < x + w; pxX++) {
-                        octx.fillStyle = (pxX + py) % 2 === 0 ? c1 : c2;
-                        octx.fillRect(pxX, py, 1, 1);
-                    }
-                }
-            };
-
-            const ellipsePx = (cx, cy, rx, ry, color) => {
-                octx.fillStyle = color;
-                for (let py = Math.floor(cy - ry); py <= Math.ceil(cy + ry); py++) {
-                    for (let pxX = Math.floor(cx - rx); pxX <= Math.ceil(cx + rx); pxX++) {
-                        const nx = (pxX - cx) / rx;
-                        const ny = (py - cy) / ry;
-                        if (nx * nx + ny * ny <= 1.0) {
-                            octx.fillRect(pxX, py, 1, 1);
-                        }
-                    }
-                }
-            };
-
-            const ditherEllipsePx = (cx, cy, rx, ry, c1, c2) => {
-                for (let py = Math.floor(cy - ry); py <= Math.ceil(cy + ry); py++) {
-                    for (let pxX = Math.floor(cx - rx); pxX <= Math.ceil(cx + rx); pxX++) {
-                        const nx = (pxX - cx) / rx;
-                        const ny = (py - cy) / ry;
-                        if (nx * nx + ny * ny <= 1.0) {
-                            octx.fillStyle = (pxX + py) % 2 === 0 ? c1 : c2;
-                            octx.fillRect(pxX, py, 1, 1);
-                        }
-                    }
-                }
-            };
-
-            const circlePx = (cx, cy, r, color) => ellipsePx(cx, cy, r, r, color);
-
-            drawFn({ px, dither, ellipsePx, ditherEllipsePx, circlePx, w: gridW, h: gridH });
-
-            const out = document.createElement('canvas');
-            out.width = gridW * pixelScale;
-            out.height = gridH * pixelScale;
-            const outCtx = out.getContext('2d');
-            outCtx.imageSmoothingEnabled = false;
-            outCtx.drawImage(off, 0, 0, out.width, out.height);
-            return out;
+        function makeSlimeStyleSprite(w, h, drawFn) {
+            const c = document.createElement('canvas');
+            c.width = w;
+            c.height = h;
+            const g = c.getContext('2d');
+            g.lineCap = 'round';
+            g.lineJoin = 'round';
+            drawFn(g, w, h);
+            return c;
         }
 
         function drawSpriteAsset(sprite, dx, dy, dw, dh) {
@@ -484,585 +469,1047 @@
         }
 
         function buildPropSpriteAssets() {
-            // 0. Seamless Baked Pixel-Art Meadow Grass Tile Pattern
-            const grassTile = bakePixelSprite(32, 32, 3, ({ px, dither }) => {
-                px(0, 0, 32, 32, '#4ade80');
-                dither(0, 0, 32, 32, '#4ade80', '#44d478');
-                // Pixel grass blades & sunlit speckles
-                const blades = [
-                    [4, 5], [18, 3], [26, 9], [9, 14], [22, 17],
-                    [3, 24], [14, 26], [28, 25], [12, 8], [21, 29]
+            // 1. 2.5D Smooth Glossy Koi Fountain Basin
+            propSprites.fountainBasin = makeSlimeStyleSprite(280, 210, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.22)';
+                g.beginPath();
+                g.ellipse(140, 126, 130, 76, 0, 0, Math.PI * 2);
+                g.fill();
+
+                const wallGrad = g.createLinearGradient(20, 95, 260, 175);
+                wallGrad.addColorStop(0, '#cbd5e1');
+                wallGrad.addColorStop(0.5, '#94a3b8');
+                wallGrad.addColorStop(1, '#64748b');
+                g.fillStyle = wallGrad;
+                g.strokeStyle = '#334155';
+                g.lineWidth = 4;
+                g.beginPath();
+                g.ellipse(140, 114, 128, 74, 0, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#f1f5f9';
+                g.beginPath();
+                g.ellipse(140, 100, 128, 72, 0, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+
+                const waterGrad = g.createRadialGradient(125, 86, 12, 140, 102, 112);
+                waterGrad.addColorStop(0, '#bae6fd');
+                waterGrad.addColorStop(0.45, '#38bdf8');
+                waterGrad.addColorStop(1, '#0284c7');
+                g.fillStyle = waterGrad;
+                g.beginPath();
+                g.ellipse(140, 102, 110, 58, 0, 0, Math.PI * 2);
+                g.fill();
+                g.strokeStyle = '#0369a1';
+                g.lineWidth = 3;
+                g.stroke();
+
+                g.fillStyle = 'rgba(255, 255, 255, 0.55)';
+                g.beginPath();
+                g.ellipse(104, 78, 34, 9, -0.22, 0, Math.PI * 2);
+                g.fill();
+
+                [
+                    { x: 78, y: 112, rx: 17, ry: 10, flower: '#ff85b3' },
+                    { x: 204, y: 96, rx: 15, ry: 9, flower: '#fde047' }
+                ].forEach((lp) => {
+                    g.fillStyle = '#4ade80';
+                    g.strokeStyle = '#14532d';
+                    g.lineWidth = 2.5;
+                    g.beginPath();
+                    g.ellipse(lp.x, lp.y, lp.rx, lp.ry, 0, 0, Math.PI * 2);
+                    g.fill();
+                    g.stroke();
+
+                    g.fillStyle = lp.flower;
+                    g.beginPath();
+                    g.arc(lp.x - 3, lp.y - 4, 6, 0, Math.PI * 2);
+                    g.fill();
+                    g.stroke();
+                    g.fillStyle = '#fef9c3';
+                    g.beginPath();
+                    g.arc(lp.x - 3, lp.y - 4, 2.2, 0, Math.PI * 2);
+                    g.fill();
+                });
+            });
+
+            // 2. 2.5D Tiered Fountain Spout
+            propSprites.fountainCenter = makeSlimeStyleSprite(110, 120, (g) => {
+                g.fillStyle = '#cbd5e1';
+                g.strokeStyle = '#334155';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.ellipse(55, 98, 32, 14, 0, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+
+                g.beginPath();
+                g.roundRect(41, 56, 28, 42, 8);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#f1f5f9';
+                g.beginPath();
+                g.ellipse(55, 56, 30, 13, 0, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#38bdf8';
+                g.beginPath();
+                g.ellipse(55, 56, 23, 9, 0, 0, Math.PI * 2);
+                g.fill();
+
+                g.fillStyle = '#e2e8f0';
+                g.beginPath();
+                g.roundRect(46, 26, 18, 30, 7);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#f8fafc';
+                g.beginPath();
+                g.ellipse(55, 26, 17, 7.5, 0, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+            });
+
+            // 3. Glossy Slime-Rancher Picnic Tea Table & Cushions
+            propSprites.picnicTable = makeSlimeStyleSprite(180, 140, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.2)';
+                g.beginPath();
+                g.ellipse(90, 108, 74, 28, 0, 0, Math.PI * 2);
+                g.fill();
+
+                [
+                    { x: 26, y: 84, body: '#ff85b3', gloss: '#ffd6e7', stroke: '#831843' },
+                    { x: 154, y: 84, body: '#38bdf8', gloss: '#e0f2fe', stroke: '#0c4a6e' },
+                    { x: 90, y: 114, body: '#fde047', gloss: '#fef9c3', stroke: '#78350f' }
+                ].forEach((c) => {
+                    g.fillStyle = c.body;
+                    g.strokeStyle = c.stroke;
+                    g.lineWidth = 3;
+                    g.beginPath();
+                    g.ellipse(c.x, c.y, 18, 11, 0, 0, Math.PI * 2);
+                    g.fill();
+                    g.stroke();
+
+                    g.fillStyle = c.gloss;
+                    g.beginPath();
+                    g.ellipse(c.x - 5, c.y - 3, 7, 3, -0.3, 0, Math.PI * 2);
+                    g.fill();
+                });
+
+                g.fillStyle = '#92400e';
+                g.strokeStyle = '#451a03';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.roundRect(78, 68, 24, 38, 8);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#d97706';
+                g.beginPath();
+                g.ellipse(90, 62, 62, 34, 0, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+
+                const topGrad = g.createRadialGradient(75, 48, 8, 90, 58, 60);
+                topGrad.addColorStop(0, '#fef3c7');
+                topGrad.addColorStop(1, '#fbbf24');
+                g.fillStyle = topGrad;
+                g.beginPath();
+                g.ellipse(90, 56, 60, 32, 0, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#fffbeb';
+                g.strokeStyle = '#92400e';
+                g.lineWidth = 2.5;
+                g.beginPath();
+                g.roundRect(70, 44, 40, 24, 6);
+                g.fill();
+                g.stroke();
+                g.beginPath();
+                g.moveTo(83, 46); g.lineTo(83, 66);
+                g.moveTo(97, 46); g.lineTo(97, 66);
+                g.moveTo(72, 52); g.lineTo(108, 52);
+                g.moveTo(72, 60); g.lineTo(108, 60);
+                g.stroke();
+
+                g.fillStyle = '#4ade80';
+                g.strokeStyle = '#14532d';
+                g.lineWidth = 2.5;
+                g.beginPath();
+                g.arc(52, 56, 9, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+                g.fillStyle = '#bbf7d0';
+                g.beginPath();
+                g.arc(49, 53, 3, 0, Math.PI * 2);
+                g.fill();
+            });
+
+            // 4. Cartoon Pastel Chalkboard Easel
+            propSprites.artEasel = makeSlimeStyleSprite(150, 150, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.2)';
+                g.beginPath();
+                g.ellipse(75, 134, 52, 14, 0, 0, Math.PI * 2);
+                g.fill();
+
+                g.strokeStyle = '#451a03';
+                g.lineWidth = 9;
+                g.beginPath();
+                g.moveTo(75, 18); g.lineTo(42, 130);
+                g.moveTo(75, 18); g.lineTo(108, 130);
+                g.moveTo(75, 18); g.lineTo(75, 124);
+                g.stroke();
+
+                g.strokeStyle = '#b45309';
+                g.lineWidth = 4.5;
+                g.beginPath();
+                g.moveTo(75, 18); g.lineTo(42, 130);
+                g.moveTo(75, 18); g.lineTo(108, 130);
+                g.stroke();
+
+                g.fillStyle = '#d97706';
+                g.strokeStyle = '#451a03';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.roundRect(28, 34, 94, 68, 14);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#1e293b';
+                g.beginPath();
+                g.roundRect(35, 41, 80, 54, 9);
+                g.fill();
+                g.stroke();
+
+                g.strokeStyle = '#fda4af';
+                g.lineWidth = 2.5;
+                g.beginPath();
+                g.arc(62, 70, 11, Math.PI, 0);
+                g.quadraticCurveTo(73, 78, 62, 78);
+                g.quadraticCurveTo(51, 78, 51, 70);
+                g.stroke();
+
+                g.fillStyle = '#fde047';
+                g.beginPath();
+                g.arc(92, 60, 4, 0, Math.PI * 2);
+                g.fill();
+
+                g.fillStyle = '#f59e0b';
+                g.strokeStyle = '#451a03';
+                g.lineWidth = 3;
+                g.beginPath();
+                g.roundRect(22, 98, 106, 11, 5);
+                g.fill();
+                g.stroke();
+            });
+
+            // 5. Rounded Stone Rune Hot Potato Pedestal
+            propSprites.potatoPedestal = makeSlimeStyleSprite(136, 136, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.22)';
+                g.beginPath();
+                g.ellipse(68, 118, 46, 15, 0, 0, Math.PI * 2);
+                g.fill();
+
+                const stoneGrad = g.createLinearGradient(36, 68, 100, 116);
+                stoneGrad.addColorStop(0, '#cbd5e1');
+                stoneGrad.addColorStop(1, '#64748b');
+                g.fillStyle = stoneGrad;
+                g.strokeStyle = '#334155';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.roundRect(38, 70, 60, 44, 14);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#f1f5f9';
+                g.beginPath();
+                g.ellipse(68, 70, 34, 14, 0, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#fb923c';
+                g.beginPath();
+                g.arc(68, 93, 8, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+            });
+
+            // 6. Smooth Rounded Cobblestone Campfire Ring
+            propSprites.firepitBase = makeSlimeStyleSprite(150, 136, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.22)';
+                g.beginPath();
+                g.ellipse(75, 92, 58, 30, 0, 0, Math.PI * 2);
+                g.fill();
+
+                g.fillStyle = '#7c2d12';
+                g.strokeStyle = '#451a03';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.ellipse(75, 84, 48, 24, 0, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+
+                [0.42, -0.42].forEach((ang) => {
+                    g.save();
+                    g.translate(75, 82);
+                    g.rotate(ang);
+                    g.fillStyle = '#92400e';
+                    g.strokeStyle = '#451a03';
+                    g.lineWidth = 3;
+                    g.beginPath();
+                    g.roundRect(-28, -6, 56, 12, 6);
+                    g.fill();
+                    g.stroke();
+                    g.restore();
+                });
+
+                const ringStones = [
+                    [30, 78], [120, 78], [46, 98], [104, 98], [75, 104], [48, 64], [102, 64]
                 ];
-                blades.forEach(([bx, by], i) => {
-                    px(bx, by, 1, 2, '#16a34a');
-                    px(bx + 1, by - 1, 1, 2, '#22c55e');
-                    if (i % 3 === 0) px(bx - 1, by, 1, 1, '#86efac');
-                });
-            });
-            bakedGrassPattern = ctx.createPattern(grassTile, 'repeat');
+                ringStones.forEach(([sx, sy]) => {
+                    g.fillStyle = '#cbd5e1';
+                    g.strokeStyle = '#334155';
+                    g.lineWidth = 3;
+                    g.beginPath();
+                    g.ellipse(sx, sy, 12, 9, 0, 0, Math.PI * 2);
+                    g.fill();
+                    g.stroke();
 
-            // 1. 2.5D Pixel-Art Stone Masonry Koi Fountain Basin
-            propSprites.fountainBasin = bakePixelSprite(96, 72, 3, ({ px, ellipsePx, ditherEllipsePx }) => {
-                ellipsePx(48, 42, 45, 27, 'rgba(15,23,42,0.28)');
-                // 3D Stone Wall Front Face with Brick Mortar Lines
-                ellipsePx(48, 39, 44, 26, '#334155');
-                ellipsePx(48, 38, 43, 25, '#64748b');
-                for (let bx = 12; bx <= 84; bx += 12) {
-                    px(bx, 46, 1, 13, '#475569');
-                }
-                // Top Stone Rim
-                ellipsePx(48, 34, 44, 25, '#334155');
-                ellipsePx(48, 34, 42, 23, '#cbd5e1');
-                ellipsePx(48, 33, 40, 21, '#f1f5f9');
-                // Deep Lagoon Water + Pixel Dither Shimmer
-                ellipsePx(48, 35, 36, 19, '#0c4a6e');
-                ditherEllipsePx(48, 36, 34, 17, '#0284c7', '#38bdf8');
-                ellipsePx(48, 36, 26, 12, '#38bdf8');
-                ellipsePx(36, 30, 10, 3, '#bae6fd');
-                // Pixel Lily Pads & Pink Lotus
-                ellipsePx(26, 38, 6, 3.5, '#15803d');
-                ellipsePx(26, 37, 5, 2.8, '#4ade80');
-                px(24, 35, 3, 2, '#ff85b3');
-                px(25, 35, 1, 1, '#fde047');
-                ellipsePx(70, 33, 5.5, 3.2, '#15803d');
-                ellipsePx(70, 32, 4.5, 2.5, '#22c55e');
-                px(70, 30, 2, 2, '#fef08a');
-            });
-
-            // 2. 2.5D Pixel-Art Tiered Fountain Spout
-            propSprites.fountainCenter = bakePixelSprite(36, 40, 3, ({ px, ellipsePx }) => {
-                ellipsePx(18, 33, 12, 5, '#334155');
-                ellipsePx(18, 32, 11, 4.5, '#94a3b8');
-                px(13, 19, 10, 13, '#334155');
-                px(14, 19, 8, 13, '#cbd5e1');
-                px(15, 19, 3, 13, '#f1f5f9');
-                ellipsePx(18, 19, 11, 5, '#334155');
-                ellipsePx(18, 18, 10, 4, '#e2e8f0');
-                ellipsePx(18, 18, 8, 3, '#38bdf8');
-                px(15, 9, 6, 9, '#334155');
-                px(16, 9, 4, 9, '#cbd5e1');
-                ellipsePx(18, 9, 6, 3, '#f8fafc');
-                px(16, 4, 4, 4, '#7dd3fc');
-            });
-
-            // 3. Pixel-Art Picnic Tea Table, Floor Cushions & Matcha Set
-            propSprites.picnicTable = bakePixelSprite(60, 48, 3, ({ px, ellipsePx }) => {
-                ellipsePx(30, 37, 24, 9, 'rgba(15,23,42,0.24)');
-                // Plush Pixel Cushions
-                ellipsePx(8, 28, 6, 4, '#881337');
-                ellipsePx(8, 27, 5, 3, '#fb7185');
-                px(6, 26, 3, 1, '#fda4af');
-                ellipsePx(52, 28, 6, 4, '#075985');
-                ellipsePx(52, 27, 5, 3, '#38bdf8');
-                px(50, 26, 3, 1, '#bae6fd');
-                ellipsePx(30, 39, 6, 3.5, '#92400e');
-                ellipsePx(30, 38, 5, 2.8, '#fde047');
-                // Oak Pedestal & Layered Tabletop
-                px(26, 24, 8, 12, '#451a03');
-                px(27, 24, 6, 12, '#78350f');
-                ellipsePx(30, 21, 20, 11, '#451a03');
-                ellipsePx(30, 21, 19, 10, '#b45309');
-                ellipsePx(30, 19, 19, 10, '#fbbf24');
-                ellipsePx(30, 19, 16, 7.5, '#fef3c7');
-                // Checkered Runner + Mini Tic-Tac-Toe Board + Matcha Pot
-                for (let rx = 18; rx <= 40; rx += 2) {
-                    px(rx, 18, 1, 2, '#fda4af');
-                    px(rx + 1, 19, 1, 2, '#fb7185');
-                }
-                px(24, 15, 12, 8, '#78350f');
-                px(25, 16, 10, 6, '#d97706');
-                px(28, 16, 1, 6, '#fef3c7');
-                px(32, 16, 1, 6, '#fef3c7');
-                px(25, 18, 10, 1, '#fef3c7');
-                px(25, 20, 10, 1, '#fef3c7');
-                // Matcha Teapot & Strawberry Tart
-                ellipsePx(18, 19, 3, 2.5, '#166534');
-                ellipsePx(18, 18, 2.5, 2, '#4ade80');
-                ellipsePx(42, 19, 3, 2, '#ffffff');
-                px(41, 18, 2, 1, '#fb7185');
-            });
-
-            // 4. Pixel-Art Chalkboard Easel
-            propSprites.artEasel = bakePixelSprite(48, 48, 3, ({ px, ellipsePx }) => {
-                ellipsePx(24, 43, 16, 4.5, 'rgba(15,23,42,0.24)');
-                // Wooden A-Frame Legs
-                for (let i = 0; i < 36; i++) {
-                    px(23 - Math.floor(i * 0.32), 6 + i, 3, 1, '#78350f');
-                    px(24 + Math.floor(i * 0.32), 6 + i, 3, 1, '#78350f');
-                }
-                px(23, 6, 2, 34, '#92400e');
-                // Oak Frame & Slate Chalkboard
-                px(9, 11, 30, 21, '#451a03');
-                px(10, 12, 28, 19, '#b45309');
-                px(12, 14, 24, 15, '#1e293b');
-                // Pixel Chalk Heart & Star
-                px(16, 18, 2, 2, '#fda4af');
-                px(19, 18, 2, 2, '#fda4af');
-                px(15, 19, 7, 2, '#fda4af');
-                px(16, 21, 5, 1, '#fda4af');
-                px(17, 22, 3, 1, '#fda4af');
-                px(18, 23, 1, 1, '#fda4af');
-                px(28, 17, 1, 5, '#fde047');
-                px(26, 19, 5, 1, '#fde047');
-                // Chalk Tray
-                px(7, 31, 34, 3, '#451a03');
-                px(8, 31, 32, 2, '#d97706');
-                px(12, 30, 4, 1, '#ff85b3');
-                px(18, 30, 4, 1, '#7dd3fc');
-                px(30, 29, 3, 2, '#fde047');
-            });
-
-            // 5. Pixel-Art Carved Rune Hot Potato Pedestal
-            propSprites.potatoPedestal = bakePixelSprite(44, 44, 3, ({ px, dither, ellipsePx }) => {
-                ellipsePx(22, 38, 15, 5, 'rgba(15,23,42,0.25)');
-                px(12, 23, 20, 14, '#334155');
-                dither(13, 24, 18, 12, '#94a3b8', '#64748b');
-                px(15, 26, 14, 8, '#475569');
-                px(20, 28, 4, 4, '#fb923c');
-                px(21, 29, 2, 2, '#fde047');
-                ellipsePx(22, 23, 11, 4.5, '#334155');
-                ellipsePx(22, 23, 10, 4, '#cbd5e1');
-                ellipsePx(22, 23, 7, 2.5, '#fed7aa');
-            });
-
-            // 6. Pixel-Art Stone Hearth Firepit
-            propSprites.firepitBase = bakePixelSprite(48, 44, 3, ({ px, ditherEllipsePx, ellipsePx, circlePx }) => {
-                ellipsePx(24, 29, 19, 9.5, 'rgba(15,23,42,0.26)');
-                ellipsePx(24, 26, 17, 8.5, '#1c1917');
-                ditherEllipsePx(24, 26, 14, 6.5, '#7c2d12', '#9a3412');
-                // Crossed Pixel Logs
-                for (let i = -7; i <= 7; i++) {
-                    px(23 + i, 24 + Math.floor(i * 0.4), 3, 3, '#451a03');
-                    px(23 + i, 25 + Math.floor(i * 0.4), 2, 2, '#78350f');
-                    px(23 + i, 24 - Math.floor(i * 0.4), 3, 3, '#451a03');
-                    px(23 + i, 25 - Math.floor(i * 0.4), 2, 2, '#92400e');
-                }
-                // Ring of Pixel Boulders
-                const stones = [[9, 24], [39, 24], [15, 32], [33, 32], [24, 34]];
-                stones.forEach(([sx, sy]) => {
-                    circlePx(sx, sy, 3.8, '#334155');
-                    circlePx(sx, sy - 0.5, 3, '#cbd5e1');
-                    px(sx - 1, sy - 2, 2, 1, '#f8fafc');
+                    g.fillStyle = '#f8fafc';
+                    g.beginPath();
+                    g.ellipse(sx - 3, sy - 3, 4.5, 2.2, -0.3, 0, Math.PI * 2);
+                    g.fill();
                 });
             });
 
-            // 7. Pixel-Art Retro Pastel Lofi Boombox
-            propSprites.lofiBoombox = bakePixelSprite(40, 36, 3, ({ px, ellipsePx, circlePx }) => {
-                ellipsePx(20, 30, 15, 4, 'rgba(15,23,42,0.25)');
-                // Antenna & Handle
-                for (let i = 0; i < 8; i++) px(30 + Math.floor(i * 0.6), 12 - i, 1, 1, '#64748b');
-                px(34, 4, 2, 2, '#fde047');
-                px(12, 8, 16, 2, '#475569');
-                px(12, 10, 2, 3, '#475569');
-                px(26, 10, 2, 3, '#475569');
-                // Pink Boombox Body
-                px(6, 13, 28, 16, '#881337');
-                px(7, 14, 26, 14, '#fb7185');
-                px(8, 15, 24, 3, '#fda4af');
-                // Dual Woofers & Cassette Deck
-                circlePx(13, 22, 4.5, '#fecdd3');
-                circlePx(13, 22, 3.5, '#1e293b');
-                circlePx(13, 22, 1.5, '#64748b');
-                circlePx(27, 22, 4.5, '#fecdd3');
-                circlePx(27, 22, 3.5, '#1e293b');
-                circlePx(27, 22, 1.5, '#64748b');
-                px(18, 19, 4, 6, '#881337');
-                px(19, 20, 2, 4, '#fef3c7');
+            // 7. Glossy Bubblegum Lofi Boombox
+            propSprites.lofiBoombox = makeSlimeStyleSprite(124, 112, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.2)';
+                g.beginPath();
+                g.ellipse(62, 94, 46, 13, 0, 0, Math.PI * 2);
+                g.fill();
+
+                g.strokeStyle = '#334155';
+                g.lineWidth = 4.5;
+                g.beginPath();
+                g.roundRect(38, 24, 48, 22, 8);
+                g.stroke();
+
+                const boxGrad = g.createLinearGradient(20, 38, 20, 90);
+                boxGrad.addColorStop(0, '#ff85b3');
+                boxGrad.addColorStop(1, '#e11d48');
+                g.fillStyle = boxGrad;
+                g.strokeStyle = '#881337';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.roundRect(18, 40, 88, 50, 14);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = 'rgba(255, 255, 255, 0.55)';
+                g.beginPath();
+                g.roundRect(26, 45, 72, 7, 4);
+                g.fill();
+
+                [40, 84].forEach((wx) => {
+                    g.fillStyle = '#1e293b';
+                    g.strokeStyle = '#ffe4e6';
+                    g.lineWidth = 3;
+                    g.beginPath();
+                    g.arc(wx, 68, 13, 0, Math.PI * 2);
+                    g.fill();
+                    g.stroke();
+
+                    g.fillStyle = '#64748b';
+                    g.beginPath();
+                    g.arc(wx, 68, 5, 0, Math.PI * 2);
+                    g.fill();
+                });
+
+                g.fillStyle = '#fef3c7';
+                g.strokeStyle = '#881337';
+                g.lineWidth = 2.5;
+                g.beginPath();
+                g.roundRect(55, 58, 14, 20, 4);
+                g.fill();
+                g.stroke();
             });
 
-            // 8. Pixel-Art Pagoda Lantern Switch Totem
-            propSprites.lanternSwitch = bakePixelSprite(32, 38, 3, ({ px, ellipsePx }) => {
-                ellipsePx(16, 33, 10, 3.5, 'rgba(15,23,42,0.25)');
-                px(9, 28, 14, 5, '#334155');
-                px(10, 28, 12, 4, '#94a3b8');
-                px(14, 17, 4, 11, '#451a03');
-                px(15, 17, 2, 11, '#92400e');
-                px(10, 8, 12, 10, '#78350f');
-                px(11, 9, 10, 8, '#fef3c7');
-                for (let r = 0; r < 6; r++) {
-                    px(8 + r, 8 - r, 16 - r * 2, 1, '#b45309');
+            // 8. Cute Pagoda Lantern Switch Totem
+            propSprites.lanternSwitch = makeSlimeStyleSprite(100, 118, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.2)';
+                g.beginPath();
+                g.ellipse(50, 104, 30, 10, 0, 0, Math.PI * 2);
+                g.fill();
+
+                g.fillStyle = '#cbd5e1';
+                g.strokeStyle = '#334155';
+                g.lineWidth = 3;
+                g.beginPath();
+                g.roundRect(28, 86, 44, 16, 7);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#92400e';
+                g.strokeStyle = '#451a03';
+                g.beginPath();
+                g.roundRect(43, 52, 14, 34, 5);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#fef3c7';
+                g.strokeStyle = '#78350f';
+                g.beginPath();
+                g.roundRect(32, 26, 36, 28, 9);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#ea580c';
+                g.strokeStyle = '#451a03';
+                g.beginPath();
+                g.moveTo(22, 28);
+                g.quadraticCurveTo(50, 6, 78, 28);
+                g.closePath();
+                g.fill();
+                g.stroke();
+            });
+
+            // 9. Smooth Terracotta Flower Planter Box
+            propSprites.flowerPlanterBox = makeSlimeStyleSprite(270, 72, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.18)';
+                g.beginPath();
+                g.roundRect(6, 14, 258, 54, 18);
+                g.fill();
+
+                g.fillStyle = '#ea580c';
+                g.strokeStyle = '#7c2d12';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.roundRect(6, 8, 258, 52, 18);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#5c3a21';
+                g.beginPath();
+                g.roundRect(16, 16, 238, 34, 12);
+                g.fill();
+            });
+
+            // 10. Plump 5-Petal Glossy Ranch Flowers
+            const makeSlimeFlower = (petal, gloss, center) => makeSlimeStyleSprite(48, 48, (g) => {
+                g.fillStyle = '#22c55e';
+                g.strokeStyle = '#14532d';
+                g.lineWidth = 2.4;
+                g.beginPath();
+                g.ellipse(14, 34, 8, 4, -0.4, 0, Math.PI * 2);
+                g.ellipse(34, 34, 8, 4, 0.4, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+
+                for (let i = 0; i < 5; i++) {
+                    const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+                    const px = 24 + Math.cos(a) * 9;
+                    const py = 21 + Math.sin(a) * 9;
+                    g.fillStyle = petal;
+                    g.beginPath();
+                    g.arc(px, py, 7.5, 0, Math.PI * 2);
+                    g.fill();
+                    g.stroke();
                 }
-                px(15, 2, 2, 2, '#fbbf24');
+
+                g.fillStyle = center;
+                g.beginPath();
+                g.arc(24, 21, 6.5, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = gloss;
+                g.beginPath();
+                g.arc(22, 19, 2.2, 0, Math.PI * 2);
+                g.fill();
+            });
+            propSprites.flowerPink = makeSlimeFlower('#ff85b3', '#ffffff', '#fde047');
+            propSprites.flowerGold = makeSlimeFlower('#fde047', '#ffffff', '#fb923c');
+            propSprites.flowerLilac = makeSlimeFlower('#c084fc', '#ffffff', '#fef08a');
+            propSprites.flowerSky = makeSlimeFlower('#7dd3fc', '#ffffff', '#fde047');
+
+            // 11. Smooth Lantern Pillar, Pogofruit Bush & Clover
+            propSprites.lanternPillar = makeSlimeStyleSprite(78, 102, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.2)';
+                g.beginPath();
+                g.ellipse(39, 90, 22, 8, 0, 0, Math.PI * 2);
+                g.fill();
+
+                g.fillStyle = '#cbd5e1';
+                g.strokeStyle = '#334155';
+                g.lineWidth = 3;
+                g.beginPath();
+                g.roundRect(23, 74, 32, 14, 6);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#92400e';
+                g.strokeStyle = '#451a03';
+                g.beginPath();
+                g.roundRect(33, 42, 12, 32, 5);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#fef9c3';
+                g.strokeStyle = '#78350f';
+                g.beginPath();
+                g.roundRect(26, 20, 26, 23, 8);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#d97706';
+                g.strokeStyle = '#451a03';
+                g.beginPath();
+                g.moveTo(19, 22);
+                g.quadraticCurveTo(39, 4, 59, 22);
+                g.closePath();
+                g.fill();
+                g.stroke();
             });
 
-            // 9. Pixel-Art Terracotta Flower Planter Box
-            propSprites.flowerPlanterBox = bakePixelSprite(90, 24, 3, ({ px, dither }) => {
-                px(2, 4, 86, 18, '#7c2d12');
-                px(2, 2, 86, 17, '#ea580c');
-                px(3, 3, 84, 2, '#fb923c');
-                dither(6, 5, 78, 11, '#5c3a21', '#452713');
-            });
+            propSprites.berryBush = makeSlimeStyleSprite(104, 86, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.18)';
+                g.beginPath();
+                g.ellipse(52, 72, 40, 12, 0, 0, Math.PI * 2);
+                g.fill();
 
-            // 10. Pixel-Art 5-Petal Ranch Flower Clusters
-            const makePixelFlower = (petal, center) => bakePixelSprite(16, 16, 3, ({ px }) => {
-                px(3, 11, 3, 2, '#15803d');
-                px(10, 11, 3, 2, '#15803d');
-                px(7, 8, 2, 6, '#16a34a');
-                px(6, 3, 4, 3, petal);
-                px(4, 5, 3, 3, petal);
-                px(9, 5, 3, 3, petal);
-                px(5, 8, 3, 3, petal);
-                px(8, 8, 3, 3, petal);
-                px(7, 6, 2, 2, center);
-            });
-            propSprites.flowerPink = makePixelFlower('#ff85b3', '#fde047');
-            propSprites.flowerGold = makePixelFlower('#fde047', '#fb923c');
-            propSprites.flowerLilac = makePixelFlower('#c084fc', '#fef08a');
-            propSprites.flowerSky = makePixelFlower('#7dd3fc', '#fde047');
+                const puffs = [
+                    { x: 30, y: 48, r: 21, c: '#22c55e' },
+                    { x: 74, y: 48, r: 21, c: '#22c55e' },
+                    { x: 52, y: 36, r: 25, c: '#4ade80' }
+                ];
+                puffs.forEach((p) => {
+                    g.fillStyle = p.c;
+                    g.strokeStyle = '#14532d';
+                    g.lineWidth = 3.2;
+                    g.beginPath();
+                    g.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    g.fill();
+                    g.stroke();
+                });
 
-            // 11. Pixel-Art Sanctuary Lantern Pillar, Pogofruit Bush & Clover
-            propSprites.lanternPillar = bakePixelSprite(26, 34, 3, ({ px, ellipsePx }) => {
-                ellipsePx(13, 30, 8, 3, 'rgba(15,23,42,0.24)');
-                px(8, 25, 10, 5, '#334155');
-                px(9, 25, 8, 4, '#94a3b8');
-                px(11, 14, 4, 11, '#451a03');
-                px(12, 14, 2, 11, '#92400e');
-                px(9, 6, 8, 8, '#78350f');
-                px(10, 7, 6, 6, '#fef9c3');
-                for (let r = 0; r < 5; r++) {
-                    px(7 + r, 6 - r, 12 - r * 2, 1, '#b45309');
-                }
-            });
+                g.fillStyle = 'rgba(255, 255, 255, 0.45)';
+                g.beginPath();
+                g.ellipse(44, 22, 10, 4.5, -0.35, 0, Math.PI * 2);
+                g.fill();
 
-            propSprites.berryBush = bakePixelSprite(34, 28, 3, ({ px, ellipsePx, circlePx }) => {
-                ellipsePx(17, 23, 13, 4, 'rgba(15,23,42,0.22)');
-                circlePx(10, 16, 6.5, '#14532d');
-                circlePx(24, 16, 6.5, '#14532d');
-                circlePx(17, 12, 8, '#14532d');
-                circlePx(10, 15, 5.5, '#16a34a');
-                circlePx(24, 15, 5.5, '#16a34a');
-                circlePx(17, 11, 7, '#22c55e');
-                circlePx(15, 9, 4, '#4ade80');
-                px(12, 14, 2, 2, '#fb7185');
-                px(21, 15, 2, 2, '#fb7185');
-                px(17, 9, 2, 2, '#fde047');
-            });
-
-            propSprites.cloverPatch = bakePixelSprite(12, 12, 3, ({ px }) => {
-                px(5, 6, 1, 4, '#15803d');
-                px(5, 2, 2, 2, '#4ade80');
-                px(3, 4, 2, 2, '#22c55e');
-                px(7, 4, 2, 2, '#22c55e');
-                px(5, 4, 2, 2, '#bbf7d0');
-            });
-
-            // 12. Pixel-Art Bouncy Slime Trampoline Pad
-            propSprites.bouncyPad = bakePixelSprite(44, 34, 3, ({ px, ellipsePx }) => {
-                ellipsePx(22, 23, 18, 9.5, 'rgba(15,23,42,0.24)');
-                ellipsePx(22, 20, 17, 9, '#831843');
-                ellipsePx(22, 20, 16, 8, '#db2777');
-                ellipsePx(22, 17, 17, 9, '#831843');
-                ellipsePx(22, 17, 16, 8, '#ff85b3');
-                ellipsePx(22, 17, 11, 5.5, '#fbcfe8');
-                px(21, 14, 2, 2, '#be185d');
-                px(19, 16, 2, 2, '#be185d');
-                px(23, 16, 2, 2, '#be185d');
-            });
-
-            // 13. Pixel-Art Outdoor Boba & Dango Cart
-            propSprites.snackCart = bakePixelSprite(52, 48, 3, ({ px, ellipsePx, circlePx }) => {
-                ellipsePx(26, 41, 19, 5.5, 'rgba(15,23,42,0.24)');
-                circlePx(17, 37, 4.5, '#451a03');
-                circlePx(17, 37, 3.5, '#78350f');
-                px(16, 36, 2, 2, '#fde68a');
-                circlePx(35, 37, 4.5, '#451a03');
-                circlePx(35, 37, 3.5, '#78350f');
-                px(34, 36, 2, 2, '#fde68a');
-                px(10, 23, 32, 13, '#78350f');
-                px(11, 24, 30, 11, '#f59e0b');
-                px(9, 21, 34, 3, '#fef3c7');
-                px(15, 16, 4, 5, '#fbcfe8');
-                px(17, 13, 1, 3, '#be185d');
-                px(22, 16, 4, 5, '#bbf7d0');
-                px(24, 13, 1, 3, '#15803d');
-                px(12, 10, 2, 11, '#78350f');
-                px(38, 10, 2, 11, '#78350f');
-                for (let r = 0; r < 6; r++) {
-                    px(8 + r, 10 - r, 36 - r * 2, 1, r % 2 === 0 ? '#fb7185' : '#fff1f2');
-                }
-            });
-
-            // 14. Pixel-Art Rainbow Ranch Xylophone
-            propSprites.kalimbaToy = bakePixelSprite(44, 36, 3, ({ px, ellipsePx }) => {
-                ellipsePx(22, 29, 16, 5, 'rgba(15,23,42,0.22)');
-                px(8, 14, 28, 14, '#451a03');
-                px(9, 15, 26, 12, '#d97706');
-                px(11, 17, 22, 8, '#fef3c7');
-                const keys = ['#fb7185', '#fbbf24', '#4ade80', '#38bdf8', '#c084fc'];
-                keys.forEach((col, i) => {
-                    px(13 + i * 4, 14 + (i === 2 ? 2 : (i % 2)), 3, 10 - (i === 2 ? 2 : 0), col);
+                [
+                    { x: 34, y: 46, c: '#ff85b3' },
+                    { x: 68, y: 49, c: '#ff85b3' },
+                    { x: 52, y: 34, c: '#fde047' }
+                ].forEach((b) => {
+                    g.fillStyle = b.c;
+                    g.strokeStyle = '#701a3c';
+                    g.lineWidth = 2.2;
+                    g.beginPath();
+                    g.arc(b.x, b.y, 5, 0, Math.PI * 2);
+                    g.fill();
+                    g.stroke();
                 });
             });
 
-            // 15. Pixel-Art Cozy Glamping Blanket Tent
-            propSprites.cozyTent = bakePixelSprite(60, 50, 3, ({ px, ellipsePx }) => {
-                ellipsePx(30, 43, 25, 6, 'rgba(15,23,42,0.25)');
-                for (let r = 0; r < 34; r++) {
-                    const halfW = Math.floor(r * 0.68);
-                    px(30 - halfW, 8 + r, halfW * 2, 1, '#92400e');
-                    if (halfW > 1) px(30 - halfW + 1, 8 + r, (halfW - 1) * 2, 1, '#fef08a');
-                    if (halfW > 5) px(30 - Math.floor(halfW * 0.55), 8 + r, Math.floor(halfW * 1.1), 1, '#fda4af');
-                }
-                for (let r = 0; r < 18; r++) {
-                    const halfW = Math.floor(r * 0.42);
-                    px(30 - halfW, 24 + r, halfW * 2, 1, '#312e81');
-                }
-                ellipsePx(30, 39, 5, 2.5, '#fbcfe8');
-                px(30, 3, 1, 5, '#78350f');
-                px(31, 3, 6, 3, '#38bdf8');
+            propSprites.cloverPatch = makeSlimeStyleSprite(36, 36, (g) => {
+                g.fillStyle = '#22c55e';
+                g.strokeStyle = '#14532d';
+                g.lineWidth = 2;
+                [
+                    [18, 11], [12, 18], [24, 18]
+                ].forEach(([lx, ly]) => {
+                    g.beginPath();
+                    g.arc(lx, ly, 5.5, 0, Math.PI * 2);
+                    g.fill();
+                    g.stroke();
+                });
             });
 
-            // 16. Pixel-Art Stargazing Brass Telescope
-            propSprites.telescope = bakePixelSprite(40, 42, 3, ({ px, ellipsePx }) => {
-                ellipsePx(20, 37, 11, 3.5, 'rgba(15,23,42,0.22)');
-                for (let i = 0; i < 14; i++) {
-                    px(19 - Math.floor(i * 0.5), 22 + i, 2, 1, '#78350f');
-                    px(20 + Math.floor(i * 0.5), 22 + i, 2, 1, '#78350f');
-                    px(19, 22 + i, 2, 1, '#92400e');
-                }
-                for (let t = 0; t < 20; t++) {
-                    const tx = 10 + t;
-                    const ty = 21 - Math.floor(t * 0.55);
-                    px(tx, ty - 2, 2, 5, t > 14 ? '#075985' : '#78350f');
-                    px(tx, ty - 1, 2, 3, t > 14 ? '#38bdf8' : '#fbbf24');
-                }
+            // 12. Glossy Pink Slime Bouncy Pad
+            propSprites.bouncyPad = makeSlimeStyleSprite(136, 104, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.2)';
+                g.beginPath();
+                g.ellipse(68, 70, 56, 28, 0, 0, Math.PI * 2);
+                g.fill();
+
+                g.fillStyle = '#db2777';
+                g.strokeStyle = '#831843';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.ellipse(68, 62, 54, 27, 0, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+
+                const padGrad = g.createRadialGradient(54, 44, 6, 68, 54, 52);
+                padGrad.addColorStop(0, '#ffd6e7');
+                padGrad.addColorStop(0.5, '#ff85b3');
+                padGrad.addColorStop(1, '#f43f5e');
+                g.fillStyle = padGrad;
+                g.beginPath();
+                g.ellipse(68, 53, 52, 25, 0, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = 'rgba(255, 255, 255, 0.65)';
+                g.beginPath();
+                g.ellipse(48, 41, 16, 5.5, -0.25, 0, Math.PI * 2);
+                g.fill();
             });
 
-            // 17. Pixel-Art Sakura Blossom Tree
-            propSprites.sakuraTree = bakePixelSprite(62, 66, 3, ({ px, ellipsePx, circlePx }) => {
-                ellipsePx(31, 58, 18, 5, 'rgba(15,23,42,0.22)');
-                px(26, 34, 10, 23, '#451a03');
-                px(27, 34, 8, 23, '#78350f');
-                px(28, 34, 3, 23, '#92400e');
-                // Lush Layered Sakura Pixel Canopy
-                circlePx(18, 29, 11, '#9d174d');
-                circlePx(44, 29, 11, '#9d174d');
-                circlePx(31, 19, 14, '#9d174d');
-                circlePx(18, 28, 10, '#f472b6');
-                circlePx(44, 28, 10, '#f472b6');
-                circlePx(31, 18, 13, '#ff85b3');
-                circlePx(24, 24, 9, '#fbcfe8');
-                circlePx(37, 23, 8, '#fbcfe8');
-                ellipsePx(28, 11, 6, 3, '#fff1f2');
+            // 13. Cute Pastel Boba & Dango Cart
+            propSprites.snackCart = makeSlimeStyleSprite(160, 148, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.2)';
+                g.beginPath();
+                g.ellipse(80, 128, 58, 16, 0, 0, Math.PI * 2);
+                g.fill();
+
+                [50, 110].forEach((wx) => {
+                    g.fillStyle = '#92400e';
+                    g.strokeStyle = '#451a03';
+                    g.lineWidth = 3.5;
+                    g.beginPath();
+                    g.arc(wx, 114, 14, 0, Math.PI * 2);
+                    g.fill();
+                    g.stroke();
+                    g.fillStyle = '#fde68a';
+                    g.beginPath();
+                    g.arc(wx, 114, 5, 0, Math.PI * 2);
+                    g.fill();
+                });
+
+                g.fillStyle = '#fbbf24';
+                g.strokeStyle = '#78350f';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.roundRect(30, 72, 100, 40, 12);
+                g.fill();
+                g.stroke();
+
+                g.strokeStyle = '#78350f';
+                g.lineWidth = 5;
+                g.beginPath();
+                g.moveTo(40, 34); g.lineTo(40, 72);
+                g.moveTo(120, 34); g.lineTo(120, 72);
+                g.stroke();
+
+                [58, 82].forEach((bx, i) => {
+                    g.fillStyle = i === 0 ? '#ff85b3' : '#86efac';
+                    g.strokeStyle = '#451a03';
+                    g.lineWidth = 2.5;
+                    g.beginPath();
+                    g.roundRect(bx - 7, 54, 14, 18, 4);
+                    g.fill();
+                    g.stroke();
+                });
+
+                g.fillStyle = '#fb7185';
+                g.strokeStyle = '#881337';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.roundRect(22, 18, 116, 22, 11);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#fff1f2';
+                g.beginPath();
+                g.roundRect(32, 22, 96, 6, 3);
+                g.fill();
             });
 
-            // 18. Pixel-Art Golden King Slime Monument
-            propSprites.slimeStatue = bakePixelSprite(54, 58, 3, ({ px, dither, ellipsePx }) => {
-                ellipsePx(27, 51, 20, 6, 'rgba(15,23,42,0.28)');
-                px(11, 38, 32, 13, '#334155');
-                dither(12, 39, 30, 11, '#94a3b8', '#cbd5e1');
-                // Golden Slime Body
-                ellipsePx(27, 29, 14, 12, '#78350f');
-                ellipsePx(27, 29, 13, 11, '#fbbf24');
-                ellipsePx(27, 27, 11, 9, '#fde047');
-                px(21, 21, 4, 2, '#fef9c3');
-                // Cute Statue Face
-                px(22, 28, 2, 3, '#451a03');
-                px(30, 28, 2, 3, '#451a03');
-                px(25, 32, 4, 1, '#451a03');
-                // Golden Crown
-                px(21, 13, 12, 4, '#92400e');
-                px(22, 14, 10, 3, '#fde047');
-                px(21, 11, 2, 2, '#fde047');
-                px(26, 10, 2, 3, '#fde047');
-                px(31, 11, 2, 2, '#fde047');
+            // 14. Rainbow Ranch Xylophone
+            propSprites.kalimbaToy = makeSlimeStyleSprite(136, 112, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.18)';
+                g.beginPath();
+                g.ellipse(68, 90, 50, 16, 0, 0, Math.PI * 2);
+                g.fill();
+
+                g.fillStyle = '#d97706';
+                g.strokeStyle = '#451a03';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.roundRect(24, 42, 88, 44, 14);
+                g.fill();
+                g.stroke();
+
+                const bars = ['#ff85b3', '#fbbf24', '#4ade80', '#38bdf8', '#c084fc'];
+                bars.forEach((col, i) => {
+                    g.fillStyle = col;
+                    g.strokeStyle = '#1e293b';
+                    g.lineWidth = 2.5;
+                    g.beginPath();
+                    g.roundRect(35 + i * 14, 34 + i * 2, 10, 48 - i * 4, 5);
+                    g.fill();
+                    g.stroke();
+                });
             });
 
-            // 19. Pixel-Art Cozy Wooden Hammock Stand
-            propSprites.hammock = bakePixelSprite(56, 36, 3, ({ px, ellipsePx }) => {
-                ellipsePx(28, 30, 23, 4.5, 'rgba(15,23,42,0.22)');
-                for (let i = 0; i < 18; i++) {
-                    px(8 - Math.floor(i * 0.25), 11 + i, 3, 1, '#78350f');
-                    px(46 + Math.floor(i * 0.25), 11 + i, 3, 1, '#78350f');
-                }
-                for (let hx = 8; hx <= 48; hx++) {
-                    const sag = Math.sin(((hx - 8) / 40) * Math.PI) * 11;
-                    px(hx, 13 + sag, 1, 5, '#0369a1');
-                    px(hx, 14 + sag, 1, 3, '#38bdf8');
-                    if (hx % 4 === 0) px(hx, 14 + sag, 2, 2, '#bae6fd');
-                }
-                ellipsePx(15, 16, 4, 2.5, '#fef08a');
+            // 15. Cozy Pastel Glamping Tent
+            propSprites.cozyTent = makeSlimeStyleSprite(186, 156, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.2)';
+                g.beginPath();
+                g.ellipse(93, 134, 76, 18, 0, 0, Math.PI * 2);
+                g.fill();
+
+                g.fillStyle = '#fef08a';
+                g.strokeStyle = '#78350f';
+                g.lineWidth = 4;
+                g.beginPath();
+                g.moveTo(93, 22);
+                g.quadraticCurveTo(148, 72, 164, 130);
+                g.lineTo(22, 130);
+                g.quadraticCurveTo(38, 72, 93, 22);
+                g.closePath();
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#312e81';
+                g.beginPath();
+                g.moveTo(93, 66);
+                g.lineTo(122, 130);
+                g.lineTo(64, 130);
+                g.closePath();
+                g.fill();
+
+                g.fillStyle = '#ff85b3';
+                g.strokeStyle = '#831843';
+                g.lineWidth = 2.5;
+                g.beginPath();
+                g.ellipse(93, 122, 16, 7, 0, 0, Math.PI * 2);
+                g.fill();
+                g.stroke();
             });
 
-            // 20. Pixel-Art Ancient Plort Wishing Well
-            propSprites.wishingWell = bakePixelSprite(48, 52, 3, ({ px, dither, ellipsePx }) => {
-                ellipsePx(24, 45, 16, 5, 'rgba(15,23,42,0.25)');
-                px(11, 29, 26, 15, '#334155');
-                dither(12, 30, 24, 13, '#94a3b8', '#64748b');
-                ellipsePx(24, 29, 13, 5, '#cbd5e1');
-                ellipsePx(24, 29, 9, 3.5, '#0284c7');
-                px(13, 14, 2, 15, '#78350f');
-                px(33, 14, 2, 15, '#78350f');
-                for (let r = 0; r < 11; r++) {
-                    px(8 + r, 15 - r, 32 - r * 2, 1, '#7c2d12');
-                    if (r > 0) px(9 + r, 15 - r, 30 - r * 2, 1, '#ea580c');
-                }
+            // 16. Stargazing Brass Telescope
+            propSprites.telescope = makeSlimeStyleSprite(124, 130, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.18)';
+                g.beginPath();
+                g.ellipse(62, 114, 34, 11, 0, 0, Math.PI * 2);
+                g.fill();
+
+                g.strokeStyle = '#78350f';
+                g.lineWidth = 5;
+                g.beginPath();
+                g.moveTo(62, 66); g.lineTo(42, 112);
+                g.moveTo(62, 66); g.lineTo(82, 112);
+                g.moveTo(62, 66); g.lineTo(62, 114);
+                g.stroke();
+
+                g.save();
+                g.translate(62, 54);
+                g.rotate(-0.48);
+                g.fillStyle = '#fbbf24';
+                g.strokeStyle = '#78350f';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.roundRect(-34, -8, 68, 16, 8);
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = '#38bdf8';
+                g.beginPath();
+                g.roundRect(22, -10, 14, 20, 5);
+                g.fill();
+                g.stroke();
+                g.restore();
+            });
+
+            // 17. Fluffy Slime-Rancher Sakura Blossom Tree
+            propSprites.sakuraTree = makeSlimeStyleSprite(190, 204, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.18)';
+                g.beginPath();
+                g.ellipse(95, 180, 54, 15, 0, 0, Math.PI * 2);
+                g.fill();
+
+                g.fillStyle = '#92400e';
+                g.strokeStyle = '#451a03';
+                g.lineWidth = 4;
+                g.beginPath();
+                g.roundRect(80, 104, 30, 76, 12);
+                g.fill();
+                g.stroke();
+
+                const canopy = [
+                    { x: 56, y: 92, r: 34, c: '#f472b6' },
+                    { x: 134, y: 92, r: 34, c: '#f472b6' },
+                    { x: 95, y: 62, r: 44, c: '#ff85b3' }
+                ];
+                canopy.forEach((p) => {
+                    g.fillStyle = p.c;
+                    g.strokeStyle = '#831843';
+                    g.lineWidth = 3.8;
+                    g.beginPath();
+                    g.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    g.fill();
+                    g.stroke();
+                });
+
+                g.fillStyle = 'rgba(255, 255, 255, 0.58)';
+                g.beginPath();
+                g.ellipse(78, 36, 16, 7, -0.45, 0, Math.PI * 2);
+                g.fill();
+            });
+
+            // 18. Golden King Slime Monument
+            propSprites.slimeStatue = makeSlimeStyleSprite(166, 180, (g) => {
+                g.fillStyle = 'rgba(15, 23, 42, 0.22)';
+                g.beginPath();
+                g.ellipse(83, 158, 60, 18, 0, 0, Math.PI * 2);
+                g.fill();
+
+                g.fillStyle = '#cbd5e1';
+                g.strokeStyle = '#334155';
+                g.lineWidth = 3.8;
+                g.beginPath();
+                g.roundRect(34, 118, 98, 38, 12);
+                g.fill();
+                g.stroke();
+
+                const goldGrad = g.createRadialGradient(66, 62, 8, 83, 86, 54);
+                goldGrad.addColorStop(0, '#fef9c3');
+                goldGrad.addColorStop(0.45, '#fde047');
+                goldGrad.addColorStop(1, '#d97706');
+                g.fillStyle = goldGrad;
+                g.strokeStyle = '#78350f';
+                g.lineWidth = 3.8;
+                g.beginPath();
+                g.moveTo(41, 102);
+                g.bezierCurveTo(37, 56, 56, 36, 83, 36);
+                g.bezierCurveTo(110, 36, 129, 56, 125, 102);
+                g.bezierCurveTo(123, 118, 105, 120, 83, 120);
+                g.bezierCurveTo(61, 120, 43, 118, 41, 102);
+                g.closePath();
+                g.fill();
+                g.stroke();
+
+                g.fillStyle = 'rgba(255, 255, 255, 0.72)';
+                g.beginPath();
+                g.ellipse(65, 55, 11, 5.5, -0.5, 0, Math.PI * 2);
+                g.fill();
+
+                g.fillStyle = '#451a03';
+                g.beginPath();
+                g.arc(68, 80, 4.5, 0, Math.PI * 2);
+                g.arc(98, 80, 4.5, 0, Math.PI * 2);
+                g.fill();
+
+                g.fillStyle = '#fbbf24';
+                g.beginPath();
+                g.moveTo(64, 38);
+                g.lineTo(64, 20);
+                g.lineTo(74, 28);
+                g.lineTo(83, 16);
+                g.lineTo(92, 28);
+                g.lineTo(102, 20);
+                g.lineTo(102, 38);
+                g.closePath();
+                g.fill();
+                g.stroke();
+            });
+
+            // 19. Cozy Stargazing Wooden Bench (Facing Downwards Toward the Stars)
+            propSprites.stargazeBench = makeSlimeStyleSprite(196, 114, (g) => {
+                // Ground shadow
+                g.fillStyle = 'rgba(15, 23, 42, 0.24)';
+                g.beginPath();
+                g.ellipse(98, 92, 84, 15, 0, 0, Math.PI * 2);
+                g.fill();
+
+                // Cast-iron decorative side legs
+                g.fillStyle = '#334155';
+                g.strokeStyle = '#0f172a';
+                g.lineWidth = 3;
+                [24, 156].forEach((lx) => {
+                    g.beginPath();
+                    g.roundRect(lx, 54, 16, 36, 6);
+                    g.fill();
+                    g.stroke();
+                });
+
+                // Front wooden seat plank (facing downwards toward viewer/stars)
+                const seatGrad = g.createLinearGradient(18, 56, 18, 76);
+                seatGrad.addColorStop(0, '#fbbf24');
+                seatGrad.addColorStop(1, '#d97706');
+                g.fillStyle = seatGrad;
+                g.strokeStyle = '#451a03';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.roundRect(18, 55, 160, 22, 9);
+                g.fill();
+                g.stroke();
+
+                // Seat plank highlight & bevel
+                g.fillStyle = 'rgba(254, 243, 199, 0.55)';
+                g.beginPath();
+                g.roundRect(26, 58, 144, 5, 3);
+                g.fill();
+
+                // Decorative armrests on left and right ends
+                [14, 166].forEach((ax) => {
+                    g.fillStyle = '#92400e';
+                    g.strokeStyle = '#451a03';
+                    g.lineWidth = 3.2;
+                    g.beginPath();
+                    g.roundRect(ax, 42, 16, 28, 7);
+                    g.fill();
+                    g.stroke();
+                });
+            });
+
+            // Backrest overlay drawn behind seated slimes so they look nestled into the bench!
+            propSprites.stargazeBenchBack = makeSlimeStyleSprite(196, 114, (g) => {
+                const backGrad = g.createLinearGradient(22, 22, 22, 54);
+                backGrad.addColorStop(0, '#f59e0b');
+                backGrad.addColorStop(1, '#b45309');
+                g.fillStyle = backGrad;
+                g.strokeStyle = '#451a03';
+                g.lineWidth = 3.5;
+                g.beginPath();
+                g.roundRect(22, 22, 152, 28, 10);
+                g.fill();
+                g.stroke();
+
+                // Backrest slat detail
+                g.strokeStyle = '#78350f';
+                g.lineWidth = 2.2;
+                g.beginPath();
+                g.moveTo(28, 36);
+                g.lineTo(168, 36);
+                g.stroke();
+
+                // Gloss highlight on top rail
+                g.fillStyle = 'rgba(254, 243, 199, 0.5)';
+                g.beginPath();
+                g.roundRect(30, 25, 136, 4.5, 2.5);
+                g.fill();
             });
         }
 
-        // Expansive 4400 x 3200 Multi-Zone Slime Rancher Sanctuary (18 Interactive Hangout Spots!)
+        // Cozy, Intimate 1850 x 1350 Slime Rancher Courtyard (13 Fun Hangout Spots Close Together!)
+        const BENCH_SEAT_OFFSETS = [-46, 0, 46];
         const PROPS = [
             {
                 id: 'pond',
-                name: 'Grand Central Koi Lagoon',
+                name: 'Central Koi Lagoon',
                 icon: '🎣',
-                x: 2200,
-                y: 1600,
-                radius: 135,
-                getPrompt: () => fishingState.active ? 'Reel in or pull up fishing line' : 'Go fishing in the Grand Koi Lagoon'
+                x: 925,
+                y: 675,
+                radius: 130,
+                getPrompt: () => fishingState.active ? 'Reel in or pull up fishing line' : 'Go fishing in the Koi Lagoon'
             },
             {
                 id: 'table',
-                name: 'Maple Grove Picnic Table (Tic-Tac-Toe)',
+                name: 'Picnic Tea Table (Tic-Tac-Toe)',
                 icon: '🍵',
-                x: 1120,
-                y: 880,
-                radius: 105,
+                x: 520,
+                y: 410,
+                radius: 100,
                 getPrompt: () => 'Play Picnic Table Tic-Tac-Toe'
             },
             {
                 id: 'easel',
-                name: 'Sakura Ridge Chalkboard Studio',
+                name: 'Sakura Chalkboard Easel',
                 icon: '🎨',
-                x: 3280,
-                y: 860,
-                radius: 105,
+                x: 1330,
+                y: 410,
+                radius: 100,
                 getPrompt: () => 'Draw together on the Shared Chalkboard'
             },
             {
                 id: 'potato',
-                name: 'Twilight Hot Potato Arena',
+                name: 'Hot Potato Tag Pedestal',
                 icon: '🥔',
-                x: 1100,
-                y: 2360,
-                radius: 105,
+                x: 520,
+                y: 950,
+                radius: 100,
                 getPrompt: () => hotPotatoState.active ? 'Hot Potato round in progress!' : 'Start a 20s Hot Potato Tag round!'
             },
             {
                 id: 'campfire',
-                name: 'Sunset Hearth Campfire',
+                name: 'Cozy Hearth Campfire',
                 icon: '🔥',
-                x: 3280,
-                y: 2360,
-                radius: 105,
+                x: 1330,
+                y: 950,
+                radius: 100,
                 getPrompt: () => propStates.campfireLit ? 'Warm your paws by the campfire' : 'Light the campfire hearth'
             },
             {
                 id: 'boombox',
-                name: 'Plaza Lofi Boombox',
+                name: 'Bubblegum Lofi Boombox',
                 icon: '📻',
-                x: 2480,
-                y: 1390,
-                radius: 85,
-                getPrompt: () => propStates.lofiPlaying ? 'Pause sanctuary lofi beats' : 'Play sanctuary lofi beats'
+                x: 1150,
+                y: 525,
+                radius: 82,
+                getPrompt: () => propStates.lofiPlaying ? 'Pause courtyard lofi beats' : 'Play courtyard lofi beats'
             },
             {
                 id: 'sofa',
                 name: 'Lantern Switch Pagoda',
                 icon: '🏮',
-                x: 1920,
-                y: 1390,
-                radius: 85,
-                getPrompt: () => propStates.fairyLightsOn ? 'Dim sanctuary lanterns' : 'Light sanctuary lanterns'
+                x: 700,
+                y: 525,
+                radius: 82,
+                getPrompt: () => propStates.fairyLightsOn ? 'Dim fairy lanterns' : 'Light fairy lanterns'
             },
             {
                 id: 'trampoline',
-                name: 'Bouncy Pink Slime Pad (West)',
+                name: 'Bouncy Pink Slime Pad',
                 icon: '🩷',
-                x: 1620,
-                y: 1980,
-                radius: 85,
+                x: 690,
+                y: 835,
+                radius: 82,
                 getPrompt: () => 'Boing! Super Slime Bounce!'
-            },
-            {
-                id: 'snackcart',
-                name: 'Strawberry Boba & Dango Cart',
-                icon: '🧋',
-                x: 1580,
-                y: 720,
-                radius: 95,
-                getPrompt: () => 'Grab a sweet strawberry boba & dango!'
             },
             {
                 id: 'kalimba',
                 name: 'Rainbow Ranch Xylophone',
                 icon: '🎶',
-                x: 2820,
-                y: 1980,
-                radius: 90,
+                x: 1160,
+                y: 835,
+                radius: 85,
                 getPrompt: () => 'Play a cheerful melody chime!'
             },
             {
+                id: 'snackcart',
+                name: 'Strawberry Boba & Dango Cart',
+                icon: '🧋',
+                x: 925,
+                y: 265,
+                radius: 95,
+                getPrompt: () => 'Grab a sweet strawberry boba & dango!'
+            },
+            {
                 id: 'tent',
-                name: 'East Meadow Glamping Tent',
+                name: 'Cozy Glamping Pillow Fort',
                 icon: '⛺',
-                x: 3740,
-                y: 1620,
-                radius: 105,
+                x: 1580,
+                y: 675,
+                radius: 100,
                 getPrompt: () => 'Snuggle into the cozy pillow fort!'
             },
             {
                 id: 'telescope',
-                name: 'West Overlook Brass Telescope',
+                name: 'Stargazer Brass Telescope',
                 icon: '🔭',
-                x: 640,
-                y: 1580,
+                x: 270,
+                y: 675,
                 radius: 90,
                 getPrompt: () => 'Peer through the telescope at the stars!'
             },
             {
-                id: 'statue',
-                name: 'Golden King Slime Monument',
-                icon: '👑',
-                x: 2200,
-                y: 520,
+                id: 'bench',
+                name: 'Stargazing South Bench',
+                icon: '🪑',
+                x: 925,
+                y: 1200,
                 radius: 105,
-                getPrompt: () => 'Make an offering at the King Slime Statue!'
-            },
-            {
-                id: 'hammock',
-                name: 'Breezy Sky-Blue Hammock',
-                icon: '🏖️',
-                x: 3760,
-                y: 2680,
-                radius: 100,
-                getPrompt: () => 'Sway gently in the breezy hammock!'
-            },
-            {
-                id: 'wishingwell',
-                name: 'Ancient Plort Wishing Well',
-                icon: '🪙',
-                x: 640,
-                y: 2680,
-                radius: 95,
-                getPrompt: () => 'Toss a shiny plort into the Wishing Well!'
-            },
-            {
-                id: 'trampoline2',
-                name: 'Bouncy Pink Slime Pad (North)',
-                icon: '🩷',
-                x: 2820,
-                y: 720,
-                radius: 85,
-                getPrompt: () => 'Boing! Super Slime Bounce!'
-            },
-            {
-                id: 'hammock2',
-                name: 'Lakeside Nap Hammock',
-                icon: '💤',
-                x: 620,
-                y: 520,
-                radius: 100,
-                getPrompt: () => 'Take a sunny nap by the crystal brook!'
-            },
-            {
-                id: 'snackcart2',
-                name: 'South Promenade Honey Tea Stand',
-                icon: '🍯',
-                x: 2200,
-                y: 2740,
-                radius: 95,
-                getPrompt: () => 'Sip warm golden honey-slime tea!'
+                getPrompt: () => localPlayer.isSitting ? 'Stand up from the bench' : 'Sit together & watch the stars ✨'
             }
         ];
 
@@ -1082,98 +1529,77 @@
         let shootingStar = null;
         let nextShootingStarTime = performance.now() + 4000;
 
-        // Decorative Courtyard Flowerbeds & Clover Patches across the 2200x1600 Sanctuary
+        // Decorative Courtyard Flowerbeds & Clover Patches cleanly nestled on the grass borders
         const planterFlowers = [
-            { x: 395, y: 225, c: '#ff85b3' }, { x: 430, y: 225, c: '#fde047' }, { x: 465, y: 225, c: '#c084fc' },
-            { x: 1735, y: 225, c: '#fde047' }, { x: 1770, y: 225, c: '#7dd3fc' }, { x: 1805, y: 225, c: '#ff85b3' },
-            { x: 395, y: 1375, c: '#c084fc' }, { x: 430, y: 1375, c: '#ff85b3' }, { x: 465, y: 1375, c: '#fde047' },
-            { x: 1735, y: 1375, c: '#7dd3fc' }, { x: 1770, y: 1375, c: '#fde047' }, { x: 1805, y: 1375, c: '#ff85b3' }
+            { x: 650, y: 312, c: '#ff85b3' }, { x: 700, y: 312, c: '#fde047' }, { x: 750, y: 312, c: '#c084fc' },
+            { x: 1100, y: 312, c: '#fde047' }, { x: 1150, y: 312, c: '#7dd3fc' }, { x: 1200, y: 312, c: '#ff85b3' },
+            { x: 650, y: 1052, c: '#c084fc' }, { x: 700, y: 1052, c: '#ff85b3' }, { x: 750, y: 1052, c: '#fde047' },
+            { x: 1100, y: 1052, c: '#7dd3fc' }, { x: 1150, y: 1052, c: '#fde047' }, { x: 1200, y: 1052, c: '#ff85b3' }
         ];
 
-        const cloverTufts = Array.from({ length: 78 }, (_, i) => ({
-            x: 90 + ((i * 257) % (WORLD_W - 180)),
-            y: 90 + ((i * 173) % (WORLD_H - 180)),
-            scale: 0.75 + (i % 4) * 0.18
+        const cloverTufts = Array.from({ length: 28 }, (_, i) => ({
+            x: 110 + ((i * 239) % (WORLD_W - 220)),
+            y: 110 + ((i * 167) % (WORLD_H - 220)),
+            scale: 0.85 + (i % 3) * 0.15
         }));
 
-        const fireflies = Array.from({ length: 42 }, () => ({
+        const fireflies = Array.from({ length: 22 }, () => ({
             x: 120 + Math.random() * (WORLD_W - 240),
             y: 120 + Math.random() * (WORLD_H - 240),
-            vx: (Math.random() - 0.5) * 18,
-            vy: (Math.random() - 0.5) * 18,
+            vx: (Math.random() - 0.5) * 16,
+            vy: (Math.random() - 0.5) * 16,
             phase: Math.random() * Math.PI * 2,
-            size: 2.5 + Math.random() * 2.5
+            size: 2.5 + Math.random() * 2.2
         }));
 
-        // Living Ranch Wildlife, Drifting Petals, Brook Fish & Interactive Swaying Flora
-        const wildSlimes = Array.from({ length: 14 }, (_, i) => ({
+        // Cozy Courtyard Baby Slimes, Butterflies, Sakura Petals & Swaying Wildflowers
+        const wildSlimes = Array.from({ length: 5 }, (_, i) => ({
             id: `wild-slime-${i}`,
             colorIdx: i % AVATAR_COLORS.length,
-            x: 320 + ((i * 613) % (WORLD_W - 640)),
-            y: 280 + ((i * 457) % (WORLD_H - 560)),
-            homeX: 320 + ((i * 613) % (WORLD_W - 640)),
-            homeY: 280 + ((i * 457) % (WORLD_H - 560)),
+            x: 340 + i * 290,
+            y: 260 + (i % 2) * 820,
+            homeX: 340 + i * 290,
+            homeY: 260 + (i % 2) * 820,
             vx: 0,
             vy: 0,
             hopHeight: 0,
             hopVel: 0,
             nextHopTime: performance.now() + 600 + i * 320,
-            scale: 0.58 + (i % 3) * 0.08,
+            scale: 0.58 + (i % 2) * 0.08,
             happyHearts: 0
         }));
 
-        const ranchButterflies = Array.from({ length: 28 }, (_, i) => {
+        const ranchButterflies = Array.from({ length: 12 }, (_, i) => {
             const wingColors = ['#ff85b3', '#fde047', '#7dd3fc', '#d8b4fe', '#fda4af'];
             return {
-                x: 200 + Math.random() * (WORLD_W - 400),
-                y: 200 + Math.random() * (WORLD_H - 400),
+                x: 160 + Math.random() * (WORLD_W - 320),
+                y: 160 + Math.random() * (WORLD_H - 320),
                 angle: Math.random() * Math.PI * 2,
-                speed: 36 + Math.random() * 28,
+                speed: 32 + Math.random() * 24,
                 wingPhase: Math.random() * Math.PI * 2,
                 color: wingColors[i % wingColors.length]
             };
         });
 
-        const sakuraPetals = Array.from({ length: 46 }, () => ({
-            x: 2700 + Math.random() * 1450,
-            y: 250 + Math.random() * 1250,
-            vx: -18 - Math.random() * 18,
-            vy: 14 + Math.random() * 16,
+        const sakuraPetals = Array.from({ length: 18 }, () => ({
+            x: 1120 + Math.random() * 620,
+            y: 140 + Math.random() * 520,
+            vx: -16 - Math.random() * 14,
+            vy: 12 + Math.random() * 14,
             swayPhase: Math.random() * Math.PI * 2,
-            size: 3.5 + Math.random() * 2.5
+            size: 3.5 + Math.random() * 2
         }));
 
-        const brookSplashFish = Array.from({ length: 5 }, (_, i) => ({
-            y: 340 + i * 580,
-            jumpOffset: 0,
-            timer: i * 1.4,
-            active: false
-        }));
-
-        const swayFloraPatches = Array.from({ length: 120 }, (_, i) => {
+        const swayFloraPatches = Array.from({ length: 42 }, (_, i) => {
             const flowerColors = [null, null, '#ff85b3', '#fde047', '#c084fc', '#7dd3fc'];
             return {
-                x: 130 + ((i * 349) % (WORLD_W - 260)),
-                y: 130 + ((i * 271) % (WORLD_H - 260)),
+                x: 110 + ((i * 293) % (WORLD_W - 220)),
+                y: 110 + ((i * 211) % (WORLD_H - 220)),
                 sway: 0,
                 swayVel: 0,
                 flowerColor: flowerColors[i % flowerColors.length]
             };
         });
-
-        const zoneSignposts = [
-            { x: 1940, y: 1510, text: '← Brook & Stargazer Overlook' },
-            { x: 2460, y: 1510, text: 'Sakura Studio & Glamping →' },
-            { x: 2290, y: 1320, text: '↑ King Slime & Boba Lawn' },
-            { x: 2290, y: 1880, text: '↓ Campfire & Tag Arena' }
-        ];
-
-        const steppingStones = Array.from({ length: 44 }, (_, i) => ({
-            x: 240 + ((i * 487) % (WORLD_W - 480)),
-            y: 220 + ((i * 389) % (WORLD_H - 440)),
-            rx: 14 + (i % 3) * 4,
-            ry: 8 + (i % 2) * 3
-        }));
 
         // ==========================================
         // 2. COZY WEB AUDIO SYNTH (NO EXTERNAL URLS)
@@ -1228,10 +1654,10 @@
                 const ctxA = ensureAudioCtx();
                 if (!ctxA) return;
                 const chords = [
-                    [261.63, 329.63, 392.00, 493.88], // Cmaj7
-                    [220.00, 261.63, 329.63, 392.00], // Am7
-                    [174.61, 220.00, 261.63, 329.63], // Fmaj7
-                    [196.00, 246.94, 293.66, 349.23]  // G7
+                    [261.63, 329.63, 392.00, 493.88],
+                    [220.00, 261.63, 329.63, 392.00],
+                    [174.61, 220.00, 261.63, 329.63],
+                    [196.00, 246.94, 293.66, 349.23]
                 ];
                 let step = 0;
                 const playChord = () => {
@@ -1263,7 +1689,7 @@
         }
 
         // ==========================================
-        // 3. MULTIPLAYER ROOMS (PEERJS + TABS + CLOUD)
+        // 3. MULTIPLAYER ROOMS (PEERJS + TABS + SMOOTH INTERPOLATION)
         // ==========================================
         async function initFirebaseIfAvailable() {
             try {
@@ -1302,7 +1728,6 @@
         function destroyExistingNetwork() {
             if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
             if (staleCleanupTimer) { clearInterval(staleCleanupTimer); staleCleanupTimer = null; }
-            if (firestoreUnsub) { firestoreUnsub(); firestoreUnsub = null; }
             if (broadcastChan) {
                 try { broadcastChan.close(); } catch (e) {}
                 broadcastChan = null;
@@ -1382,9 +1807,12 @@
 
         function enterGameWorld(modeLabel, isMultiplayer) {
             inGame = true;
-            // Spawn cleanly on the south cobblestone promenade
             localPlayer.x = WORLD_W / 2 + (Math.random() - 0.5) * 110;
             localPlayer.y = WORLD_H / 2 + 165 + (Math.random() - 0.5) * 45;
+            localPlayer.vx = 0;
+            localPlayer.vy = 0;
+            localPlayer.isSitting = false;
+            localPlayer.seatIdx = -1;
             camera.x = localPlayer.x;
             camera.y = localPlayer.y;
             clickTarget = null;
@@ -1402,6 +1830,8 @@
             sessionEpoch++;
             inGame = false;
             clickTarget = null;
+            localPlayer.isSitting = false;
+            localPlayer.seatIdx = -1;
             stopFishing(true);
             closeAllMiniGameModals();
 
@@ -1478,7 +1908,6 @@
                     conn.on('data', (data) => {
                         if (epoch !== sessionEpoch || p2pPeer !== peer) return;
                         handleIncomingNetworkPacket(data);
-                        // Relay packet to all other connected guests
                         hostConnections.forEach((otherConn, peerKey) => {
                             if (peerKey !== conn.peer && otherConn.open) {
                                 try { otherConn.send(data); } catch (e) {}
@@ -1525,7 +1954,7 @@
                 const tryConnectToHost = () => {
                     if (epoch !== sessionEpoch || p2pPeer !== peer || !inGame) return;
                     attempts++;
-                    const conn = peer.connect(`chillspot-v3-room-${code}`, { reliable: true });
+                    const conn = peer.connect(`chillspot-v3-room-${code}`, { reliable: false });
                     clientToHostConn = conn;
 
                     const onConnected = () => {
@@ -1592,7 +2021,7 @@
             heartbeatTimer = setInterval(() => {
                 if (!inGame || roomMode === 'solo') return;
                 syncLocalPlayerState(true);
-            }, 1500);
+            }, 1200);
 
             staleCleanupTimer = setInterval(() => {
                 if (!inGame || roomMode === 'solo') return;
@@ -1611,22 +2040,55 @@
 
         function upsertRemotePlayer(p) {
             if (!p || !p.id || p.id === localPlayer.id) return;
-            const isNew = !remotePlayers.has(p.id);
-            const existing = remotePlayers.get(p.id) || {};
-            remotePlayers.set(p.id, {
-                ...existing,
-                ...p,
-                targetX: p.x,
-                targetY: p.y,
-                lastSeen: Date.now()
-            });
-            if (isNew) {
+            const now = performance.now();
+            const existing = remotePlayers.get(p.id);
+
+            if (!existing) {
+                remotePlayers.set(p.id, {
+                    ...p,
+                    targetX: p.x,
+                    targetY: p.y,
+                    vx: p.vx || 0,
+                    vy: p.vy || 0,
+                    targetJumpHeight: p.jumpHeight || 0,
+                    lastPacketPerf: now,
+                    lastSeen: Date.now()
+                });
                 appendChatLog('System', `${p.name || 'A friend'} hopped into the courtyard!`, '#86efac', true);
                 updatePlayersListUI();
-            }
-            if (p.chatText && p.chatTimestamp && p.chatTimestamp !== existing.chatTimestamp) {
-                const col = AVATAR_COLORS[p.colorIdx || 0]?.swatch || '#fde047';
-                appendChatLog(p.name || 'Friend', p.chatText, col, false);
+            } else {
+                const prevChatTs = existing.chatTimestamp;
+                existing.name = p.name || existing.name;
+                existing.colorIdx = p.colorIdx ?? existing.colorIdx;
+                existing.patternIdx = p.patternIdx ?? existing.patternIdx;
+                existing.accessoryIdx = p.accessoryIdx ?? existing.accessoryIdx;
+                existing.faceIdx = p.faceIdx ?? existing.faceIdx;
+                existing.facing = p.facing ?? existing.facing;
+                existing.isMoving = Boolean(p.isMoving);
+                existing.isSitting = Boolean(p.isSitting);
+                existing.seatIdx = typeof p.seatIdx === 'number' ? p.seatIdx : -1;
+                existing.targetJumpHeight = p.jumpHeight ?? 0;
+                existing.chatText = p.chatText ?? '';
+                existing.chatTimestamp = p.chatTimestamp ?? 0;
+
+                // Keep smoothed x/y intact and update target + velocity for dead-reckoning!
+                existing.targetX = p.x;
+                existing.targetY = p.y;
+                existing.vx = p.vx || 0;
+                existing.vy = p.vy || 0;
+                existing.lastPacketPerf = now;
+                existing.lastSeen = Date.now();
+
+                // Snap only if teleported across a huge distance (> 320px)
+                if (Math.hypot(existing.targetX - existing.x, existing.targetY - existing.y) > 320) {
+                    existing.x = existing.targetX;
+                    existing.y = existing.targetY;
+                }
+
+                if (p.chatText && p.chatTimestamp && p.chatTimestamp !== prevChatTs) {
+                    const col = AVATAR_COLORS[p.colorIdx || 0]?.swatch || '#fde047';
+                    appendChatLog(p.name || 'Friend', p.chatText, col, false);
+                }
             }
         }
 
@@ -1684,8 +2146,10 @@
             } else if (data.type === 'potato_update' && data.hotPotatoState) {
                 hotPotatoState = data.hotPotatoState;
                 if (data.announce) {
-                    appendChatLog('Hot Potato', data.announce, '#fb923c', true);
+                    appendChatLog('Hot Potato', data.announce, '#fb923c', false, data.actor || null);
                 }
+            } else if (data.type === 'activity_log' && data.source && data.text) {
+                appendChatLog(data.source, data.text, data.color || '#fcd34d', false, data.actor || null);
             } else if (data.type === 'leave' && data.id) {
                 const leaving = remotePlayers.get(data.id);
                 if (leaving) {
@@ -1699,7 +2163,7 @@
         function syncLocalPlayerState(force = false) {
             if (!inGame || roomMode === 'solo') return;
             const now = performance.now();
-            if (!force && now - lastSyncTime < 75) return;
+            if (!force && now - lastSyncTime < 45) return;
             lastSyncTime = now;
 
             broadcastGameEvent({
@@ -1708,12 +2172,17 @@
                     id: localPlayer.id,
                     name: localPlayer.name,
                     colorIdx: localPlayer.colorIdx,
+                    patternIdx: localPlayer.patternIdx,
                     accessoryIdx: localPlayer.accessoryIdx,
                     faceIdx: localPlayer.faceIdx,
                     x: Math.round(localPlayer.x),
                     y: Math.round(localPlayer.y),
+                    vx: Math.round(localPlayer.vx),
+                    vy: Math.round(localPlayer.vy),
                     facing: localPlayer.facing,
                     isMoving: localPlayer.isMoving,
+                    isSitting: localPlayer.isSitting,
+                    seatIdx: localPlayer.seatIdx,
                     jumpHeight: Math.round(localPlayer.jumpHeight),
                     chatText: localPlayer.chatText,
                     chatTimestamp: localPlayer.chatTimestamp,
@@ -1744,6 +2213,21 @@
             } else if (roomMode === 'client' && clientToHostConn && clientToHostConn.open) {
                 try { clientToHostConn.send(packet); } catch (e) {}
             }
+        }
+
+        function announceCourtyardActivity(sourceName, text, colorHex = '#fcd34d') {
+            const actor = {
+                name: localPlayer.name,
+                color: AVATAR_COLORS[localPlayer.colorIdx]?.swatch || '#ffffff'
+            };
+            appendChatLog(sourceName, text, colorHex, false, actor);
+            broadcastGameEvent({
+                type: 'activity_log',
+                source: sourceName,
+                text,
+                color: colorHex,
+                actor
+            });
         }
 
         function interactWithProp(prop) {
@@ -1777,65 +2261,132 @@
                 return;
             } else if (prop.id === 'campfire') {
                 propStates.campfireLit = !propStates.campfireLit;
-                triggerSpeechBubble(propStates.campfireLit ? 'Stoked the hearth fire! 🔥' : 'Banked the embers 💨');
+                announceCourtyardActivity(
+                    '🔥 Hearth Campfire',
+                    propStates.campfireLit
+                        ? `${localPlayer.name} stoked the hearth fire!`
+                        : `${localPlayer.name} banked the campfire embers.`,
+                    '#fb923c'
+                );
             } else if (prop.id === 'boombox') {
                 toggleLofiAudio();
+                announceCourtyardActivity(
+                    '📻 Lofi Boombox',
+                    propStates.lofiPlaying
+                        ? `${localPlayer.name} started the courtyard lofi beats!`
+                        : `${localPlayer.name} paused the lofi beats.`,
+                    '#f472b6'
+                );
                 return;
             } else if (prop.id === 'sofa') {
                 propStates.fairyLightsOn = !propStates.fairyLightsOn;
-                triggerSpeechBubble(propStates.fairyLightsOn ? 'Lit sanctuary lanterns 🏮' : 'Dimmed lanterns 🌙');
-            } else if (prop.id === 'trampoline' || prop.id === 'trampoline2') {
+                announceCourtyardActivity(
+                    '🏮 Lantern Pagoda',
+                    propStates.fairyLightsOn
+                        ? `${localPlayer.name} lit the sanctuary lanterns!`
+                        : `${localPlayer.name} dimmed the sanctuary lanterns.`,
+                    '#fde047'
+                );
+            } else if (prop.id === 'trampoline') {
                 localPlayer.jumpVel = 460;
                 playPopSound(820);
                 spawnConfettiBurst(prop.x, prop.y);
-                triggerSpeechBubble('BOING!! Wheeee! 🩷✨');
+                announceCourtyardActivity(
+                    '🩷 Bouncy Slime Pad',
+                    `${localPlayer.name} bounced sky-high! BOING!!`,
+                    '#ff85b3'
+                );
                 return;
-            } else if (prop.id === 'snackcart' || prop.id === 'snackcart2') {
+            } else if (prop.id === 'snackcart') {
                 const treats = [
-                    'Sipping iced strawberry boba! 🧋🍓',
-                    'Munched a trio of rainbow dango! 🍡✨',
-                    'Enjoying warm honey-slime tea! 🍯🍵',
-                    'Got a frosty mango slushie! 🥭🧊'
+                    `${localPlayer.name} grabbed an iced strawberry boba! 🍓`,
+                    `${localPlayer.name} picked up a trio of rainbow dango! 🍡`,
+                    `${localPlayer.name} brewed warm honey-slime tea! 🍯`,
+                    `${localPlayer.name} ordered a frosty mango slushie! 🥭`
                 ];
                 playPopSound(690);
-                triggerSpeechBubble(treats[Math.floor(Math.random() * treats.length)]);
+                announceCourtyardActivity(
+                    '🧋 Boba & Dango Cart',
+                    treats[Math.floor(Math.random() * treats.length)],
+                    '#fda4af'
+                );
                 return;
             } else if (prop.id === 'kalimba') {
                 const notes = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
                 notes.forEach((hz, idx) => {
                     setTimeout(() => playPopSound(hz), idx * 95);
                 });
-                triggerSpeechBubble('♪ ♫ Playing a sunny ranch tune! 🎶');
+                announceCourtyardActivity(
+                    '🎶 Rainbow Xylophone',
+                    `${localPlayer.name} played a sunny ranch melody! ♪ ♫`,
+                    '#86efac'
+                );
                 return;
             } else if (prop.id === 'tent') {
                 localPlayer.jumpVel = 160;
                 playPopSound(500);
-                triggerSpeechBubble('Cozy nap inside the pillow fort~ ⛺💤');
+                announceCourtyardActivity(
+                    '⛺ Glamping Tent',
+                    `${localPlayer.name} snuggled into the cozy pillow fort~ 💤`,
+                    '#d8b4fe'
+                );
                 return;
             } else if (prop.id === 'telescope') {
                 const sightings = [
-                    'Spotted a constellation shaped like a Pink Slime! ✨🔭',
-                    'Whoa, a shooting star just zoomed past! 🌠',
-                    'I can see the glowing Phosphor Nebula! 🌌',
-                    'The crescent moon looks like a giant banana! 🌙'
+                    `${localPlayer.name} spotted a constellation shaped like a Pink Slime! ✨`,
+                    `${localPlayer.name} saw a shooting star zoom across the sky! 🌠`,
+                    `${localPlayer.name} discovered the glowing Phosphor Nebula! 🌌`,
+                    `${localPlayer.name} peered at the crescent moon! 🌙`
                 ];
                 playPopSound(740);
-                triggerSpeechBubble(sightings[Math.floor(Math.random() * sightings.length)]);
+                announceCourtyardActivity(
+                    '🔭 Brass Telescope',
+                    sightings[Math.floor(Math.random() * sightings.length)],
+                    '#7dd3fc'
+                );
                 return;
-            } else if (prop.id === 'statue') {
-                spawnConfettiBurst(prop.x, prop.y);
-                playPopSound(880);
-                triggerSpeechBubble('All hail the Golden King Slime! 👑✨');
-                return;
-            } else if (prop.id === 'hammock' || prop.id === 'hammock2') {
-                localPlayer.jumpVel = 140;
-                playPopSound(480);
-                triggerSpeechBubble('Swaying in the breeze~ so peaceful 🏖️💤');
-                return;
-            } else if (prop.id === 'wishingwell') {
-                pondRipples.push({ x: prop.x, y: prop.y, r: 8, alpha: 1 });
-                playPopSound(760);
-                triggerSpeechBubble('Tossed a lucky plort into the Wishing Well! 🪙✨');
+            } else if (prop.id === 'bench') {
+                if (localPlayer.isSitting) {
+                    localPlayer.isSitting = false;
+                    localPlayer.seatIdx = -1;
+                    localPlayer.y -= 26;
+                    localPlayer.jumpVel = 160;
+                    playPopSound(520);
+                    syncLocalPlayerState(true);
+                    return;
+                }
+
+                // Pick an unoccupied seat slot (left, middle, or right) so up to 3 players can sit side-by-side
+                const takenSeats = new Set();
+                remotePlayers.forEach((rp) => {
+                    if (rp.isSitting && typeof rp.seatIdx === 'number') takenSeats.add(rp.seatIdx);
+                });
+                botCompanions.forEach((bot) => {
+                    if (bot.isSitting && typeof bot.seatIdx === 'number') takenSeats.add(bot.seatIdx);
+                });
+
+                let chosenIdx = [0, 1, 2].find((idx) => !takenSeats.has(idx));
+                if (chosenIdx === undefined) {
+                    chosenIdx = 1;
+                }
+
+                clickTarget = null;
+                localPlayer.isSitting = true;
+                localPlayer.seatIdx = chosenIdx;
+                localPlayer.isMoving = false;
+                localPlayer.vx = 0;
+                localPlayer.vy = 0;
+                localPlayer.facing = 'down';
+                localPlayer.x = prop.x + BENCH_SEAT_OFFSETS[chosenIdx];
+                localPlayer.y = prop.y - 6;
+                localPlayer.jumpVel = 150;
+                playPopSound(640);
+                syncLocalPlayerState(true);
+                announceCourtyardActivity(
+                    '🪑 Stargazing Bench',
+                    `${localPlayer.name} sat down to watch the stars! ✨`,
+                    '#fde68a'
+                );
                 return;
             }
 
@@ -1925,7 +2476,13 @@
 
             if (tttState.winner) {
                 spawnConfettiBurst(PROPS[1].x, PROPS[1].y);
-                triggerSpeechBubble(tttState.winner === 'DRAW' ? 'Tic-Tac-Toe tie! 🤝' : 'Won Picnic Tic-Tac-Toe! 🎉');
+                announceCourtyardActivity(
+                    '🍵 Picnic Tea Table',
+                    tttState.winner === 'DRAW'
+                        ? `${localPlayer.name} finished a tied Tic-Tac-Toe match! 🤝`
+                        : `${localPlayer.name} won Picnic Tic-Tac-Toe! 🎉`,
+                    '#fde047'
+                );
             }
 
             renderTttBoard();
@@ -2053,10 +2610,13 @@
                 endTime: Date.now() + 20000,
                 lastPassTime: Date.now()
             };
-            const msg = `🥔 ${localPlayer.name} grabbed the Hot Potato! Touch someone before 20s is up!`;
-            appendChatLog('Hot Potato', msg, '#fb923c', true);
-            triggerSpeechBubble('AAAH HOT POTATO!! 🥔🔥');
-            broadcastGameEvent({ type: 'potato_update', hotPotatoState, announce: msg });
+            const msg = `${localPlayer.name} grabbed the Hot Potato! Touch someone before 20s is up!`;
+            const actor = {
+                name: localPlayer.name,
+                color: AVATAR_COLORS[localPlayer.colorIdx]?.swatch || '#fde047'
+            };
+            appendChatLog('🥔 Hot Potato', msg, '#fb923c', false, actor);
+            broadcastGameEvent({ type: 'potato_update', hotPotatoState, announce: msg, actor });
         }
 
         function updateHotPotatoGame(now) {
@@ -2081,12 +2641,13 @@
                         hotPotatoState.holderId = other.id;
                         hotPotatoState.lastPassTime = now;
                         playPopSound(780);
-                        const passMsg = `🥔 ${holder.name} tagged ${other.name} with the Hot Potato!`;
-                        appendChatLog('Hot Potato', passMsg, '#fb923c', true);
-                        if (other.id === localPlayer.id) {
-                            triggerSpeechBubble('Eep! I got the Hot Potato! 🥔');
-                        }
-                        broadcastGameEvent({ type: 'potato_update', hotPotatoState, announce: passMsg });
+                        const passMsg = `${holder.name} tagged ${other.name} with the Hot Potato!`;
+                        const actor = {
+                            name: holder.name,
+                            color: AVATAR_COLORS[holder.colorIdx || 0]?.swatch || '#fde047'
+                        };
+                        appendChatLog('🥔 Hot Potato', passMsg, '#fb923c', false, actor);
+                        broadcastGameEvent({ type: 'potato_update', hotPotatoState, announce: passMsg, actor });
                         break;
                     }
                 }
@@ -2097,13 +2658,16 @@
                 hotPotatoState.active = false;
                 spawnConfettiBurst(loser.x, loser.y);
                 playPopSound(440);
-                const endMsg = `🎉 POP! The Hot Potato burst into confetti on ${loser.name}!`;
-                appendChatLog('Hot Potato', endMsg, '#fde047', true);
+                const endMsg = `POP! The Hot Potato burst into confetti on ${loser.name}! 🎉`;
+                const actor = {
+                    name: loser.name,
+                    color: AVATAR_COLORS[loser.colorIdx || 0]?.swatch || '#fde047'
+                };
+                appendChatLog('🥔 Hot Potato', endMsg, '#fde047', false, actor);
                 if (loser.id === localPlayer.id) {
                     localPlayer.jumpVel = 320;
-                    triggerSpeechBubble('POOF!! Covered in confetti! 🎉🥔');
                 }
-                broadcastGameEvent({ type: 'potato_update', hotPotatoState, announce: endMsg });
+                broadcastGameEvent({ type: 'potato_update', hotPotatoState, announce: endMsg, actor });
             }
         }
 
@@ -2125,11 +2689,11 @@
 
         // --- MINI-GAME 4: KOI POND FISHING ---
         const FISHING_CATCHES = [
-            { name: 'Golden Crown Koi', icon: '👑🐟', line: 'Caught a rare Golden Crown Koi!! 👑🐟' },
-            { name: 'Squeaky Rubber Ducky', icon: '🦆', line: 'Fished up a Squeaky Rubber Ducky! 🦆' },
-            { name: 'Starlight Message Bottle', icon: '🍾✨', line: 'Reeled in a glowing Starlight Bottle! ✨' },
-            { name: 'Mossy Old Boot', icon: '🥾', line: 'Pulled up a soggy mossy boot... 🥾😅' },
-            { name: 'Chubby Calico Carp', icon: '🐠', line: 'Caught a chubby Calico Carp! 🐠' }
+            { name: 'Golden Crown Koi', icon: '👑🐟', line: 'caught a rare Golden Crown Koi!! 👑🐟' },
+            { name: 'Squeaky Rubber Ducky', icon: '🦆', line: 'fished up a Squeaky Rubber Ducky! 🦆' },
+            { name: 'Starlight Message Bottle', icon: '🍾✨', line: 'reeled in a glowing Starlight Bottle! ✨' },
+            { name: 'Mossy Old Boot', icon: '🥾', line: 'pulled up a soggy mossy boot... 🥾😅' },
+            { name: 'Chubby Calico Carp', icon: '🐠', line: 'caught a chubby Calico Carp! 🐠' }
         ];
 
         function startFishing() {
@@ -2164,7 +2728,11 @@
                 spawnConfettiBurst(localPlayer.x, localPlayer.y);
                 localPlayer.jumpVel = 240;
                 playPopSound(860);
-                triggerSpeechBubble(catchItem.line);
+                announceCourtyardActivity(
+                    '🎣 Koi Lagoon',
+                    `${localPlayer.name} ${catchItem.line}`,
+                    '#38bdf8'
+                );
                 stopFishing(true);
             } else {
                 showToast('Pulled the line back early~');
@@ -2209,17 +2777,19 @@
                     id: 'bot-yuzu',
                     name: 'Yuzu',
                     colorIdx: 2,
-                    accessoryIdx: 4, // Frog Hood
+                    accessoryIdx: 4,
                     faceIdx: 1,
-                    x: 840,
-                    y: 780,
-                    targetX: 560,
-                    targetY: 480,
+                    x: 740,
+                    y: 790,
+                    targetX: 540,
+                    targetY: 460,
                     facing: 'down',
                     walkCycle: 0,
                     isMoving: false,
+                    isSitting: false,
+                    seatIdx: -1,
                     jumpHeight: 0,
-                    chatText: 'Ribbit~ let’s explore the whole ranch! 🐸',
+                    chatText: 'Ribbit~ this cozy courtyard is the best! 🐸',
                     chatTimestamp: Date.now(),
                     nextMoveTime: performance.now() + 2500
                 },
@@ -2227,17 +2797,19 @@
                     id: 'bot-pip',
                     name: 'Pip',
                     colorIdx: 3,
-                    accessoryIdx: 5, // Ducky Hat
+                    accessoryIdx: 5,
                     faceIdx: 2,
-                    x: 1360,
-                    y: 820,
-                    targetX: 1640,
-                    targetY: 480,
+                    x: 1110,
+                    y: 790,
+                    targetX: 1310,
+                    targetY: 460,
                     facing: 'left',
                     walkCycle: 0,
                     isMoving: false,
+                    isSitting: false,
+                    seatIdx: -1,
                     jumpHeight: 0,
-                    chatText: 'Have you tried the bouncy slime pad yet? 🦆',
+                    chatText: 'Want to play Tic-Tac-Toe or stargaze on the south bench? 🦆',
                     chatTimestamp: Date.now(),
                     nextMoveTime: performance.now() + 4000
                 }
@@ -2252,7 +2824,7 @@
                 'Challenge me to Tic-Tac-Toe at the picnic table! 🍵',
                 'Watch out for the Hot Potato!! 🥔',
                 'Quack quack~ 🦆',
-                'So cozy by the hearth fire 🔥'
+                'The stars look so pretty from the south bench ✨'
             ];
 
             botCompanions.forEach((bot) => {
@@ -2293,10 +2865,10 @@
 
         function drawStringFairyLights(now) {
             const strands = [
-                { x1: 380, y1: 255, x2: 1100, y2: 210 },
-                { x1: 1100, y1: 210, x2: 1820, y2: 255 },
-                { x1: 380, y1: 1345, x2: 1100, y2: 1390 },
-                { x1: 1100, y1: 1390, x2: 1820, y2: 1345 }
+                { x1: 760, y1: 198, x2: 1090, y2: 198 },
+                { x1: 760, y1: 1078, x2: 1090, y2: 1078 },
+                { x1: 420, y1: 245, x2: 760, y2: 198 },
+                { x1: 1090, y1: 198, x2: 1430, y2: 245 }
             ];
             const bulbColors = ['#fde047', '#fda4af', '#bae6fd', '#86efac'];
 
@@ -2439,133 +3011,42 @@
             ctx.roundRect(16, 16, WORLD_W - 32, WORLD_H - 40, 38);
             ctx.stroke();
 
-            // 2. Lush Vibrant Mint-Emerald Ranch Meadow Turf (with recessed inner wall lip)
-            // 2. Lush Baked Pixel-Art Ranch Meadow Turf
-            ctx.fillStyle = bakedGrassPattern || '#34d399';
+            // 2. Lush Smooth Mint-Emerald Ranch Meadow Turf
+            const turfGrad = ctx.createRadialGradient(
+                WORLD_W / 2, WORLD_H / 2, 120,
+                WORLD_W / 2, WORLD_H / 2, WORLD_W * 0.65
+            );
+            turfGrad.addColorStop(0, '#6ee7b7');
+            turfGrad.addColorStop(0.55, '#4ade80');
+            turfGrad.addColorStop(1, '#22c55e');
+            ctx.fillStyle = turfGrad;
             ctx.beginPath();
             ctx.roundRect(36, 36, WORLD_W - 72, WORLD_H - 80, 32);
             ctx.fill();
 
-            // Subtle Dappled Sunbeams & Meadow Stepping Stones for Ground Texture
-            steppingStones.forEach((st) => {
-                ctx.fillStyle = 'rgba(15, 23, 42, 0.14)';
-                ctx.beginPath();
-                ctx.ellipse(st.x, st.y + 3, st.rx, st.ry, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = '#e2e8f0';
-                ctx.beginPath();
-                ctx.ellipse(st.x, st.y, st.rx, st.ry, 0, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // Distinct Biome Turf Zones across the 4400 x 3200 Grand Sanctuary
-            // Northeast Sakura Blossom Forest
-            ctx.fillStyle = 'rgba(251, 207, 232, 0.36)';
+            // Soft Pastel Corner Glade Tints
+            ctx.fillStyle = 'rgba(251, 207, 232, 0.34)';
             ctx.beginPath();
-            ctx.ellipse(3360, 860, 740, 520, -0.1, 0, Math.PI * 2);
+            ctx.ellipse(1350, 410, 340, 230, -0.1, 0, Math.PI * 2);
             ctx.fill();
 
-            // Southeast Sunset Campfire Grove
-            ctx.fillStyle = 'rgba(254, 215, 170, 0.34)';
+            ctx.fillStyle = 'rgba(254, 215, 170, 0.32)';
             ctx.beginPath();
-            ctx.ellipse(3360, 2360, 740, 520, 0.1, 0, Math.PI * 2);
+            ctx.ellipse(1350, 950, 340, 230, 0.1, 0, Math.PI * 2);
             ctx.fill();
-
-            // Southwest Twilight Berry & Tag Meadow
-            ctx.fillStyle = 'rgba(216, 180, 254, 0.26)';
-            ctx.beginPath();
-            ctx.ellipse(1060, 2360, 740, 520, -0.08, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Northwest Golden Picnic & Brook Lawn
-            ctx.fillStyle = 'rgba(254, 240, 138, 0.24)';
-            ctx.beginPath();
-            ctx.ellipse(1060, 860, 740, 520, 0.08, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Winding Crystal Ranch Brook (North-South Stream on West Side + 3 Stepping-Stone Bridges)
-            ctx.save();
-            ctx.strokeStyle = '#0284c7';
-            ctx.lineWidth = 84;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(860, 64);
-            ctx.bezierCurveTo(760, 820, 990, 1520, 840, 2240);
-            ctx.quadraticCurveTo(780, 2720, 890, WORLD_H - 64);
-            ctx.stroke();
-
-            ctx.strokeStyle = '#38bdf8';
-            ctx.lineWidth = 66;
-            ctx.stroke();
-
-            // Shimmering Water Ripples in the Brook
-            ctx.strokeStyle = 'rgba(224, 242, 254, 0.58)';
-            ctx.lineWidth = 3.5;
-            for (let wy = 160; wy < WORLD_H - 140; wy += 160) {
-                const wx = 855 + Math.sin(wy * 0.005) * 48 + Math.sin(now * 0.003 + wy) * 8;
-                ctx.beginPath();
-                ctx.moveTo(wx - 16, wy);
-                ctx.lineTo(wx + 16, wy);
-                ctx.stroke();
-            }
-
-            // Three Cozy Wooden & Sandstone Footbridges crossing the Crystal Brook
-            [880, 1600, 2360].forEach((by, idx) => {
-                const bx = idx === 0 ? 810 : (idx === 1 ? 895 : 835);
-                ctx.fillStyle = 'rgba(15, 23, 42, 0.26)';
-                ctx.beginPath();
-                ctx.roundRect(bx - 64, by - 28, 128, 66, 16);
-                ctx.fill();
-                ctx.fillStyle = '#d97706';
-                ctx.strokeStyle = '#78350f';
-                ctx.lineWidth = 3.5;
-                ctx.beginPath();
-                ctx.roundRect(bx - 64, by - 36, 128, 66, 16);
-                ctx.fill();
-                ctx.stroke();
-                ctx.strokeStyle = '#92400e';
-                ctx.lineWidth = 2.2;
-                for (let px = bx - 44; px <= bx + 44; px += 22) {
-                    ctx.beginPath();
-                    ctx.moveTo(px, by - 34);
-                    ctx.lineTo(px, by + 28);
-                    ctx.stroke();
-                }
-            });
-
-            // Leaping Golden Brook Fish Splashes
-            brookSplashFish.forEach((bf) => {
-                if (!bf.active) return;
-                const bx = 855 + Math.sin(bf.y * 0.005) * 48;
-                const arcY = bf.y - Math.sin(bf.jumpOffset * Math.PI) * 34;
-                const arcX = bx + (bf.jumpOffset - 0.5) * 28;
-                ctx.save();
-                ctx.translate(arcX, arcY);
-                ctx.rotate((bf.jumpOffset - 0.5) * 1.6);
-                ctx.fillStyle = '#fb923c';
-                ctx.beginPath();
-                ctx.ellipse(0, 0, 9, 4.5, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = '#fef08a';
-                ctx.beginPath();
-                ctx.arc(3, -1, 1.5, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            });
-            ctx.restore();
 
             // Inner North Wall Base Shadow for 2.5D Depth
-            ctx.fillStyle = 'rgba(20, 83, 45, 0.22)';
+            ctx.fillStyle = 'rgba(20, 83, 45, 0.18)';
             ctx.beginPath();
             ctx.roundRect(36, 44, WORLD_W - 72, 16, [28, 28, 0, 0]);
             ctx.fill();
 
             cloverTufts.forEach((cl) => {
-                const sz = 28 * cl.scale;
+                const sz = 26 * cl.scale;
                 drawSpriteAsset(propSprites.cloverPatch, cl.x - sz / 2, cl.y - sz / 2, sz, sz);
             });
 
-            // Swaying Wildflower & Tall Grass Tufts (rustle when slimes walk past!)
+            // Swaying Wildflower & Tall Grass Tufts
             swayFloraPatches.forEach((fl) => {
                 const wind = Math.sin(now * 0.0028 + fl.x * 0.01) * 2.5 + fl.sway;
                 ctx.strokeStyle = '#15803d';
@@ -2592,33 +3073,28 @@
                 }
             });
 
-            // 3. Winding Creamy Sandstone Trails connecting all 5 Ranch Zones (with 2.5D beveled lip)
+            // 3. Cozy Creamy Sandstone Garden Walkways connecting all Hangout Spots
             const drawSanctuaryTrails = (yOffset, color) => {
                 ctx.fillStyle = color;
                 ctx.beginPath();
-                // Grand East-West Promenade
-                ctx.roundRect(520, 1600 - 46 + yOffset, WORLD_W - 1040, 92, 30);
-                // Grand North-South Promenade
-                ctx.roundRect(2200 - 60, 440 + yOffset, 120, WORLD_H - 880, 30);
-                // Loop Trails to the 4 Outer Biomes
-                ctx.roundRect(1080, 880 - 34 + yOffset, 1160, 68, 26);
-                ctx.roundRect(2160, 860 - 34 + yOffset, 1160, 68, 26);
-                ctx.roundRect(1080, 2360 - 34 + yOffset, 1160, 68, 26);
-                ctx.roundRect(2160, 2360 - 34 + yOffset, 1160, 68, 26);
+                ctx.roundRect(240, 675 - 40 + yOffset, WORLD_W - 480, 80, 28);
+                ctx.roundRect(925 - 48, 230 + yOffset, 96, WORLD_H - 445, 28);
+                ctx.roundRect(500, 410 - 28 + yOffset, 850, 56, 24);
+                ctx.roundRect(500, 950 - 28 + yOffset, 850, 56, 24);
                 ctx.fill();
             };
-            drawSanctuaryTrails(7, '#d97706');
+            drawSanctuaryTrails(6, '#d97706');
             drawSanctuaryTrails(0, '#fde68a');
 
-            // 4. 2.5D Foreshortened Elliptical Central Plaza (Puddle Slime Lagoon Plaza)
+            // 4. 2.5D Foreshortened Elliptical Central Plaza
             ctx.fillStyle = '#d97706';
             ctx.beginPath();
-            ctx.ellipse(2200, 1608, 275, 180, 0, 0, Math.PI * 2);
+            ctx.ellipse(925, 683, 245, 160, 0, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.fillStyle = '#fef3c7';
             ctx.beginPath();
-            ctx.ellipse(2200, 1600, 275, 180, 0, 0, Math.PI * 2);
+            ctx.ellipse(925, 675, 245, 160, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.strokeStyle = '#fbbf24';
             ctx.lineWidth = 4;
@@ -2626,23 +3102,22 @@
 
             // 5. Pastel Candy-Colored Activity Corrals / Hangout Nooks
             const alcoves = [
-                { x: 1120, y: 880, fill: '#ffedd5', border: '#fb923c', lip: '#ea580c' },
-                { x: 3280, y: 860, fill: '#fce7f3', border: '#f472b6', lip: '#db2777' },
-                { x: 1100, y: 2360, fill: '#e0e7ff', border: '#818cf8', lip: '#4f46e5' },
-                { x: 3280, y: 2360, fill: '#fef9c3', border: '#facc15', lip: '#ca8a04' },
-                { x: 3740, y: 1620, fill: '#f3e8ff', border: '#c084fc', lip: '#9333ea' },
-                { x: 640, y: 1580, fill: '#e0f2fe', border: '#38bdf8', lip: '#0284c7' },
-                { x: 2200, y: 520, fill: '#fef3c7', border: '#f59e0b', lip: '#d97706' }
+                { x: 520, y: 410, fill: '#ffedd5', border: '#fb923c', lip: '#ea580c' },
+                { x: 1330, y: 410, fill: '#fce7f3', border: '#f472b6', lip: '#db2777' },
+                { x: 520, y: 950, fill: '#e0e7ff', border: '#818cf8', lip: '#4f46e5' },
+                { x: 1330, y: 950, fill: '#fef9c3', border: '#facc15', lip: '#ca8a04' },
+                { x: 1580, y: 675, fill: '#f3e8ff', border: '#c084fc', lip: '#9333ea' },
+                { x: 270, y: 675, fill: '#e0f2fe', border: '#38bdf8', lip: '#0284c7' }
             ];
             alcoves.forEach((al) => {
                 ctx.fillStyle = al.lip;
                 ctx.beginPath();
-                ctx.roundRect(al.x - 165, al.y - 96, 330, 204, 32);
+                ctx.roundRect(al.x - 135, al.y - 82, 270, 174, 28);
                 ctx.fill();
 
                 ctx.fillStyle = al.fill;
                 ctx.beginPath();
-                ctx.roundRect(al.x - 165, al.y - 104, 330, 202, 32);
+                ctx.roundRect(al.x - 135, al.y - 88, 270, 172, 28);
                 ctx.fill();
 
                 ctx.strokeStyle = al.border;
@@ -2652,13 +3127,13 @@
 
             // 6. Symmetrical Warm Terracotta Flower Planter Beds
             const planters = [
-                { x: 1840, y: 1260, w: 260, h: 62 },
-                { x: 2300, y: 1260, w: 260, h: 62 },
-                { x: 1840, y: 1920, w: 260, h: 62 },
-                { x: 2300, y: 1920, w: 260, h: 62 }
+                { x: 620, y: 296, w: 165, h: 44 },
+                { x: 1070, y: 296, w: 165, h: 44 },
+                { x: 620, y: 1036, w: 165, h: 44 },
+                { x: 1070, y: 1036, w: 165, h: 44 }
             ];
             planters.forEach((pl) => {
-                drawSpriteAsset(propSprites.flowerPlanterBox, pl.x - 5, pl.y - 5, pl.w + 10, pl.h + 10);
+                drawSpriteAsset(propSprites.flowerPlanterBox, pl.x - 4, pl.y - 4, pl.w + 8, pl.h + 8);
             });
 
             planterFlowers.forEach((fl) => {
@@ -2667,7 +3142,7 @@
                 else if (fl.c === '#c084fc') flowerImg = propSprites.flowerLilac;
                 else if (fl.c === '#7dd3fc') flowerImg = propSprites.flowerSky;
 
-                drawSpriteAsset(flowerImg, fl.x - 20, fl.y - 22, 40, 40);
+                drawSpriteAsset(flowerImg, fl.x - 18, fl.y - 20, 36, 36);
             });
 
             // Click-to-walk target ring
@@ -2683,18 +3158,14 @@
             // 7. Unified 2.5D Y-Depth Sorting for All World Objects, Bushes, Trees, Pillars & Slimes!
             const renderables = [];
 
-            // Blooming Sakura Blossom Trees framing the 4400 x 3200 Ranch Biomes
+            // Blooming Sakura Blossom Trees framing the Cozy Courtyard
             [
-                { x: 3020, y: 560 },
-                { x: 3560, y: 620 },
-                { x: 3920, y: 920 },
-                { x: 3040, y: 1120 },
-                { x: 420, y: 420 },
-                { x: 440, y: 2100 },
-                { x: 3960, y: 2140 },
-                { x: 3960, y: 2920 },
-                { x: 1880, y: 460 },
-                { x: 2520, y: 460 }
+                { x: 1520, y: 240 },
+                { x: 1690, y: 420 },
+                { x: 1210, y: 210 },
+                { x: 260, y: 240 },
+                { x: 240, y: 1120 },
+                { x: 1640, y: 1120 }
             ].forEach((tr) => {
                 renderables.push({
                     y: tr.y + 66,
@@ -2704,16 +3175,14 @@
                 });
             });
 
-            // Lush Pogofruit Berry Bushes scattered across the Sanctuary
+            // Lush Pogofruit Berry Bushes framing the Corners
             [
-                { x: 180, y: 180 },
-                { x: WORLD_W - 180, y: 180 },
-                { x: 180, y: WORLD_H - 180 },
-                { x: WORLD_W - 180, y: WORLD_H - 180 },
-                { x: 1480, y: 1260 },
-                { x: 2920, y: 1260 },
-                { x: 1480, y: 2700 },
-                { x: 2920, y: 2700 }
+                { x: 130, y: 130 },
+                { x: WORLD_W - 130, y: 130 },
+                { x: 130, y: WORLD_H - 130 },
+                { x: WORLD_W - 130, y: WORLD_H - 130 },
+                { x: 640, y: 220 },
+                { x: 1210, y: 1140 }
             ].forEach((b) => {
                 renderables.push({
                     y: b.y + 22,
@@ -2725,23 +3194,21 @@
 
             // Sanctuary Lantern Pillars
             [
-                { x: 1920, y: 540 },
-                { x: 2480, y: 540 },
-                { x: 1920, y: 2660 },
-                { x: 2480, y: 2660 },
-                { x: 1280, y: 1480 },
-                { x: 3120, y: 1480 }
+                { x: 760, y: 240 },
+                { x: 1090, y: 240 },
+                { x: 760, y: 1120 },
+                { x: 1090, y: 1120 }
             ].forEach((pil) => {
                 renderables.push({
                     y: pil.y + 20,
                     draw: () => {
                         if (propStates.fairyLightsOn) {
-                            const lGlow = ctx.createRadialGradient(pil.x, pil.y - 30, 2, pil.x, pil.y - 30, 66);
+                            const lGlow = ctx.createRadialGradient(pil.x, pil.y - 30, 2, pil.x, pil.y - 30, 62);
                             lGlow.addColorStop(0, 'rgba(254, 240, 138, 0.55)');
                             lGlow.addColorStop(1, 'rgba(254, 240, 138, 0)');
                             ctx.fillStyle = lGlow;
                             ctx.beginPath();
-                            ctx.arc(pil.x, pil.y - 30, 66, 0, Math.PI * 2);
+                            ctx.arc(pil.x, pil.y - 30, 62, 0, Math.PI * 2);
                             ctx.fill();
                         }
                         drawSpriteAsset(propSprites.lanternPillar, pil.x - 38, pil.y - 64, 76, 98);
@@ -2755,46 +3222,27 @@
 
             // Interactive Courtyard Props (Y-sorted so slimes can walk behind or in front!)
             PROPS.forEach((prop) => {
-                renderables.push({
-                    y: prop.y + (prop.id === 'pond' ? 14 : 18),
-                    draw: () => drawSingleCourtyardProp(prop, now)
-                });
+                if (prop.id === 'bench') {
+                    // Render the full bench behind seated slimes so players sit cleanly on top of the seat plank!
+                    renderables.push({
+                        y: prop.y + 4,
+                        draw: () => {
+                            ctx.save();
+                            ctx.translate(prop.x, prop.y);
+                            drawSpriteAsset(propSprites.stargazeBenchBack, -98, -62, 196, 114);
+                            drawSpriteAsset(propSprites.stargazeBench, -98, -62, 196, 114);
+                            ctx.restore();
+                        }
+                    });
+                } else {
+                    renderables.push({
+                        y: prop.y + (prop.id === 'pond' ? 14 : 18),
+                        draw: () => drawSingleCourtyardProp(prop, now)
+                    });
+                }
             });
 
-            // Carved Wooden Directional Signposts along the Central Crossroads
-            zoneSignposts.forEach((sg) => {
-                renderables.push({
-                    y: sg.y + 16,
-                    draw: () => {
-                        ctx.save();
-                        ctx.fillStyle = 'rgba(15, 23, 42, 0.22)';
-                        ctx.beginPath();
-                        ctx.ellipse(sg.x, sg.y + 16, 16, 6, 0, 0, Math.PI * 2);
-                        ctx.fill();
-
-                        ctx.fillStyle = '#78350f';
-                        ctx.fillRect(sg.x - 4, sg.y - 22, 8, 38);
-
-                        ctx.font = '800 11px Nunito, sans-serif';
-                        const tw = ctx.measureText(sg.text).width + 18;
-                        ctx.fillStyle = '#d97706';
-                        ctx.strokeStyle = '#451a03';
-                        ctx.lineWidth = 2.2;
-                        ctx.beginPath();
-                        ctx.roundRect(sg.x - tw / 2, sg.y - 36, tw, 22, 7);
-                        ctx.fill();
-                        ctx.stroke();
-
-                        ctx.fillStyle = '#fef3c7';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText(sg.text, sg.x, sg.y - 25);
-                        ctx.restore();
-                    }
-                });
-            });
-
-            // Wild Ambient Baby Slimes hopping around the Sanctuary
+            // Wild Ambient Baby Slimes hopping around the Courtyard
             wildSlimes.forEach((ws) => {
                 renderables.push({
                     y: ws.y + 12,
@@ -2813,7 +3261,8 @@
                             now * 0.01,
                             ws.hopHeight > 0,
                             '',
-                            ws.hopHeight / ws.scale
+                            ws.hopHeight / ws.scale,
+                            ws.colorIdx % SLIME_PATTERNS.length
                         );
                         if (ws.happyHearts > 0) {
                             ctx.font = 'bold 22px Nunito, sans-serif';
@@ -2863,7 +3312,9 @@
                             entity.walkCycle || 0,
                             entity.isMoving || false,
                             entity.name,
-                            entity.jumpHeight || 0
+                            entity.jumpHeight || 0,
+                            entity.patternIdx || 0,
+                            entity.isSitting || false
                         );
                     }
                 });
@@ -2974,84 +3425,15 @@
             vig.addColorStop(1, 'rgba(30, 27, 75, 0.25)');
             ctx.fillStyle = vig;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Cozy Corner Minimap so players can navigate the 4400 x 3200 Sanctuary!
-            if (inGame) {
-                drawSanctuaryMinimap(allEntities);
-            }
-        }
-
-        function drawSanctuaryMinimap(allEntities) {
-            const mapW = 164;
-            const mapH = 120;
-            const padX = canvas.width - mapW - 14;
-            const padY = 66;
-
-            ctx.save();
-            ctx.fillStyle = 'rgba(28, 25, 23, 0.78)';
-            ctx.strokeStyle = 'rgba(253, 224, 71, 0.45)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.roundRect(padX, padY, mapW, mapH, 14);
-            ctx.fill();
-            ctx.stroke();
-
-            // Grass & Brook preview
-            ctx.fillStyle = '#34d399';
-            ctx.beginPath();
-            ctx.roundRect(padX + 6, padY + 6, mapW - 12, mapH - 12, 10);
-            ctx.fill();
-
-            ctx.strokeStyle = '#38bdf8';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(padX + 34, padY + 8);
-            ctx.lineTo(padX + 34, padY + mapH - 8);
-            ctx.stroke();
-
-            // Central Lagoon dot
-            ctx.fillStyle = '#0284c7';
-            ctx.beginPath();
-            ctx.ellipse(padX + mapW / 2, padY + mapH / 2, 10, 6.5, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Activity Nook markers
-            PROPS.forEach((p) => {
-                const mx = padX + 6 + (p.x / WORLD_W) * (mapW - 12);
-                const my = padY + 6 + (p.y / WORLD_H) * (mapH - 12);
-                ctx.fillStyle = '#fef08a';
-                ctx.beginPath();
-                ctx.arc(mx, my, 2, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // Players & Friends dots
-            allEntities.forEach((ent) => {
-                const mx = padX + 6 + (ent.x / WORLD_W) * (mapW - 12);
-                const my = padY + 6 + (ent.y / WORLD_H) * (mapH - 12);
-                const isSelf = ent.id === localPlayer.id;
-                ctx.fillStyle = isSelf ? '#ffffff' : (AVATAR_COLORS[ent.colorIdx || 0]?.swatch || '#fb7185');
-                ctx.beginPath();
-                ctx.arc(mx, my, isSelf ? 4 : 3, 0, Math.PI * 2);
-                ctx.fill();
-                if (isSelf) {
-                    ctx.strokeStyle = '#1c1917';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                }
-            });
-            ctx.restore();
         }
 
         function drawSingleCourtyardProp(prop, now) {
             if (prop.id === 'pond') {
-                // 1. 2.5D Foreshortened Grand Koi Lagoon Basin + Swimming Koi + Tiered Spout
                 ctx.save();
                 ctx.translate(prop.x, prop.y);
 
                 drawSpriteAsset(propSprites.fountainBasin, -140, -108, 280, 215);
 
-                // Live Swimming Koi Fish inside the foreshortened elliptical basin
                 for (let k = 0; k < 4; k++) {
                     const dir = k % 2 === 0 ? 1 : -1;
                     const koiAngle = now * 0.0012 * dir + k * 1.6;
@@ -3082,7 +3464,6 @@
                     ctx.restore();
                 }
 
-                // Expanding Foreshortened Water Ripples
                 pondRipples.forEach((rip) => {
                     ctx.strokeStyle = `rgba(224, 242, 254, ${rip.alpha})`;
                     ctx.lineWidth = 2.4;
@@ -3091,7 +3472,6 @@
                     ctx.stroke();
                 });
 
-                // 2.5D Tiered Fountain Center Spout
                 drawSpriteAsset(propSprites.fountainCenter, -52, -82, 104, 114);
                 ctx.fillStyle = 'rgba(224, 242, 254, 0.88)';
                 ctx.beginPath();
@@ -3099,7 +3479,6 @@
                 ctx.fill();
                 ctx.restore();
             } else if (prop.id === 'table') {
-                // 2. Detailed Picnic Tea Table & Matcha Set
                 ctx.save();
                 ctx.translate(prop.x, prop.y);
                 drawSpriteAsset(propSprites.picnicTable, -88, -70, 176, 138);
@@ -3113,13 +3492,11 @@
                 ctx.stroke();
                 ctx.restore();
             } else if (prop.id === 'easel') {
-                // 3. Artist Chalkboard Easel
                 ctx.save();
                 ctx.translate(prop.x, prop.y);
                 drawSpriteAsset(propSprites.artEasel, -73, -78, 146, 146);
                 ctx.restore();
             } else if (prop.id === 'potato') {
-                // 4. Hot Potato Tag Pedestal
                 ctx.save();
                 ctx.translate(prop.x, prop.y);
                 drawSpriteAsset(propSprites.potatoPedestal, -66, -72, 132, 132);
@@ -3150,7 +3527,6 @@
                 ctx.restore();
                 ctx.restore();
             } else if (prop.id === 'campfire') {
-                // 5. Stone Hearth Firepit
                 ctx.save();
                 ctx.translate(prop.x, prop.y);
                 if (propStates.campfireLit) {
@@ -3183,7 +3559,6 @@
                 }
                 ctx.restore();
             } else if (prop.id === 'boombox') {
-                // 6. Retro Pastel Lofi Boombox
                 ctx.save();
                 ctx.translate(prop.x, prop.y);
                 const pulseScale = propStates.lofiPlaying ? 1 + Math.sin(now * 0.012) * 0.05 : 1;
@@ -3197,7 +3572,6 @@
                 }
                 ctx.restore();
             } else if (prop.id === 'sofa') {
-                // 7. Pagoda Lantern Switch Totem
                 ctx.save();
                 ctx.translate(prop.x, prop.y);
                 if (propStates.fairyLightsOn) {
@@ -3209,20 +3583,20 @@
                     ctx.arc(0, -18, 56, 0, Math.PI * 2);
                     ctx.fill();
                 }
-                drawSpriteAsset(propSprites.lanternSwitch, -48, -62, 96, 114);
-                ctx.fillStyle = propStates.fairyLightsOn ? '#fde047' : '#94a3b8';
+                drawSpriteAsset(propSprites.lanternSwitch, -48, -68, 96, 114);
+                ctx.fillStyle = propStates.fairyLightsOn ? '#fde047' : '#cbd5e1';
                 ctx.beginPath();
-                ctx.arc(0, -21, 8, 0, Math.PI * 2);
+                ctx.arc(0, -24, 9, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
-            } else if (prop.id === 'trampoline' || prop.id === 'trampoline2') {
+            } else if (prop.id === 'trampoline') {
                 ctx.save();
                 ctx.translate(prop.x, prop.y);
-                const bounceScale = 1 + Math.sin(now * 0.007) * 0.04;
-                ctx.scale(bounceScale, 2 - bounceScale);
-                drawSpriteAsset(propSprites.bouncyPad, -66, -50, 132, 100);
+                const bounceSquish = 1 + Math.sin(now * 0.008) * 0.05;
+                ctx.scale(bounceSquish, 2 - bounceSquish);
+                drawSpriteAsset(propSprites.bouncyPad, -66, -52, 132, 100);
                 ctx.restore();
-            } else if (prop.id === 'snackcart' || prop.id === 'snackcart2') {
+            } else if (prop.id === 'snackcart') {
                 ctx.save();
                 ctx.translate(prop.x, prop.y);
                 drawSpriteAsset(propSprites.snackCart, -78, -86, 156, 144);
@@ -3230,97 +3604,79 @@
             } else if (prop.id === 'kalimba') {
                 ctx.save();
                 ctx.translate(prop.x, prop.y);
-                drawSpriteAsset(propSprites.kalimbaToy, -66, -62, 132, 108);
+                drawSpriteAsset(propSprites.kalimbaToy, -66, -56, 132, 108);
                 ctx.restore();
             } else if (prop.id === 'tent') {
                 ctx.save();
                 ctx.translate(prop.x, prop.y);
-                drawSpriteAsset(propSprites.cozyTent, -90, -90, 180, 150);
+                drawSpriteAsset(propSprites.cozyTent, -90, -94, 180, 150);
                 ctx.restore();
             } else if (prop.id === 'telescope') {
                 ctx.save();
                 ctx.translate(prop.x, prop.y);
                 drawSpriteAsset(propSprites.telescope, -60, -76, 120, 126);
                 ctx.restore();
-            } else if (prop.id === 'statue') {
-                ctx.save();
-                ctx.translate(prop.x, prop.y);
-                drawSpriteAsset(propSprites.slimeStatue, -80, -105, 160, 175);
-                ctx.restore();
-            } else if (prop.id === 'hammock' || prop.id === 'hammock2') {
-                ctx.save();
-                ctx.translate(prop.x, prop.y);
-                drawSpriteAsset(propSprites.hammock, -85, -62, 170, 110);
-                ctx.restore();
-            } else if (prop.id === 'wishingwell') {
-                ctx.save();
-                ctx.translate(prop.x, prop.y);
-                drawSpriteAsset(propSprites.wishingWell, -72, -94, 144, 156);
-                ctx.restore();
-            }
-
-            // Foreshortened 2.5D highlight ring around nearby interactable prop
-            if (nearbyProp && nearbyProp.id === prop.id) {
-                const cdElapsed = Date.now() - lastPropUseTime;
-                const isCoolingDown = cdElapsed < PROP_COOLDOWN_MS;
-                const rx = prop.radius * 0.78;
-                const ry = prop.radius * 0.48;
-                ctx.save();
-                ctx.strokeStyle = isCoolingDown ? 'rgba(251, 113, 133, 0.75)' : 'rgba(253, 224, 71, 0.7)';
-                ctx.lineWidth = 2.5;
-                ctx.setLineDash(isCoolingDown ? [] : [6, 6]);
-                ctx.beginPath();
-                if (isCoolingDown) {
-                    const pct = Math.min(1, cdElapsed / PROP_COOLDOWN_MS);
-                    ctx.ellipse(prop.x, prop.y + 8, rx, ry, 0, -Math.PI / 2, -Math.PI / 2 + pct * Math.PI * 2);
-                } else {
-                    ctx.ellipse(prop.x, prop.y + 8, rx, ry, 0, 0, Math.PI * 2);
-                }
-                ctx.stroke();
-                ctx.restore();
             }
         }
 
-        function drawAvatarGraphic(targetCtx, x, y, colorIdx, accessoryIdx, faceIdx, facing, walkCycle, isMoving, name, jumpHeight = 0) {
+        function drawAvatarGraphic(targetCtx, x, y, colorIdx, accessoryIdx, faceIdx, facing, walkCycle, isMoving, name, jumpHeight = 0, patternIdx = 0, isSitting = false) {
             const palette = AVATAR_COLORS[colorIdx % AVATAR_COLORS.length];
+            const pattern = SLIME_PATTERNS[patternIdx % SLIME_PATTERNS.length];
             const acc = ACCESSORIES[accessoryIdx % ACCESSORIES.length];
             const face = FACES[faceIdx % FACES.length];
 
-            // Bouncy Slime-Rancher squash & stretch rhythm
             const pulse = performance.now() * 0.0055;
-            const bobY = isMoving ? Math.abs(Math.sin(walkCycle)) * 6 : Math.abs(Math.sin(pulse)) * 2.2;
-            const squishX = isMoving
-                ? 1 + Math.cos(walkCycle * 2) * 0.11
-                : 1 + Math.sin(pulse * 2) * 0.045;
-            const squishY = isMoving
-                ? 1 - Math.cos(walkCycle * 2) * 0.11
-                : 1 - Math.sin(pulse * 2) * 0.045;
-            const waddleAngle = isMoving ? Math.sin(walkCycle) * 0.09 : 0;
+            const bobY = isSitting ? 0 : (isMoving ? Math.abs(Math.sin(walkCycle)) * 6 : Math.abs(Math.sin(pulse)) * 2.2);
+            const squishX = isSitting
+                ? 1.08 + Math.sin(pulse * 1.5) * 0.025
+                : (isMoving
+                    ? 1 + Math.cos(walkCycle * 2) * 0.11
+                    : 1 + Math.sin(pulse * 2) * 0.045);
+            const squishY = isSitting
+                ? 0.92 - Math.sin(pulse * 1.5) * 0.025
+                : (isMoving
+                    ? 1 - Math.cos(walkCycle * 2) * 0.11
+                    : 1 - Math.sin(pulse * 2) * 0.045);
+            const waddleAngle = (!isSitting && isMoving) ? Math.sin(walkCycle) * 0.09 : 0;
 
             targetCtx.save();
-            // Soft pastel ground shadow
-            targetCtx.fillStyle = 'rgba(15, 23, 42, 0.22)';
-            const shadowScale = Math.max(0.55, 1 - jumpHeight / 140);
-            targetCtx.beginPath();
-            targetCtx.ellipse(x, y + 20, 21 * shadowScale, 8.5 * shadowScale, 0, 0, Math.PI * 2);
-            targetCtx.fill();
+            if (!isSitting) {
+                targetCtx.fillStyle = 'rgba(15, 23, 42, 0.22)';
+                const shadowScale = Math.max(0.55, 1 - jumpHeight / 140);
+                targetCtx.beginPath();
+                targetCtx.ellipse(x, y + 20, 21 * shadowScale, 8.5 * shadowScale, 0, 0, Math.PI * 2);
+                targetCtx.fill();
+            }
 
-            // Anchor scaling at the bottom of the slime body so it squishes against the ground!
             targetCtx.translate(x, y + 18 - bobY - jumpHeight);
             targetCtx.rotate(waddleAngle);
             targetCtx.scale(squishX, squishY);
             targetCtx.translate(0, -18);
 
-            // Tiny squishy nub feet peeking out underneath
-            const leftFootY = isMoving ? Math.max(0, Math.sin(walkCycle)) * -3.5 : 0;
-            const rightFootY = isMoving ? Math.max(0, -Math.sin(walkCycle)) * -3.5 : 0;
-            targetCtx.fillStyle = palette.shade;
-            targetCtx.beginPath();
-            targetCtx.ellipse(-8, 17 + leftFootY, 5.5, 3.5, 0, 0, Math.PI * 2);
-            targetCtx.ellipse(8, 17 + rightFootY, 5.5, 3.5, 0, 0, Math.PI * 2);
-            targetCtx.fill();
+            if (isSitting) {
+                // Cute dangling feet kicking out forward while sitting on the bench!
+                const kick = Math.sin(pulse * 1.4) * 1.5;
+                targetCtx.fillStyle = palette.shade;
+                targetCtx.strokeStyle = palette.hair;
+                targetCtx.lineWidth = 1.8;
+                targetCtx.beginPath();
+                targetCtx.ellipse(-8, 17 + kick, 5.5, 4.2, 0, 0, Math.PI * 2);
+                targetCtx.fill();
+                targetCtx.stroke();
+                targetCtx.beginPath();
+                targetCtx.ellipse(8, 17 - kick, 5.5, 4.2, 0, 0, Math.PI * 2);
+                targetCtx.fill();
+                targetCtx.stroke();
+            } else {
+                const leftFootY = isMoving ? Math.max(0, Math.sin(walkCycle)) * -3.5 : 0;
+                const rightFootY = isMoving ? Math.max(0, -Math.sin(walkCycle)) * -3.5 : 0;
+                targetCtx.fillStyle = palette.shade;
+                targetCtx.beginPath();
+                targetCtx.ellipse(-8, 17 + leftFootY, 5.5, 3.5, 0, 0, Math.PI * 2);
+                targetCtx.ellipse(8, 17 + rightFootY, 5.5, 3.5, 0, 0, Math.PI * 2);
+                targetCtx.fill();
+            }
 
-            // Plump Dome-Shaped Slime Body (Slime Rancher silhouette!)
             const bodyGrad = targetCtx.createRadialGradient(-6, -14, 4, 0, -2, 26);
             bodyGrad.addColorStop(0, palette.gloss);
             bodyGrad.addColorStop(0.35, palette.body);
@@ -3336,12 +3692,72 @@
             targetCtx.closePath();
             targetCtx.fill();
 
-            // Crisp cute cartoon outline
+            if (pattern !== 'Solid') {
+                targetCtx.save();
+                targetCtx.clip();
+                if (pattern === 'Tabby Stripes') {
+                    targetCtx.fillStyle = palette.shade;
+                    targetCtx.globalAlpha = 0.55;
+                    targetCtx.beginPath();
+                    targetCtx.roundRect(-2.5, -27, 5, 9, 2.5);
+                    targetCtx.roundRect(-9, -25, 4, 7, 2);
+                    targetCtx.roundRect(5, -25, 4, 7, 2);
+                    targetCtx.ellipse(-19, 2, 7, 2.6, 0.2, 0, Math.PI * 2);
+                    targetCtx.ellipse(-18, 9, 6.5, 2.4, 0.1, 0, Math.PI * 2);
+                    targetCtx.ellipse(19, 2, 7, 2.6, -0.2, 0, Math.PI * 2);
+                    targetCtx.ellipse(18, 9, 6.5, 2.4, -0.1, 0, Math.PI * 2);
+                    targetCtx.fill();
+                } else if (pattern === 'Honey Spots') {
+                    targetCtx.fillStyle = palette.gloss;
+                    targetCtx.globalAlpha = 0.65;
+                    [[-13, -10, 4], [14, -8, 3.8], [-15, 7, 4.5], [13, 8, 4], [0, 12, 3.5]].forEach(([sx, sy, sr]) => {
+                        targetCtx.beginPath();
+                        targetCtx.arc(sx, sy, sr, 0, Math.PI * 2);
+                        targetCtx.fill();
+                    });
+                } else if (pattern === 'Starlight Belly') {
+                    targetCtx.fillStyle = palette.gloss;
+                    targetCtx.globalAlpha = 0.72;
+                    targetCtx.beginPath();
+                    targetCtx.ellipse(0, 11, 13, 8, 0, 0, Math.PI * 2);
+                    targetCtx.fill();
+                } else if (pattern === 'Blush Swirl') {
+                    targetCtx.strokeStyle = palette.gloss;
+                    targetCtx.lineWidth = 3;
+                    targetCtx.globalAlpha = 0.65;
+                    targetCtx.beginPath();
+                    targetCtx.arc(-14, 5, 5, 0, Math.PI * 1.5);
+                    targetCtx.stroke();
+                    targetCtx.beginPath();
+                    targetCtx.arc(14, 5, 5, 0, Math.PI * 1.5);
+                    targetCtx.stroke();
+                }
+                targetCtx.restore();
+            }
+
+            if (pattern === 'Crystal Spikes') {
+                targetCtx.fillStyle = palette.gloss;
+                targetCtx.strokeStyle = palette.hair;
+                targetCtx.lineWidth = 1.8;
+                [
+                    [-14, -20, -20, -29, -8, -24],
+                    [14, -20, 20, -29, 8, -24],
+                    [0, -26, 0, -35, 5, -26]
+                ].forEach(([x1, y1, x2, y2, x3, y3]) => {
+                    targetCtx.beginPath();
+                    targetCtx.moveTo(x1, y1);
+                    targetCtx.lineTo(x2, y2);
+                    targetCtx.lineTo(x3, y3);
+                    targetCtx.closePath();
+                    targetCtx.fill();
+                    targetCtx.stroke();
+                });
+            }
+
             targetCtx.strokeStyle = palette.hair;
             targetCtx.lineWidth = 2.2;
             targetCtx.stroke();
 
-            // Signature Jelly Glossy Specular Highlight on Forehead
             targetCtx.fillStyle = 'rgba(255, 255, 255, 0.72)';
             targetCtx.beginPath();
             targetCtx.ellipse(-8, -17, 5.5, 3, -0.55, 0, Math.PI * 2);
@@ -3350,7 +3766,6 @@
             targetCtx.arc(-2.5, -21, 1.8, 0, Math.PI * 2);
             targetCtx.fill();
 
-            // Stubby Little Slime Paws on the Sides
             const armSwing = isMoving ? Math.sin(walkCycle) * 3.5 : 0;
             targetCtx.fillStyle = palette.body;
             targetCtx.strokeStyle = palette.hair;
@@ -3364,34 +3779,38 @@
             targetCtx.fill();
             targetCtx.stroke();
 
-            // Big Shiny Slime Rancher Eyes, Rosy Cheeks & Happy Smile
             const lookOffsetX = facing === 'left' ? -3.5 : (facing === 'right' ? 3.5 : 0);
             if (facing !== 'up') {
-                // Big glossy dark-berry eyes
                 [-7.5, 7.5].forEach((ex) => {
-                    targetCtx.fillStyle = '#291528';
-                    targetCtx.beginPath();
-                    targetCtx.ellipse(ex + lookOffsetX, -6, 3.6, 4.4, 0, 0, Math.PI * 2);
-                    targetCtx.fill();
+                    if (face === '￣ω￣') {
+                        targetCtx.strokeStyle = '#291528';
+                        targetCtx.lineWidth = 2.4;
+                        targetCtx.beginPath();
+                        targetCtx.moveTo(ex - 3.5 + lookOffsetX, -6);
+                        targetCtx.lineTo(ex + 3.5 + lookOffsetX, -6);
+                        targetCtx.stroke();
+                    } else {
+                        targetCtx.fillStyle = '#291528';
+                        targetCtx.beginPath();
+                        targetCtx.ellipse(ex + lookOffsetX, -6, 3.6, 4.4, 0, 0, Math.PI * 2);
+                        targetCtx.fill();
 
-                    // Large sparkling eye catchlight
-                    targetCtx.fillStyle = '#ffffff';
-                    targetCtx.beginPath();
-                    targetCtx.arc(ex - 1.1 + lookOffsetX, -7.5, 1.5, 0, Math.PI * 2);
-                    targetCtx.fill();
-                    targetCtx.beginPath();
-                    targetCtx.arc(ex + 1.1 + lookOffsetX, -4.8, 0.75, 0, Math.PI * 2);
-                    targetCtx.fill();
+                        targetCtx.fillStyle = '#ffffff';
+                        targetCtx.beginPath();
+                        targetCtx.arc(ex - 1.1 + lookOffsetX, -7.5, face === '✧ᴗ✧' ? 1.9 : 1.5, 0, Math.PI * 2);
+                        targetCtx.fill();
+                        targetCtx.beginPath();
+                        targetCtx.arc(ex + 1.1 + lookOffsetX, -4.8, 0.75, 0, Math.PI * 2);
+                        targetCtx.fill();
+                    }
                 });
 
-                // Extra-rosy oval blush cheeks
                 targetCtx.fillStyle = 'rgba(255, 90, 135, 0.52)';
                 targetCtx.beginPath();
                 targetCtx.ellipse(-11.5 + lookOffsetX, -1.5, 3.8, 2.2, 0, 0, Math.PI * 2);
                 targetCtx.ellipse(11.5 + lookOffsetX, -1.5, 3.8, 2.2, 0, 0, Math.PI * 2);
                 targetCtx.fill();
 
-                // Cute little slime mouth (adapts to chosen face style!)
                 targetCtx.strokeStyle = '#291528';
                 targetCtx.lineWidth = 2;
                 targetCtx.lineCap = 'round';
@@ -3403,7 +3822,7 @@
                     targetCtx.beginPath();
                     targetCtx.arc(lookOffsetX, 0.5, 2.3, 0, Math.PI);
                     targetCtx.fill();
-                } else if (face === 'owo' || face === '^w^') {
+                } else if (face === 'owo' || face === '^w^' || face === '￣ω￣') {
                     targetCtx.beginPath();
                     targetCtx.arc(-2.2 + lookOffsetX, -2, 2.2, 0, Math.PI);
                     targetCtx.arc(2.2 + lookOffsetX, -2, 2.2, 0, Math.PI);
@@ -3417,7 +3836,6 @@
                 }
             }
 
-            // Hats & Silly Accessories perched right atop the Slime Dome
             if (acc.includes('Sprout')) {
                 targetCtx.strokeStyle = '#16a34a';
                 targetCtx.lineWidth = 2.8;
@@ -3506,6 +3924,65 @@
                 targetCtx.beginPath();
                 targetCtx.ellipse(0, -34, 11, 3.8, 0, 0, Math.PI * 2);
                 targetCtx.stroke();
+            } else if (acc.includes('Flower Crown')) {
+                const fCols = ['#ff85b3', '#fde047', '#7dd3fc', '#c084fc'];
+                [-11, -4, 4, 11].forEach((fx, idx) => {
+                    targetCtx.fillStyle = fCols[idx];
+                    targetCtx.strokeStyle = '#701a3c';
+                    targetCtx.lineWidth = 1.4;
+                    targetCtx.beginPath();
+                    targetCtx.arc(fx, -25 + Math.abs(fx) * 0.12, 4.2, 0, Math.PI * 2);
+                    targetCtx.fill();
+                    targetCtx.stroke();
+                });
+            } else if (acc.includes('Bowtie')) {
+                targetCtx.fillStyle = '#fb7185';
+                targetCtx.strokeStyle = '#881337';
+                targetCtx.lineWidth = 1.6;
+                targetCtx.beginPath();
+                targetCtx.moveTo(0, 12);
+                targetCtx.lineTo(-7, 8);
+                targetCtx.lineTo(-7, 16);
+                targetCtx.closePath();
+                targetCtx.moveTo(0, 12);
+                targetCtx.lineTo(7, 8);
+                targetCtx.lineTo(7, 16);
+                targetCtx.closePath();
+                targetCtx.fill();
+                targetCtx.stroke();
+            } else if (acc.includes('Royal Crown')) {
+                targetCtx.fillStyle = '#fbbf24';
+                targetCtx.strokeStyle = '#78350f';
+                targetCtx.lineWidth = 1.8;
+                targetCtx.beginPath();
+                targetCtx.moveTo(-9, -25);
+                targetCtx.lineTo(-9, -35);
+                targetCtx.lineTo(-4, -30);
+                targetCtx.lineTo(0, -37);
+                targetCtx.lineTo(4, -30);
+                targetCtx.lineTo(9, -35);
+                targetCtx.lineTo(9, -25);
+                targetCtx.closePath();
+                targetCtx.fill();
+                targetCtx.stroke();
+            } else if (acc.includes('Sunhat')) {
+                targetCtx.fillStyle = '#fde68a';
+                targetCtx.strokeStyle = '#92400e';
+                targetCtx.lineWidth = 1.8;
+                targetCtx.beginPath();
+                targetCtx.ellipse(0, -25, 19, 5, 0, 0, Math.PI * 2);
+                targetCtx.fill();
+                targetCtx.stroke();
+                targetCtx.beginPath();
+                targetCtx.arc(0, -26, 10, Math.PI, 0);
+                targetCtx.fill();
+                targetCtx.stroke();
+                targetCtx.strokeStyle = '#f43f5e';
+                targetCtx.lineWidth = 2.5;
+                targetCtx.beginPath();
+                targetCtx.moveTo(-10, -26);
+                targetCtx.lineTo(10, -26);
+                targetCtx.stroke();
             }
 
             targetCtx.restore();
@@ -3528,7 +4005,6 @@
             targetCtx.textBaseline = 'middle';
             targetCtx.fillText(entity.name, x, y + 33.5);
 
-            // Floating Speech Bubble (fades after 7 seconds)
             if (entity.chatText && Date.now() - (entity.chatTimestamp || 0) < 7000) {
                 targetCtx.font = '700 12px Nunito, sans-serif';
                 const textW = Math.min(210, targetCtx.measureText(entity.chatText).width + 20);
@@ -3565,8 +4041,16 @@
                 0,
                 false,
                 localPlayer.name,
-                0
+                0,
+                localPlayer.patternIdx
             );
+
+            const patEl = document.getElementById('patternLabel');
+            const accEl = document.getElementById('accessoryLabel');
+            const faceEl = document.getElementById('faceLabel');
+            if (patEl) patEl.textContent = SLIME_PATTERNS[localPlayer.patternIdx % SLIME_PATTERNS.length];
+            if (accEl) accEl.textContent = ACCESSORIES[localPlayer.accessoryIdx % ACCESSORIES.length].replace('Cozy ', '');
+            if (faceEl) faceEl.textContent = FACES[localPlayer.faceIdx % FACES.length];
         }
 
         // ==========================================
@@ -3600,17 +4084,17 @@
             const colors = type === 'warn'
                 ? 'bg-rose-950/90 text-rose-100 border-rose-400/50'
                 : 'bg-stone-900/90 text-amber-100 border-amber-400/40';
-            toast.className = `px-4 py-2 rounded-2xl border text-xs sm:text-sm font-extrabold shadow-xl backdrop-blur-md transition-all duration-300 ${colors}`;
+            toast.className = `px-4 py-2 rounded-full border backdrop-blur-md text-xs sm:text-sm font-extrabold shadow-xl transition-all duration-300 ${colors}`;
             toast.textContent = message;
             container.appendChild(toast);
             setTimeout(() => {
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateY(-6px)';
                 setTimeout(() => toast.remove(), 300);
-            }, 2600);
+            }, 2400);
         }
 
-        function appendChatLog(sender, text, colorHex = '#fde047', isSystem = false) {
+        function appendChatLog(sender, text, colorHex = '#fde047', isSystem = false, actor = null) {
             const list = document.getElementById('chatLogMessages');
             if (!list) return;
 
@@ -3620,10 +4104,20 @@
                 ? 'text-[11px] italic text-stone-300/90 leading-snug'
                 : 'text-xs text-amber-50 leading-snug break-words';
 
+            let formattedText = escapeHtml(text);
+            if (actor && actor.name) {
+                const safeActorName = escapeHtml(actor.name);
+                const actorStyle = `color:${actor.color || '#ffffff'}; background:rgba(255,255,255,0.12); padding:0 5px; border-radius:6px; font-weight:900;`;
+                formattedText = formattedText.replace(
+                    safeActorName,
+                    `<span style="${actorStyle}">${safeActorName}</span>`
+                );
+            }
+
             if (isSystem) {
-                row.innerHTML = `<span class="text-stone-400 text-[10px] mr-1">[${timeStr}]</span> ${escapeHtml(text)}`;
+                row.innerHTML = `<span class="text-stone-400 text-[10px] mr-1">[${timeStr}]</span> ${formattedText}`;
             } else {
-                row.innerHTML = `<span class="text-stone-400 text-[10px] mr-1">[${timeStr}]</span><span class="font-extrabold" style="color:${colorHex}">${escapeHtml(sender)}:</span> <span>${escapeHtml(text)}</span>`;
+                row.innerHTML = `<span class="text-stone-400 text-[10px] mr-1">[${timeStr}]</span><span class="font-extrabold" style="color:${colorHex}">${escapeHtml(sender)}:</span> <span>${formattedText}</span>`;
             }
 
             list.appendChild(row);
@@ -3752,7 +4246,7 @@
                 if (pondRipples[i].alpha <= 0) pondRipples.splice(i, 1);
             }
 
-            // Update Living Wildlife: Wild Baby Slimes, Butterflies, Sakura Petals, Brook Fish & Grass Sway
+            // Update Living Wildlife
             wildSlimes.forEach((ws) => {
                 if (ws.happyHearts > 0) ws.happyHearts = Math.max(0, ws.happyHearts - dt * 0.85);
                 if (now > ws.nextHopTime && ws.hopHeight === 0) {
@@ -3773,7 +4267,6 @@
                         ws.hopVel = 0;
                     }
                 }
-                // Happy heart reaction when player walks up close to a wild baby slime!
                 if (inGame && Math.hypot(localPlayer.x - ws.x, localPlayer.y - ws.y) < 58 && ws.happyHearts === 0) {
                     ws.happyHearts = 1;
                     ws.hopVel = 210;
@@ -3792,29 +4285,9 @@
             sakuraPetals.forEach((pt) => {
                 pt.x += (pt.vx + Math.sin(now * 0.002 + pt.swayPhase) * 14) * dt;
                 pt.y += pt.vy * dt;
-                if (pt.y > 1480 || pt.x < 2650) {
-                    pt.x = 2850 + Math.random() * 1350;
-                    pt.y = 220 + Math.random() * 240;
-                }
-            });
-
-            brookSplashFish.forEach((bf) => {
-                if (!bf.active) {
-                    bf.timer -= dt;
-                    if (bf.timer <= 0) {
-                        bf.active = true;
-                        bf.jumpOffset = 0;
-                        const bx = 855 + Math.sin(bf.y * 0.005) * 48;
-                        pondRipples.push({ x: bx, y: bf.y, r: 5, alpha: 0.85 });
-                    }
-                } else {
-                    bf.jumpOffset += dt * 1.35;
-                    if (bf.jumpOffset >= 1) {
-                        bf.active = false;
-                        bf.timer = 2.8 + Math.random() * 3.5;
-                        const bx = 855 + Math.sin(bf.y * 0.005) * 48;
-                        pondRipples.push({ x: bx, y: bf.y, r: 6, alpha: 0.9 });
-                    }
+                if (pt.y > 680 || pt.x < 1050) {
+                    pt.x = 1220 + Math.random() * 540;
+                    pt.y = 140 + Math.random() * 160;
                 }
             });
 
@@ -3863,11 +4336,19 @@
                 }
             }
 
+            let stateDirty = false;
+
             if (moveX !== 0 || moveY !== 0) {
+                if (localPlayer.isSitting) {
+                    localPlayer.isSitting = false;
+                    localPlayer.seatIdx = -1;
+                }
                 localPlayer.isMoving = true;
                 localPlayer.walkCycle += dt * 11;
-                localPlayer.x += moveX * PLAYER_SPEED * dt;
-                localPlayer.y += moveY * PLAYER_SPEED * dt;
+                localPlayer.vx = moveX * PLAYER_SPEED;
+                localPlayer.vy = moveY * PLAYER_SPEED;
+                localPlayer.x += localPlayer.vx * dt;
+                localPlayer.y += localPlayer.vy * dt;
 
                 // Keep player inside enclosed stone courtyard walls
                 localPlayer.x = Math.max(58, Math.min(WORLD_W - 58, localPlayer.x));
@@ -3887,31 +4368,57 @@
                     ? (moveX > 0 ? 'right' : 'left')
                     : (moveY > 0 ? 'down' : 'up');
 
-                syncLocalPlayerState(false);
+                stateDirty = true;
             } else if (localPlayer.isMoving) {
                 localPlayer.isMoving = false;
+                localPlayer.vx = 0;
+                localPlayer.vy = 0;
                 syncLocalPlayerState(true);
             }
 
-            // Jump physics
+            // Jump physics (syncs even when jumping in place!)
             if (localPlayer.jumpHeight > 0 || localPlayer.jumpVel !== 0) {
                 localPlayer.jumpHeight += localPlayer.jumpVel * dt;
                 localPlayer.jumpVel -= 920 * dt;
                 if (localPlayer.jumpHeight <= 0) {
                     localPlayer.jumpHeight = 0;
                     localPlayer.jumpVel = 0;
+                    syncLocalPlayerState(true);
+                } else {
+                    stateDirty = true;
                 }
             }
 
-            // Smooth interpolation for remote friends
+            if (stateDirty) {
+                syncLocalPlayerState(false);
+            }
+
+            // Velocity-aware dead-reckoning & exponential smoothing for remote friends
+            const smoothFactor = 1 - Math.exp(-16 * dt);
+            const jumpSmooth = 1 - Math.exp(-20 * dt);
             remotePlayers.forEach((rp) => {
                 if (typeof rp.targetX === 'number') {
-                    const rdx = rp.targetX - rp.x;
-                    const rdy = rp.targetY - rp.y;
-                    if (Math.hypot(rdx, rdy) > 1.5) {
-                        rp.x += rdx * Math.min(1, dt * 12);
-                        rp.y += rdy * Math.min(1, dt * 12);
+                    const sincePacket = Math.min(0.18, Math.max(0, (now - (rp.lastPacketPerf || now)) / 1000));
+                    const predictedX = rp.targetX + (rp.vx || 0) * sincePacket;
+                    const predictedY = rp.targetY + (rp.vy || 0) * sincePacket;
+                    const rdx = predictedX - rp.x;
+                    const rdy = predictedY - rp.y;
+                    const dist = Math.hypot(rdx, rdy);
+
+                    if (dist > 0.5) {
+                        rp.x += rdx * smoothFactor;
+                        rp.y += rdy * smoothFactor;
                         rp.walkCycle = (rp.walkCycle || 0) + dt * 11;
+                    } else {
+                        rp.x = predictedX;
+                        rp.y = predictedY;
+                    }
+
+                    if (typeof rp.targetJumpHeight === 'number') {
+                        rp.jumpHeight = (rp.jumpHeight || 0) + (rp.targetJumpHeight - (rp.jumpHeight || 0)) * jumpSmooth;
+                        if (Math.abs(rp.targetJumpHeight - rp.jumpHeight) < 0.5) {
+                            rp.jumpHeight = rp.targetJumpHeight;
+                        }
                     }
                 }
             });
@@ -3967,7 +4474,6 @@
         function bindUIEvents() {
             window.addEventListener('resize', resizeCanvas);
 
-            // Lobby customization controls
             const nameInput = document.getElementById('playerNameInput');
             nameInput?.addEventListener('input', () => {
                 localPlayer.name = nameInput.value.trim() || 'Mochi';
@@ -3980,13 +4486,28 @@
                 playPopSound(600);
             });
 
+            document.getElementById('cyclePatternBtn')?.addEventListener('click', () => {
+                localPlayer.patternIdx = (localPlayer.patternIdx + 1) % SLIME_PATTERNS.length;
+                drawAvatarPreview();
+                playPopSound(640);
+            });
+
             document.getElementById('cycleAccessoryBtn')?.addEventListener('click', () => {
                 localPlayer.accessoryIdx = (localPlayer.accessoryIdx + 1) % ACCESSORIES.length;
                 drawAvatarPreview();
                 playPopSound(680);
             });
 
-            // Host / Join / Solo buttons
+            document.getElementById('randomizeSlimeBtn')?.addEventListener('click', () => {
+                localPlayer.colorIdx = Math.floor(Math.random() * AVATAR_COLORS.length);
+                localPlayer.patternIdx = Math.floor(Math.random() * SLIME_PATTERNS.length);
+                localPlayer.accessoryIdx = Math.floor(Math.random() * ACCESSORIES.length);
+                localPlayer.faceIdx = Math.floor(Math.random() * FACES.length);
+                buildColorSwatches();
+                drawAvatarPreview();
+                playPopSound(780);
+            });
+
             document.getElementById('hostRoomBtn')?.addEventListener('click', () => {
                 localPlayer.name = nameInput?.value.trim() || 'Mochi';
                 startHostRoom();
@@ -4003,7 +4524,6 @@
                 startSoloMode();
             });
 
-            // HUD Controls
             document.getElementById('copyCodeBtn')?.addEventListener('click', () => {
                 fallbackCopyCode(currentRoomCode);
             });
@@ -4024,7 +4544,6 @@
                 if (nearbyProp) interactWithProp(nearbyProp);
             });
 
-            // Mini-Game Modal Controls
             document.getElementById('closeTttBtn')?.addEventListener('click', () => {
                 document.getElementById('tttModal')?.classList.add('hidden');
             });
@@ -4042,7 +4561,6 @@
                 handleReelOrCancelFishing();
             });
 
-            // Chat Log Collapse Toggle
             document.getElementById('toggleChatLogBtn')?.addEventListener('click', () => {
                 chatLogCollapsed = !chatLogCollapsed;
                 const panel = document.getElementById('chatLogPanel');
@@ -4054,7 +4572,6 @@
                 }
             });
 
-            // Chat Input Submit
             document.getElementById('chatForm')?.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const input = document.getElementById('chatInput');
@@ -4068,25 +4585,23 @@
                 input.blur();
             });
 
-            // Quick Emotes (grounded jump check + anti-spam filter)
             document.querySelectorAll('.emote-btn').forEach((btn) => {
                 btn.addEventListener('click', () => {
                     const emote = btn.getAttribute('data-emote');
                     if (emote && triggerSpeechBubble(emote)) {
                         if (localPlayer.jumpHeight === 0 && localPlayer.jumpVel === 0) {
                             localPlayer.jumpVel = 220;
+                            syncLocalPlayerState(true);
                         }
                         playPopSound(720);
                     }
                 });
             });
 
-            // Canvas Click / Tap to Walk or Interact
             canvas.addEventListener('pointerdown', (e) => {
                 if (!inGame) return;
                 const worldPt = screenToWorld(e.clientX, e.clientY);
 
-                // Check if user tapped directly on a nearby prop to interact
                 if (nearbyProp && Math.hypot(worldPt.x - nearbyProp.x, worldPt.y - nearbyProp.y) <= nearbyProp.radius * 0.85) {
                     interactWithProp(nearbyProp);
                     return;
@@ -4098,7 +4613,6 @@
                 };
             });
 
-            // Keyboard Controls
             window.addEventListener('keydown', (e) => {
                 if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
                     return;
@@ -4109,7 +4623,13 @@
                 if (e.code === 'KeyE' && nearbyProp) {
                     interactWithProp(nearbyProp);
                 } else if (e.code === 'Space' && localPlayer.jumpHeight === 0) {
+                    if (localPlayer.isSitting) {
+                        localPlayer.isSitting = false;
+                        localPlayer.seatIdx = -1;
+                        localPlayer.y -= 24;
+                    }
                     localPlayer.jumpVel = 260;
+                    syncLocalPlayerState(true);
                     playPopSound(520);
                 }
             });
