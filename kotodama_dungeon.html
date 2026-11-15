@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Kotodama Dungeon — Japanese Roguelike Deckbuilder</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Cinzel (Dark Fantasy Display), Noto Sans JP (Crisp Kanji), Plus Jakarta Sans (Clean UI) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Noto+Sans+JP:wght@700;900&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-obsidian: #0F0D1A;
+      --bg-indigo: #19162B;
+      --gold-lantern: #F59E0B;
+      --gold-bright: #FDE68A;
+      --crimson-seal: #E11D48;
+      --parchment: #FDF6E3;
+      --parchment-dark: #EADBC8;
+      --ink-dark: #1E1B2E;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-obsidian);
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(225, 29, 72, 0.14) 0%, transparent 55%),
+        radial-gradient(circle at 85% 90%, rgba(245, 158, 11, 0.10) 0%, transparent 50%),
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.015) 0px, rgba(255, 255, 255, 0.015) 2px, transparent 2px, transparent 10px);
+      color: #F8FAFC;
+      margin: 0;
+      padding: 0;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    .font-fantasy {
+      font-family: 'Cinzel', 'Noto Sans JP', serif;
+    }
+
+    .font-jp {
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+
+    /* Shrine Frames & Parchment Cards */
+    .shrine-panel {
+      background: linear-gradient(180deg, rgba(28, 24, 48, 0.94) 0%, rgba(18, 15, 32, 0.97) 100%);
+      border: 2px solid rgba(245, 158, 11, 0.45);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(253, 230, 138, 0.18);
+      border-radius: 18px;
+    }
+
+    .parchment-card {
+      background: linear-gradient(165deg, #FFFDF7 0%, #F5E8C7 100%);
+      color: var(--ink-dark);
+      border-radius: 14px;
+      transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.16s ease, opacity 0.16s ease;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .parchment-card:hover:not(.card-disabled) {
+      transform: translateY(-10px) scale(1.03);
+      z-index: 25;
+    }
+
+    .parchment-card:active:not(.card-disabled) {
+      transform: translateY(-3px) scale(0.98);
+    }
+
+    .card-adj {
+      border: 3px solid #2563EB;
+      box-shadow: 0 6px 0 #1D4ED8, 0 10px 18px rgba(0, 0, 0, 0.45);
+    }
+    .card-noun {
+      border: 3px solid #D97706;
+      box-shadow: 0 6px 0 #B45309, 0 10px 18px rgba(0, 0, 0, 0.45);
+    }
+    .card-verb {
+      border: 3px solid #E11D48;
+      box-shadow: 0 6px 0 #9F1239, 0 10px 18px rgba(0, 0, 0, 0.45);
+    }
+
+    .card-upgraded {
+      background: linear-gradient(165deg, #FFFBEB 0%, #FDE68A 100%);
+      box-shadow: 0 6px 0 #B45309, 0 0 16px rgba(245, 158, 11, 0.55);
+    }
+
+    .card-disabled {
+      opacity: 0.45;
+      filter: grayscale(0.5);
+      cursor: not-allowed;
+    }
+
+    /* Forge Slots */
+    .forge-slot {
+      border: 2px dashed rgba(253, 230, 138, 0.4);
+      background: rgba(15, 13, 26, 0.65);
+      border-radius: 14px;
+      transition: all 0.18s ease;
+    }
+    .forge-slot.filled-adj {
+      border: 2px solid #3B82F6;
+      background: rgba(37, 99, 235, 0.18);
+      box-shadow: 0 0 14px rgba(59, 130, 246, 0.3);
+    }
+    .forge-slot.filled-noun {
+      border: 2px solid #F59E0B;
+      background: rgba(217, 119, 6, 0.18);
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.3);
+    }
+    .forge-slot.filled-verb {
+      border: 2px solid #F43F5E;
+      background: rgba(225, 29, 72, 0.18);
+      box-shadow: 0 0 14px rgba(244, 63, 94, 0.3);
+    }
+
+    /* Arcade / Action Buttons */
+    .shrine-btn {
+      border-radius: 14px;
+      font-weight: 800;
+      transition: transform 0.1s ease, filter 0.15s ease, box-shadow 0.1s ease;
+      cursor: pointer;
+    }
+    .shrine-btn:hover:not(:disabled) {
+      filter: brightness(1.08);
+    }
+    .shrine-btn:active:not(:disabled) {
+      transform: translateY(3px);
+    }
+    .shrine-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* Animations */
+    @keyframes yokaiBob {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(1.5deg); }
+    }
+    .animate-yokai-bob {
+      animation: yokaiBob 2.6s ease-in-out infinite;
+    }
+
+    @keyframes hitFlash {
+      0% { filter: brightness(3) saturate(2); transform: translateX(-10px) scale(0.95); }
+      30% { filter: brightness(2); transform: translateX(10px) scale(1.04); }
+      60% { filter: brightness(1.4); transform: translateX(-6px); }
+      100% { filter: brightness(1); transform: translateX(0px) scale(1); }
+    }
+    .animate-hit-flash {
+      animation: hitFlash 0.38s ease-out;
+    }
+
+    @keyframes screenShake {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-8px, 5px); }
+      40% { transform: translate(8px, -5px); }
+      60% { transform: translate(-6px, -3px); }
+      80% { transform: translate(6px, 3px); }
+    }
+    .animate-shake {
+      animation: screenShake 0.36s ease-in-out;
+    }
+
+    @keyframes floatUpFade {
+      0% { transform: translate(-50%, 0) scale(0.7); opacity: 0; }
+      20% { transform: translate(-50%, -14px) scale(1.15); opacity: 1; }
+      100% { transform: translate(-50%, -68px) scale(0.95); opacity: 0; }
+    }
+    .floating-popup {
+      position: absolute;
+      pointer-events: none;
+      font-weight: 900;
+      z-index: 50;
+      text-shadow: 0 3px 6px rgba(0,0,0,0.9);
+      animation: floatUpFade 1.05s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes cardDeal {
+      0% { transform: translateY(30px) scale(0.85); opacity: 0; }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .animate-card-deal {
+      animation: cardDeal 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 13, 26, 0.6); border-radius: 8px; }
+    ::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.5); border-radius: 8px; }
+  </style>
+</head>
+<body class="p-2 sm:p-4">
+
+  <!-- Particle & Spell Effect Overlay -->
+  <canvas id="fx-canvas" class="fixed inset-0 pointer-events-none z-40"></canvas>
+
+  <!-- Main App Wrapper -->
+  <div id="game-root" class="w-full max-w-5xl mx-auto flex-1 flex flex-col justify-between gap-2.5">
+
+    <!-- ===================================================================== -->
+    <!-- TOP GLOBAL HUD BAR                                                    -->
+    <!-- ===================================================================== -->
+    <header id="hud-bar" class="hidden shrine-panel px-3 py-2 sm:px-5 sm:py-2.5 flex flex-wrap items-center justify-between gap-2 z-20">
+      <!-- Left: Floor & Player HP -->
+      <div class="flex items-center gap-3 sm:gap-4">
+        <div class="bg-[#E11D48] border border-amber-300/60 px-3 py-1 rounded-xl text-center shadow">
+          <div class="text-[10px] font-extrabold uppercase tracking-wider text-amber-100">Floor</div>
+          <div id="hud-floor" class="font-fantasy font-black text-base sm:text-lg leading-none">1 / 6</div>
+        </div>
+
+        <!-- HP Bar -->
+        <div class="min-w-[125px] sm:min-w-[165px]">
+          <div class="flex items-center justify-between text-xs font-extrabold mb-1">
+            <span class="text-rose-300 flex items-center gap-1">❤️ HP</span>
+            <span id="hud-hp-text" class="text-amber-100">50 / 50</span>
+          </div>
+          <div class="w-full h-3 bg-slate-900 rounded-full border border-amber-400/40 overflow-hidden">
+            <div id="hud-hp-bar" class="h-full bg-gradient-to-r from-rose-600 to-rose-400 transition-all duration-300" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Yen Currency -->
+        <div class="bg-amber-500/15 border border-amber-400/40 px-3 py-1 rounded-xl flex items-center gap-1.5">
+          <span class="text-amber-300 font-black text-sm sm:text-base">¥</span>
+          <span id="hud-yen" class="font-extrabold text-sm sm:text-base text-amber-200">40</span>
+        </div>
+      </div>
+
+      <!-- Center: Active Relics Bar -->
+      <div id="hud-relics" class="flex items-center gap-1.5 flex-wrap">
+        <!-- Relic icons populated dynamically -->
+      </div>
+
+      <!-- Right: Deck Glossary & Audio Toggles -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <button onclick="openDeckModal()" class="shrine-btn bg-indigo-900/90 hover:bg-indigo-800 border border-amber-300/40 px-2.5 py-1.5 text-xs sm:text-sm flex items-center gap-1.5 text-amber-100">
+          <span>📜</span>
+          <span>Deck (<span id="hud-deck-count">10</span>)</span>
+        </button>
+        <button id="btn-tts" onclick="toggleTTS()" title="Toggle Japanese Voice Pronunciation"
+          class="shrine-btn bg-slate-800 border border-slate-600 px-2.5 py-1.5 text-xs sm:text-sm text-amber-200">
+          🗣️ <span class="hidden md:inline" id="tts-label">TTS ON</span>
+        </button>
+        <button id="btn-sfx" onclick="toggleSFX()" title="Toggle Sound Effects"
+          class="shrine-btn bg-slate-800 border border-slate-600 px-2.5 py-1.5 text-xs sm:text-sm text-amber-200">
+          🔊
+        </button>
+      </div>
+    </header>
+
+    <!-- ===================================================================== -->
+    <!-- SCREEN 1: TITLE / SHRINE ENTRANCE                                     -->
+    <!-- ===================================================================== -->
+    <main id="screen-title" class="shrine-panel p-6 sm:p-10 my-auto max-w-2xl mx-auto text-center flex flex-col items-center gap-5">
+      <div class="inline-flex items-center gap-2 bg-rose-600/25 border border-rose-400/60 px-4 py-1 rounded-full text-xs sm:text-sm font-extrabold tracking-widest uppercase text-rose-200">
+        <span>⛩️</span> 言霊ダンジョン • Kotodama Roguelike
+      </div>
+
+      <div>
+        <h1 class="font-fantasy font-black text-4xl sm:text-6xl tracking-wide text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-rose-500 drop-shadow">
+          KOTODAMA DUNGEON
+        </h1>
+        <p class="mt-3 text-sm sm:text-base text-slate-300 max-w-lg mx-auto leading-relaxed">
+          Forge real <strong class="text-amber-300">Japanese sentences</strong> out of Kanji &amp; Romaji word cards to banish Yokai spirits, exploit elemental weaknesses, and upgrade your deck across 6 cursed floors.
+        </p>
+      </div>
+
+      <!-- Grammar Formula Visual Guide -->
+      <div class="w-full grid grid-cols-3 gap-2 sm:gap-3 bg-slate-950/70 border border-amber-400/30 rounded-2xl p-3 sm:p-4 text-left">
+        <div class="border-l-4 border-blue-500 pl-2.5">
+          <div class="text-[11px] font-black uppercase text-blue-400">1. Adjective</div>
+          <div class="font-jp font-black text-base sm:text-lg text-white">鋭い <span class="text-xs font-normal text-blue-300">surudoi</span></div>
+          <div class="text-[11px] text-slate-400">Modifies power, block, or draw</div>
+        </div>
+        <div class="border-l-4 border-amber-500 pl-2.5">
+          <div class="text-[11px] font-black uppercase text-amber-400">2. Noun</div>
+          <div class="font-jp font-black text-base sm:text-lg text-white">刀 <span class="text-xs font-normal text-amber-300">katana</span></div>
+          <div class="text-[11px] text-slate-400">Sets Element (⚔️🔥💧⚡) or Shield</div>
+        </div>
+        <div class="border-l-4 border-rose-500 pl-2.5">
+          <div class="text-[11px] font-black uppercase text-rose-400">3. Verb</div>
+          <div class="font-jp font-black text-base sm:text-lg text-white">切る <span class="text-xs font-normal text-rose-300">kiru</span></div>
+          <div class="text-[11px] text-slate-400">Multiplies effect &amp; adds bonus!</div>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 w-full max-w-md mt-1">
+        <button onclick="startNewRun()"
+          class="shrine-btn flex-1 bg-gradient-to-r from-rose-600 to-amber-500 text-slate-950 font-fantasy font-black text-lg sm:text-xl py-3.5 px-6 shadow-lg shadow-rose-950/50">
+          ENTER THE SHRINE ⚔️
+        </button>
+        <button onclick="openDeckModal(true)"
+          class="shrine-btn bg-slate-800 hover:bg-slate-700 border border-amber-300/40 text-amber-200 font-bold text-sm py-3.5 px-5">
+          📖 STUDY KANJI
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-400">
+        Active Language: <span class="text-amber-300 font-bold">🇯🇵 Japanese (Kanji + Romaji + TTS)</span> • Multi-language ready architecture
+      </div>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- SCREEN 2: COMBAT ARENA                                                -->
+    <!-- ===================================================================== -->
+    <main id="screen-combat" class="hidden flex-1 flex-col justify-between gap-2.5">
+
+      <!-- TOP HALF: BATTLEFIELD (PLAYER STATUS vs YOKAI ENEMY) -->
+      <section id="battlefield-panel" class="shrine-panel p-3 sm:p-5 grid grid-cols-1 md:grid-cols-12 gap-3 items-center relative overflow-hidden">
+        
+        <!-- Left: Player Guardian Avatar & Active Block / Status -->
+        <div class="md:col-span-4 flex md:flex-col items-center justify-between md:justify-center bg-slate-950/60 border border-indigo-400/25 rounded-2xl p-3 text-center">
+          <div class="flex items-center md:flex-col gap-2.5">
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-indigo-950 border-2 border-amber-400/60 flex items-center justify-center text-3xl sm:text-4xl shadow-inner">
+              🥷
+            </div>
+            <div class="text-left md:text-center">
+              <div class="font-fantasy font-bold text-sm sm:text-base text-amber-200">Kotodama Mage</div>
+              <div class="text-[11px] text-slate-400">Turn <span id="combat-turn">1</span></div>
+            </div>
+          </div>
+
+          <!-- Player Block & Buff Badges -->
+          <div class="flex items-center gap-2 mt-0 md:mt-2.5">
+            <div id="player-block-badge" class="bg-sky-950/90 border border-sky-400/60 px-3 py-1 rounded-xl flex items-center gap-1.5">
+              <span>🛡️</span>
+              <span class="text-xs font-extrabold text-sky-200">Block: <strong id="player-block" class="text-base text-white">0</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: Turn Log / Combat Feedback Banner -->
+        <div class="md:col-span-4 flex flex-col items-center justify-center text-center px-2">
+          <div id="combat-log" class="bg-slate-950/80 border border-amber-300/30 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-amber-100 w-full min-h-[54px] flex items-center justify-center">
+            Select word cards below to forge a Japanese phrase!
+          </div>
+          <div class="mt-2 flex items-center gap-2 text-[11px] text-slate-400">
+            <span>Draw Pile: <strong id="pile-draw" class="text-amber-300">5</strong></span>
+            <span>•</span>
+            <span>Discard: <strong id="pile-discard" class="text-slate-300">0</strong></span>
+          </div>
+        </div>
+
+        <!-- Right: Yokai Enemy Card -->
+        <div id="enemy-box" class="md:col-span-4 bg-slate-950/75 border-2 border-rose-500/50 rounded-2xl p-3 relative flex flex-col items-center text-center">
+          <!-- Telegraphed Next Intent Pill -->
+          <div id="enemy-intent-badge" class="w-full mb-2 bg-rose-950/90 border border-rose-400/70 rounded-xl px-2.5 py-1 flex items-center justify-between text-xs font-extrabold">
+            <span class="text-rose-300 uppercase tracking-wider text-[10px]">Next Intent</span>
+            <span id="enemy-intent-text" class="text-white">⚔️ Attack 9</span>
+          </div>
+
+          <!-- Yokai Sprite + Weakness Badge -->
+          <div class="relative my-1">
+            <div id="enemy-sprite" class="text-5xl sm:text-6xl animate-yokai-bob select-none">👺</div>
+            <div id="enemy-weakness-badge" title="Elemental Weakness (1.5x Crit Damage!)"
+              class="absolute -right-7 -top-1 bg-amber-500 text-slate-950 font-black text-[11px] px-2 py-0.5 rounded-full border border-white shadow">
+              Weak: 💧
+            </div>
+          </div>
+
+          <!-- Yokai Name & HP -->
+          <div class="w-full mt-1">
+            <div class="flex items-baseline justify-center gap-1.5">
+              <span id="enemy-kanji" class="font-jp font-black text-base sm:text-lg text-rose-200">河童</span>
+              <span id="enemy-name" class="font-fantasy font-bold text-xs sm:text-sm text-amber-300">Kappa</span>
+            </div>
+
+            <!-- Enemy HP Bar -->
+            <div class="w-full h-3.5 bg-slate-900 rounded-full border border-rose-400/40 overflow-hidden mt-1.5 relative">
+              <div id="enemy-hp-bar" class="h-full bg-gradient-to-r from-rose-600 to-amber-500 transition-all duration-300" style="width: 100%;"></div>
+              <span id="enemy-hp-text" class="absolute inset-0 text-[10px] font-black flex items-center justify-center text-white drop-shadow">
+                36 / 36
+              </span>
+            </div>
+
+            <!-- Enemy Block & Burn Status -->
+            <div id="enemy-statuses" class="flex items-center justify-center gap-2 mt-1.5 min-h-[20px] text-[11px] font-extrabold">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MIDDLE: THE 3-SLOT SENTENCE FORGE -->
+      <section class="shrine-panel p-3 sm:p-4 flex flex-col gap-2.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="font-fantasy font-bold text-sm sm:text-base text-amber-300">⛩️ SENTENCE FORGE</span>
+            <span id="combo-badge" class="hidden bg-gradient-to-r from-amber-400 to-rose-500 text-slate-950 text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+              ✨ KOTODAMA COMBO (+25%)
+            </span>
+          </div>
+
+          <!-- Energy Orbs & Turn Controls -->
+          <div class="flex items-center gap-2 sm:gap-3">
+            <div class="bg-slate-950 border border-amber-400/50 px-3 py-1 rounded-xl flex items-center gap-1.5">
+              <span class="text-xs font-extrabold text-amber-300">⚡ ENERGY</span>
+              <span id="hud-energy" class="font-fantasy font-black text-base sm:text-lg text-white">3 / 3</span>
+            </div>
+            <button onclick="clearForge()" class="shrine-btn bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2.5 py-1.5 text-xs text-slate-300">
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- 3 Grammatical Slots -->
+        <div class="grid grid-cols-3 gap-2 sm:gap-3">
+          <!-- Slot 1: Adjective -->
+          <div id="slot-adj" onclick="unslotCard('adj')" class="forge-slot p-2 sm:p-2.5 min-h-[78px] sm:min-h-[86px] flex flex-col items-center justify-center text-center cursor-pointer">
+            <span class="text-[10px] font-black uppercase tracking-wider text-blue-400">1. Adjective (Opt)</span>
+            <span class="text-xs text-slate-500 mt-1">Modifier</span>
+          </div>
+
+          <!-- Slot 2: Noun -->
+          <div id="slot-noun" onclick="unslotCard('noun')" class="forge-slot p-2 sm:p-2.5 min-h-[78px] sm:min-h-[86px] flex flex-col items-center justify-center text-center cursor-pointer">
+            <span class="text-[10px] font-black uppercase tracking-wider text-amber-400">2. Noun (Core)</span>
+            <span class="text-xs text-slate-500 mt-1">Element / Shield</span>
+          </div>
+
+          <!-- Slot 3: Verb -->
+          <div id="slot-verb" onclick="unslotCard('verb')" class="forge-slot p-2 sm:p-2.5 min-h-[78px] sm:min-h-[86px] flex flex-col items-center justify-center text-center cursor-pointer">
+            <span class="text-[10px] font-black uppercase tracking-wider text-rose-400">3. Verb (Opt)</span>
+            <span class="text-xs text-slate-500 mt-1">Multiplier</span>
+          </div>
+        </div>
+
+        <!-- Live Japanese Phrase Preview + Cast & End Turn Buttons -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-slate-950/75 border border-amber-400/25 rounded-2xl p-2.5">
+          <div class="flex-1 text-center sm:text-left px-1">
+            <div id="preview-jp" class="font-jp font-black text-base sm:text-lg text-amber-200">
+              — Slot cards to build a phrase —
+            </div>
+            <div id="preview-stats" class="text-xs font-bold text-slate-400 mt-0.5">
+              Play a Noun, or combine Adjective + Noun + Verb for bonus power!
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <button id="btn-cast" onclick="castSentence()" disabled
+              class="shrine-btn flex-1 sm:flex-initial bg-gradient-to-r from-amber-500 to-rose-600 text-slate-950 font-fantasy font-black text-sm sm:text-base px-5 py-2.5 shadow-md">
+              CAST SPELL 🔥
+            </button>
+            <button id="btn-end-turn" onclick="endPlayerTurn()"
+              class="shrine-btn bg-slate-800 hover:bg-slate-700 border border-amber-300/40 text-amber-200 font-bold text-xs sm:text-sm px-3.5 py-2.5">
+              End Turn ⏭️
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- BOTTOM: PLAYER HAND (5-6 WORD CARDS) -->
+      <section class="pb-1">
+        <div id="player-hand" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-2.5">
+          <!-- Word cards rendered dynamically -->
+        </div>
+      </section>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- SCREEN 3: VICTORY REWARD & SHRINE BLACKSMITH / SHOP                   -->
+    <!-- ===================================================================== -->
+    <main id="screen-reward" class="hidden shrine-panel p-4 sm:p-6 my-auto flex-col gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-400/30 pb-3">
+        <div>
+          <span class="text-xs font-black uppercase tracking-widest text-emerald-400">Yokai Banished!</span>
+          <h2 id="reward-title" class="font-fantasy font-black text-2xl sm:text-3xl text-amber-200">Floor 1 Cleared</h2>
+        </div>
+        <div class="bg-amber-500/20 border border-amber-400 px-3.5 py-1.5 rounded-xl text-sm font-extrabold text-amber-200">
+          Earned <span id="reward-yen-earned" class="text-white">+35 ¥</span> • Wallet: <span id="reward-yen-total" class="text-amber-300">75 ¥</span>
+        </div>
+      </div>
+
+      <!-- STEP 1: DRAFT 1 OF 3 NEW JAPANESE WORD CARDS -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-fantasy font-bold text-base sm:text-lg text-amber-300">📜 Draft a New Word Card (Choose 1)</h3>
+          <span id="draft-status-text" class="text-xs font-bold text-slate-400">Free reward</span>
+        </div>
+        <div id="draft-cards-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <!-- 3 Draftable Cards -->
+        </div>
+      </div>
+
+      <!-- STEP 2: SHRINE UPGRADES (BLACKSMITH, HOT SPRING, RELIC) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+        <!-- Blacksmith Card Upgrade -->
+        <div class="bg-slate-950/75 border border-amber-400/35 rounded-2xl p-3.5 flex flex-col justify-between gap-2">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="font-fantasy font-bold text-amber-300 text-sm">⚒️ Blacksmith (鍛冶屋)</span>
+              <span class="text-xs font-black text-amber-200">35 ¥</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Upgrade any card in your deck to <strong class="text-amber-300">+1</strong> for stronger damage, block, or multipliers.</p>
+          </div>
+          <button id="btn-shop-upgrade" onclick="openUpgradeModal()"
+            class="shrine-btn w-full bg-amber-500/90 hover:bg-amber-400 text-slate-950 font-extrabold text-xs py-2.5">
+            UPGRADE A CARD (35 ¥)
+          </button>
+        </div>
+
+        <!-- Hot Spring Heal -->
+        <div class="bg-slate-950/75 border border-emerald-400/35 rounded-2xl p-3.5 flex flex-col justify-between gap-2">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="font-fantasy font-bold text-emerald-300 text-sm">♨️ Hot Spring (温泉)</span>
+              <span class="text-xs font-black text-amber-200">25 ¥</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Rest in sacred waters to restore <strong class="text-emerald-300">+20 HP</strong> before climbing higher.</p>
+          </div>
+          <button id="btn-shop-heal" onclick="buyHeal()"
+            class="shrine-btn w-full bg-emerald-500/90 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs py-2.5">
+            HEAL +20 HP (25 ¥)
+          </button>
+        </div>
+
+        <!-- Shrine Relic -->
+        <div id="shop-relic-box" class="bg-slate-950/75 border border-purple-400/45 rounded-2xl p-3.5 flex flex-col justify-between gap-2">
+          <!-- Populated dynamically with an unowned relic -->
+        </div>
+      </div>
+
+      <!-- Proceed to Next Floor -->
+      <button onclick="advanceToNextFloor()"
+        class="shrine-btn w-full bg-gradient-to-r from-rose-600 to-amber-500 text-slate-950 font-fantasy font-black text-lg py-3.5 mt-1">
+        ASCEND TO NEXT FLOOR ⛩️
+      </button>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- SCREEN 4: VICTORY / DEFEAT END SCREEN                                 -->
+    <!-- ===================================================================== -->
+    <main id="screen-end" class="hidden shrine-panel p-6 sm:p-10 my-auto max-w-xl mx-auto text-center flex-col items-center gap-5">
+      <div id="end-icon" class="text-6xl sm:text-7xl">🏆</div>
+      <div>
+        <div id="end-subtitle" class="text-xs font-black uppercase tracking-widest text-amber-400">Shrine Purified</div>
+        <h2 id="end-title" class="font-fantasy font-black text-3xl sm:text-5xl text-white mt-1">VICTORY!</h2>
+      </div>
+      <p id="end-desc" class="text-sm sm:text-base text-slate-300">
+        You mastered the ancient Kotodama and defeated the Shrine Dragon!
+      </p>
+
+      <div class="w-full grid grid-cols-3 gap-3 bg-slate-950/70 border border-amber-400/30 rounded-2xl p-4">
+        <div>
+          <div class="text-[11px] uppercase text-slate-400 font-bold">Floors</div>
+          <div id="end-stat-floors" class="font-fantasy font-black text-2xl text-amber-300">6 / 6</div>
+        </div>
+        <div>
+          <div class="text-[11px] uppercase text-slate-400 font-bold">Deck Size</div>
+          <div id="end-stat-deck" class="font-fantasy font-black text-2xl text-sky-300">14</div>
+        </div>
+        <div>
+          <div class="text-[11px] uppercase text-slate-400 font-bold">Relics</div>
+          <div id="end-stat-relics" class="font-fantasy font-black text-2xl text-rose-400">2</div>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 w-full">
+        <button onclick="startNewRun()"
+          class="shrine-btn flex-1 bg-gradient-to-r from-rose-600 to-amber-500 text-slate-950 font-fantasy font-black text-lg py-3.5">
+          PLAY AGAIN 🔄
+        </button>
+        <button onclick="openDeckModal(true)"
+          class="shrine-btn bg-slate-800 border border-amber-300/40 text-amber-200 font-bold text-sm py-3.5 px-5">
+          📜 REVIEW KANJI
+        </button>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL: DECK & KANJI GLOSSARY / BLACKSMITH UPGRADE SELECTOR              -->
+  <!-- ======================================================================= -->
+  <div id="modal-overlay" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 p-3 sm:p-6 flex items-center justify-center">
+    <div class="shrine-panel w-full max-w-3xl max-h-[88vh] flex flex-col p-4 sm:p-6">
+      <div class="flex items-center justify-between border-b border-amber-400/30 pb-3 mb-3">
+        <div>
+          <h3 id="modal-title" class="font-fantasy font-black text-xl sm:text-2xl text-amber-300">📜 Deck &amp; Kanji Dictionary</h3>
+          <p id="modal-subtitle" class="text-xs text-slate-400">Click any card to hear native Japanese pronunciation</p>
+        </div>
+        <button onclick="closeModal()" class="shrine-btn bg-rose-600 text-white px-3.5 py-1.5 text-xs font-black">
+          CLOSE ✕
+        </button>
+      </div>
+
+      <div id="modal-cards-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 overflow-y-auto pr-1">
+        <!-- Cards injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- JAVASCRIPT: EXTENSIBLE LANGUAGE DATA, COMBAT ENGINE, FX & AUDIO         -->
+  <!-- ======================================================================= -->
+  <script>
+    /**
+     * 1. EXTENSIBLE MULTI-LANGUAGE DATABASE
+     * Structured cleanly so new languages ('es', 'fr', 'ko') can be plugged in easily.
+     */
+    const LANGUAGES = {
+      ja: {
+        code: 'ja',
+        name: 'Japanese',
+        flag: '🇯🇵',
+        ttsLang: 'ja-JP',
+        particles: {
+          subjectToVerb: 'を',   // wo (object marker)
+          adjJoiner: ''          // Japanese i-adjectives attach directly before nouns (e.g., 鋭い刀)
+        },
+        cards: [
+          // --- ADJECTIVES (Modifiers) ---
+          {
+            id: 'adj_sharp', type: 'adj', cost: 1,
+            kanji: '鋭い', kana: 'するどい', romaji: 'surudoi', en: 'Sharp',
+            icon: '✨', powerBonus: 5, blockBonus: 0, burnBonus: 0, drawBonus: 0,
+            upgPowerBonus: 8, upgBlockBonus: 0, upgBurnBonus: 0, upgDrawBonus: 0,
+            desc: '+5 DMG to sentence', upgDesc: '+8 DMG to sentence'
+          },
+          {
+            id: 'adj_hot', type: 'adj', cost: 1,
+            kanji: '熱い', kana: 'あつい', romaji: 'atsui', en: 'Hot',
+            icon: '🌡️', powerBonus: 4, blockBonus: 0, burnBonus: 3, drawBonus: 0,
+            upgPowerBonus: 6, upgBlockBonus: 0, upgBurnBonus: 5, upgDrawBonus: 0,
+            desc: '+4 DMG & +3 Burn', upgDesc: '+6 DMG & +5 Burn'
+          },
+          {
+            id: 'adj_hard', type: 'adj', cost: 1,
+            kanji: '硬い', kana: 'かたい', romaji: 'katai', en: 'Hard',
+            icon: '🧱', powerBonus: 0, blockBonus: 7, burnBonus: 0, drawBonus: 0,
+            upgPowerBonus: 0, upgBlockBonus: 11, burnBonus: 0, upgDrawBonus: 0,
+            desc: '+7 Block', upgDesc: '+11 Block'
+          },
+          {
+            id: 'adj_fast', type: 'adj', cost: 1,
+            kanji: '速い', kana: 'はやい', romaji: 'hayai', en: 'Fast',
+            icon: '💨', powerBonus: 3, blockBonus: 0, burnBonus: 0, drawBonus: 1,
+            upgPowerBonus: 5, upgBlockBonus: 0, upgBurnBonus: 0, upgDrawBonus: 1,
+            desc: '+3 DMG & Draw 1', upgDesc: '+5 DMG & Draw 1'
+          },
+          {
+            id: 'adj_giant', type: 'adj', cost: 2,
+            kanji: '巨大な', kana: 'きょだいな', romaji: 'kyodaina', en: 'Giant',
+            icon: '🗿', powerBonus: 11, blockBonus: 0, burnBonus: 0, drawBonus: 0,
+            upgPowerBonus: 16, upgBlockBonus: 0, upgBurnBonus: 0, upgDrawBonus: 0,
+            desc: '+11 DMG', upgDesc: '+16 DMG'
+          },
+
+          // --- NOUNS (Core Elements & Targets) ---
+          {
+            id: 'noun_sword', type: 'noun', cost: 1, element: 'steel', elementIcon: '⚔️',
+            kanji: '刀', kana: 'かたな', romaji: 'katana', en: 'Sword',
+            icon: '🗡️', baseDmg: 6, baseBlock: 0, burn: 0,
+            upgBaseDmg: 9, upgBaseBlock: 0, upgBurn: 0,
+            desc: '6 Steel DMG', upgDesc: '9 Steel DMG'
+          },
+          {
+            id: 'noun_fire', type: 'noun', cost: 1, element: 'fire', elementIcon: '🔥',
+            kanji: '火', kana: 'ひ', romaji: 'hi', en: 'Fire',
+            icon: '🔥', baseDmg: 6, baseBlock: 0, burn: 2,
+            upgBaseDmg: 9, upgBaseBlock: 0, upgBurn: 4,
+            desc: '6 Fire DMG +2 Burn', upgDesc: '9 Fire DMG +4 Burn'
+          },
+          {
+            id: 'noun_water', type: 'noun', cost: 1, element: 'water', elementIcon: '💧',
+            kanji: '水', kana: 'みず', romaji: 'mizu', en: 'Water',
+            icon: '🌊', baseDmg: 6, baseBlock: 2, burn: 0,
+            upgBaseDmg: 9, upgBaseBlock: 4, upgBurn: 0,
+            desc: '6 Water DMG +2 Block', upgDesc: '9 Water DMG +4 Block'
+          },
+          {
+            id: 'noun_lightning', type: 'noun', cost: 1, element: 'wind', elementIcon: '⚡',
+            kanji: '雷', kana: 'かみなり', romaji: 'kaminari', en: 'Lightning',
+            icon: '⚡', baseDmg: 7, baseBlock: 0, burn: 0,
+            upgBaseDmg: 11, upgBaseBlock: 0, upgBurn: 0,
+            desc: '7 Storm DMG', upgDesc: '11 Storm DMG'
+          },
+          {
+            id: 'noun_shield', type: 'noun', cost: 1, element: 'earth', elementIcon: '🛡️',
+            kanji: '盾', kana: 'たて', romaji: 'tate', en: 'Shield',
+            icon: '🛡️', baseDmg: 0, baseBlock: 8, burn: 0,
+            upgBaseDmg: 0, upgBaseBlock: 12, upgBurn: 0,
+            desc: 'Gain 8 Block', upgDesc: 'Gain 12 Block'
+          },
+          {
+            id: 'noun_storm', type: 'noun', cost: 1, element: 'wind', elementIcon: '⚡',
+            kanji: '嵐', kana: 'あらし', romaji: 'arashi', en: 'Storm',
+            icon: '🌪️', baseDmg: 5, baseBlock: 4, burn: 0,
+            upgBaseDmg: 8, upgBaseBlock: 6, upgBurn: 0,
+            desc: '5 Storm DMG +4 Block', upgDesc: '8 Storm DMG +6 Block'
+          },
+
+          // --- VERBS (Action Multipliers & Special Effects) ---
+          {
+            id: 'verb_slash', type: 'verb', cost: 1,
+            kanji: '切る', kana: 'きる', romaji: 'kiru', en: 'Slash',
+            icon: '⚔️', mult: 1.5, upgMult: 1.8, special: 'pierce',
+            desc: '1.5x DMG & Shatters 50% Enemy Block',
+            upgDesc: '1.8x DMG & Shatters 50% Enemy Block'
+          },
+          {
+            id: 'verb_burn', type: 'verb', cost: 1,
+            kanji: '燃やす', kana: 'もやす', romaji: 'moyasu', en: 'Burn',
+            icon: '🧨', mult: 1.4, upgMult: 1.7, special: 'burn',
+            desc: '1.4x DMG & +4 Burn DOT',
+            upgDesc: '1.7x DMG & +6 Burn DOT'
+          },
+          {
+            id: 'verb_defend', type: 'verb', cost: 1,
+            kanji: '守る', kana: 'まもる', romaji: 'mamoru', en: 'Defend',
+            icon: '🏯', mult: 1.4, upgMult: 1.7, special: 'fortify',
+            desc: 'Converts Power into Block +4 Bonus Block',
+            upgDesc: 'Converts Power into Block +7 Bonus Block'
+          },
+          {
+            id: 'verb_strike', type: 'verb', cost: 1,
+            kanji: '打つ', kana: 'うつ', romaji: 'utsu', en: 'Strike',
+            icon: '👊', mult: 1.4, upgMult: 1.7, special: 'lifesteal',
+            desc: '1.4x DMG & Heal 3 HP',
+            upgDesc: '1.7x DMG & Heal 5 HP'
+          },
+          {
+            id: 'verb_unleash', type: 'verb', cost: 2,
+            kanji: '放つ', kana: 'はなつ', romaji: 'hanatsu', en: 'Unleash',
+            icon: '💥', mult: 2.0, upgMult: 2.4, special: 'unleash',
+            desc: '2.0x Massive Sentence DMG',
+            upgDesc: '2.4x Massive Sentence DMG'
+          }
+        ],
+        starterDeckIds: [
+          'noun_sword', 'noun_fire', 'noun_water', 'noun_shield',
+          'adj_sharp', 'adj_hard', 'adj_hot',
+          'verb_slash', 'verb_defend', 'verb_strike'
+        ]
+      }
+    };
+
+    const RELIC_POOL = [
+      {
+        id: 'relic_scroll',
+        name: 'Grammar Scroll',
+        kanji: '文法の巻物',
+        icon: '📜',
+        cost: 45,
+        desc: 'Full 3-card sentences (Adj + Noun + Verb) deal +6 bonus DMG!'
+      },
+      {
+        id: 'relic_mask',
+        name: 'Oni Mask',
+        kanji: '鬼の面',
+        icon: '👹',
+        cost: 50,
+        desc: 'Gain +1 Energy on Turn 1 of every battle.'
+      },
+      {
+        id: 'relic_feather',
+        name: 'Tengu Feather',
+        kanji: '天狗の羽',
+        icon: '🪶',
+        cost: 55,
+        desc: 'Draw 6 cards each turn instead of 5.'
+      },
+      {
+        id: 'relic_bell',
+        name: 'Kotodama Bell',
+        kanji: '言霊の鈴',
+        icon: '🔔',
+        cost: 45,
+        desc: 'Hitting an enemy Elemental Weakness heals 4 HP.'
+      },
+      {
+        id: 'relic_abacus',
+        name: 'Merchant Abacus',
+        kanji: '算盤',
+        icon: '🧮',
+        cost: 40,
+        desc: 'Earn +15 ¥ bonus after every victory.'
+      }
+    ];
+
+    const YOKAI_FLOORS = [
+      {
+        floor: 1, kanji: '河童', romaji: 'Kappa', name: 'River Kappa', sprite: '🥒',
+        maxHp: 34, weakness: 'wind', weaknessIcon: '⚡', yenReward: 32,
+        intents: [
+          { type: 'attack', value: 7, label: '⚔️ Claw 7' },
+          { type: 'defend', value: 6, label: '🛡️ Shell 6' },
+          { type: 'attack', value: 10, label: '🌊 Torrent 10' }
+        ]
+      },
+      {
+        floor: 2, kanji: '提灯お化け', romaji: 'Chōchin-obake', name: 'Lantern Spirit', sprite: '🏮',
+        maxHp: 44, weakness: 'water', weaknessIcon: '💧', yenReward: 36,
+        intents: [
+          { type: 'attack', value: 9, label: '🔥 Ember 9' },
+          { type: 'attack', value: 12, label: '💥 Flare 12' },
+          { type: 'defend', value: 8, label: '🛡️ Smoke 8' }
+        ]
+      },
+      {
+        floor: 3, kanji: '狐火', romaji: 'Kitsune', name: 'Nine-Tail Fox', sprite: '🦊',
+        maxHp: 54, weakness: 'steel', weaknessIcon: '⚔️', yenReward: 42,
+        intents: [
+          { type: 'defend', value: 10, label: '🛡️ Illusion 10' },
+          { type: 'attack', value: 13, label: '🦊 Foxfire 13' },
+          { type: 'attack', value: 15, label: '⚡ Spirit Bolt 15' }
+        ]
+      },
+      {
+        floor: 4, kanji: '天狗', romaji: 'Tengu', name: 'Storm Tengu', sprite: '👺',
+        maxHp: 66, weakness: 'fire', weaknessIcon: '🔥', yenReward: 48,
+        intents: [
+          { type: 'attack', value: 14, label: '🌪️ Gale 14' },
+          { type: 'defend', value: 12, label: '🛡️ Feather Guard 12' },
+          { type: 'attack', value: 18, label: '⚔️ Mountain Slash 18' }
+        ]
+      },
+      {
+        floor: 5, kanji: '絡新婦', romaji: 'Jorōgumo', name: 'Silk Weaver', sprite: '🕷️',
+        maxHp: 78, weakness: 'fire', weaknessIcon: '🔥', yenReward: 55,
+        intents: [
+          { type: 'defend', value: 14, label: '🕸️ Web Cocoon 14' },
+          { type: 'attack', value: 16, label: '🕷️ Venom Bite 16' },
+          { type: 'attack', value: 21, label: '💀 Silk Crush 21' }
+        ]
+      },
+      {
+        floor: 6, kanji: '八岐大蛇', romaji: 'Yamata-no-Orochi', name: 'Shrine Dragon Boss', sprite: '🐉',
+        maxHp: 105, weakness: 'steel', weaknessIcon: '⚔️', yenReward: 100,
+        intents: [
+          { type: 'attack', value: 17, label: '🔥 Dragon Breath 17' },
+          { type: 'defend', value: 16, label: '🛡️ Dragon Scales 16' },
+          { type: 'attack', value: 24, label: '⚡ Calamity Roar 24' }
+        ]
+      }
+    ];
+
+    /**
+     * 2. WEB AUDIO SYNTHESIZER & WEB SPEECH TTS
+     */
+    const AudioEngine = (() => {
+      let ctx = null;
+      let sfxEnabled = true;
+      let ttsEnabled = true;
+
+      function getCtx() {
+        if (!ctx) {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if (AC) ctx = new AC();
+        }
+        if (ctx && ctx.state === 'suspended') ctx.resume();
+        return ctx;
+      }
+
+      function tone(freq, type, dur, delay = 0, vol = 0.16) {
+        if (!sfxEnabled) return;
+        const c = getCtx();
+        if (!c) return;
+        const now = c.currentTime + delay;
+        const osc = c.createOscillator();
+        const gain = c.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(vol, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+        osc.connect(gain);
+        gain.connect(c.destination);
+        osc.start(now);
+        osc.stop(now + dur);
+      }
+
+      return {
+        isSfxOn: () => sfxEnabled,
+        isTtsOn: () => ttsEnabled,
+        toggleSfx: () => { sfxEnabled = !sfxEnabled; return sfxEnabled; },
+        toggleTts: () => {
+          ttsEnabled = !ttsEnabled;
+          if (!ttsEnabled && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+          return ttsEnabled;
+        },
+        cardClick: () => tone(520, 'sine', 0.08, 0, 0.14),
+        slotChime: (count) => {
+          const base = [440, 554.37, 659.25][Math.min(count - 1, 2)];
+          tone(base, 'triangle', 0.14, 0, 0.18);
+        },
+        castSpell: (isCombo) => {
+          tone(330, 'sawtooth', 0.15, 0, 0.16);
+          tone(493.88, 'triangle', 0.2, 0.07, 0.2);
+          tone(659.25, 'triangle', 0.28, 0.14, 0.22);
+          if (isCombo) tone(880, 'sine', 0.35, 0.2, 0.24);
+        },
+        enemyHit: () => {
+          tone(140, 'sawtooth', 0.22, 0, 0.22);
+          tone(95, 'square', 0.26, 0.08, 0.2);
+        },
+        shield: () => {
+          tone(300, 'sine', 0.15, 0, 0.18);
+          tone(450, 'sine', 0.2, 0.06, 0.18);
+        },
+        coin: () => {
+          tone(987.77, 'sine', 0.1, 0, 0.15);
+          tone(1318.51, 'sine', 0.2, 0.07, 0.16);
+        },
+        victory: () => {
+          [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, 'triangle', 0.22, i * 0.1, 0.2));
+        },
+        speak: (japaneseText) => {
+          if (!ttsEnabled || !('speechSynthesis' in window)) return;
+          try {
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(japaneseText);
+            utter.lang = LANGUAGES.ja.ttsLang;
+            utter.rate = 0.96;
+            const voices = window.speechSynthesis.getVoices();
+            const jpVoice = voices.find(v => v.lang.toLowerCase().startsWith('ja'));
+            if (jpVoice) utter.voice = jpVoice;
+            window.speechSynthesis.speak(utter);
+          } catch (e) { /* Ignore TTS restrictions */ }
+        }
+      };
+    })();
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+
+    /**
+     * 3. PARTICLE CANVAS ENGINE (Spell Cast Bursts)
+     */
+    const ParticleFX = (() => {
+      const canvas = document.getElementById('fx-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      function burst(x, y, colors, count = 28) {
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 90 + Math.random() * 240;
+          particles.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - 40,
+            size: 4 + Math.random() * 6,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            life: 0.55 + Math.random() * 0.35,
+            maxLife: 0.9
+          });
+        }
+      }
+
+      let last = performance.now();
+      function loop(now) {
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.vy += 260 * dt; // subtle gravity
+          p.life -= dt;
+          if (p.life <= 0) {
+            particles.splice(i, 1);
+          } else {
+            ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.globalAlpha = 1;
+        requestAnimationFrame(loop);
+      }
+      requestAnimationFrame(loop);
+
+      return { burst };
+    })();
+
+    /**
+     * 4. CORE GAME STATE
+     */
+    const game = {
+      floor: 1,
+      maxHp: 50,
+      hp: 50,
+      yen: 40,
+      maxEnergy: 3,
+      energy: 3,
+      turn: 1,
+      playerBlock: 0,
+      deck: [],
+      drawPile: [],
+      discardPile: [],
+      hand: [],
+      forge: { adj: null, noun: null, verb: null },
+      relics: [],
+      enemy: null,
+      draftPicked: false,
+      shopRelic: null,
+      busy: false
+    };
+
+    function createCardInstance(templateId, upgraded = false) {
+      const tpl = LANGUAGES.ja.cards.find(c => c.id === templateId);
+      return {
+        uid: 'c_' + Math.random().toString(36).slice(2, 9),
+        ...tpl,
+        upgraded
+      };
+    }
+
+    function hasRelic(id) {
+      return game.relics.some(r => r.id === id);
+    }
+
+    /**
+     * 5. RUN LIFECYCLE & SCREEN MANAGEMENT
+     */
+    function switchScreen(screenId) {
+      ['screen-title', 'screen-combat', 'screen-reward', 'screen-end'].forEach(id => {
+        const el = document.getElementById(id);
+        if (id === screenId) {
+          el.classList.remove('hidden');
+          if (id !== 'screen-title') el.classList.add('flex');
+        } else {
+          el.classList.add('hidden');
+          el.classList.remove('flex');
+        }
+      });
+
+      const hud = document.getElementById('hud-bar');
+      if (screenId === 'screen-title') {
+        hud.classList.add('hidden');
+      } else {
+        hud.classList.remove('hidden');
+      }
+    }
+
+    function startNewRun() {
+      AudioEngine.cardClick();
+      game.floor = 1;
+      game.maxHp = 50;
+      game.hp = 50;
+      game.yen = 40;
+      game.maxEnergy = 3;
+      game.relics = [];
+      game.deck = LANGUAGES.ja.starterDeckIds.map(id => createCardInstance(id, false));
+      startFloorBattle(1);
+    }
+
+    function startFloorBattle(floorNum) {
+      game.floor = floorNum;
+      game.turn = 1;
+      game.playerBlock = 0;
+      game.forge = { adj: null, noun: null, verb: null };
+      game.busy = false;
+
+      const template = YOKAI_FLOORS[floorNum - 1];
+      game.enemy = {
+        ...template,
+        hp: template.maxHp,
+        block: 0,
+        burn: 0,
+        intentIndex: 0
+      };
+
+      // Shuffle full deck into draw pile
+      game.drawPile = [...game.deck].sort(() => Math.random() - 0.5);
+      game.discardPile = [];
+      game.hand = [];
+
+      switchScreen('screen-combat');
+      beginPlayerTurn(true);
+    }
+
+    function beginPlayerTurn(isFirstTurn = false) {
+      game.playerBlock = 0;
+      game.energy = game.maxEnergy + (isFirstTurn && hasRelic('relic_mask') ? 1 : 0);
+      game.forge = { adj: null, noun: null, verb: null };
+
+      const drawCount = hasRelic('relic_feather') ? 6 : 5;
+      drawCards(drawCount);
+
+      setCombatLog(`Turn ${game.turn}: ${game.enemy.name} prepares ${game.enemy.intents[game.enemy.intentIndex].label}!`);
+      renderCombatUI();
+    }
+
+    function drawCards(count) {
+      for (let i = 0; i < count; i++) {
+        if (game.drawPile.length === 0) {
+          if (game.discardPile.length === 0) break;
+          game.drawPile = [...game.discardPile].sort(() => Math.random() - 0.5);
+          game.discardPile = [];
+        }
+        if (game.drawPile.length > 0 && game.hand.length < 7) {
+          game.hand.push(game.drawPile.pop());
+        }
+      }
+    }
+
+    /**
+     * 6. SENTENCE FORGE MECHANIC & REAL-TIME CALCULATION
+     */
+    function getSlottedCards() {
+      return [game.forge.adj, game.forge.noun, game.forge.verb].filter(Boolean);
+    }
+
+    function getForgeEnergyCost() {
+      return getSlottedCards().reduce((sum, c) => sum + c.cost, 0);
+    }
+
+    function clickHandCard(uid) {
+      if (game.busy) return;
+      const card = game.hand.find(c => c.uid === uid);
+      if (!card) return;
+
+      // Speak the Japanese word aloud whenever clicked!
+      AudioEngine.speak(card.kana);
+
+      // If already in forge, unslot it
+      if (game.forge[card.type] && game.forge[card.type].uid === uid) {
+        unslotCard(card.type);
+        return;
+      }
+
+      // Check energy cost if replacing/adding to forge
+      const prevInSlot = game.forge[card.type];
+      const nextCost = getForgeEnergyCost() - (prevInSlot ? prevInSlot.cost : 0) + card.cost;
+      if (nextCost > game.energy) {
+        AudioEngine.enemyHit();
+        setCombatLog(`⚡ Not enough Energy! Need ${nextCost} Energy.`);
+        return;
+      }
+
+      game.forge[card.type] = card;
+      const slottedCount = getSlottedCards().length;
+      AudioEngine.slotChime(slottedCount);
+      renderCombatUI();
+    }
+
+    function unslotCard(type) {
+      if (game.busy || !game.forge[type]) return;
+      AudioEngine.cardClick();
+      game.forge[type] = null;
+      renderCombatUI();
+    }
+
+    function clearForge() {
+      if (game.busy) return;
+      AudioEngine.cardClick();
+      game.forge = { adj: null, noun: null, verb: null };
+      renderCombatUI();
+    }
+
+    /**
+     * Evaluates the currently slotted Japanese sentence (Adjective + Noun + Verb)
+     */
+    function evaluateSentence() {
+      const { adj, noun, verb } = game.forge;
+      const slotted = getSlottedCards();
+
+      if (slotted.length === 0) {
+        return { valid: false, reason: 'Select word cards from your hand to build a sentence.' };
+      }
+
+      // Valid grammar structures:
+      // - Noun alone (e.g. 刀 katana)
+      // - Adjective + Noun (e.g. 鋭い刀 surudoi katana)
+      // - Noun + Verb (e.g. 刀を切る katana wo kiru)
+      // - Adjective + Verb (defensive/utility stance, e.g. 硬い守る)
+      // - Full 3-Card Kotodama Combo: Adjective + Noun + Verb!
+      if (!noun && !verb) {
+        return { valid: false, reason: 'Add a Noun (⚔️🔥💧⚡🛡️) or Verb to complete the phrase!' };
+      }
+
+      const isFullCombo = Boolean(adj && noun && verb);
+
+      // Assemble natural Japanese Kanji, Kana (for TTS), Romaji, and English translation
+      const jpParts = [];
+      const kanaParts = [];
+      const romajiParts = [];
+      const enParts = [];
+
+      if (adj) {
+        jpParts.push(adj.kanji);
+        kanaParts.push(adj.kana);
+        romajiParts.push(adj.romaji);
+        enParts.push(adj.en);
+      }
+      if (noun) {
+        jpParts.push(noun.kanji);
+        kanaParts.push(noun.kana);
+        romajiParts.push(noun.romaji);
+        enParts.push(noun.en);
+      }
+      if (verb) {
+        if (noun) {
+          jpParts.push('を');
+          kanaParts.push('を');
+          romajiParts.push('wo');
+        }
+        jpParts.push(verb.kanji);
+        kanaParts.push(verb.kana);
+        romajiParts.push(verb.romaji);
+        enParts.unshift(verb.en); // English puts verb before object ("Slash Sharp Sword")
+      }
+
+      // Calculate raw numbers
+      let rawDmg = 0;
+      let rawBlock = 0;
+      let burn = 0;
+      let draw = 0;
+      let heal = 0;
+      let pierce = false;
+
+      if (adj) {
+        rawDmg += adj.upgraded ? adj.upgPowerBonus : adj.powerBonus;
+        rawBlock += adj.upgraded ? adj.upgBlockBonus : adj.blockBonus;
+        burn += adj.upgraded ? adj.upgBurnBonus : adj.burnBonus;
+        draw += adj.upgraded ? adj.upgDrawBonus : adj.drawBonus;
+      }
+
+      if (noun) {
+        rawDmg += noun.upgraded ? noun.upgBaseDmg : noun.baseDmg;
+        rawBlock += noun.upgraded ? noun.upgBaseBlock : noun.baseBlock;
+        burn += noun.upgraded ? noun.upgBurn : noun.burn;
+      }
+
+      // Apply Verb Multiplier & Special Mechanics
+      if (verb) {
+        const mult = verb.upgraded ? verb.upgMult : verb.mult;
+        if (verb.special === 'fortify') {
+          // Defend verb converts offensive power into heavy Block!
+          const converted = Math.round((rawDmg + rawBlock) * mult) + (verb.upgraded ? 7 : 4);
+          rawBlock = converted;
+          rawDmg = 0;
+        } else {
+          rawDmg = Math.round(rawDmg * mult);
+          if (rawBlock > 0) rawBlock = Math.round(rawBlock * 1.25);
+        }
+
+        if (verb.special === 'pierce') pierce = true;
+        if (verb.special === 'burn') burn += (verb.upgraded ? 6 : 4);
+        if (verb.special === 'lifesteal') heal += (verb.upgraded ? 5 : 3);
+      }
+
+      // Full 3-Card Kotodama Combo Bonus (+25% power + Grammar Scroll relic)
+      if (isFullCombo) {
+        if (rawDmg > 0) rawDmg = Math.round(rawDmg * 1.25) + (hasRelic('relic_scroll') ? 6 : 0);
+        if (rawBlock > 0) rawBlock = Math.round(rawBlock * 1.25);
+      }
+
+      // Elemental Weakness Check (1.5x Crit Damage!)
+      const isWeaknessHit = Boolean(noun && rawDmg > 0 && noun.element === game.enemy.weakness);
+      if (isWeaknessHit) {
+        rawDmg = Math.round(rawDmg * 1.5);
+        if (hasRelic('relic_bell')) heal += 4;
+      }
+
+      return {
+        valid: true,
+        isFullCombo,
+        isWeaknessHit,
+        element: noun ? noun.element : 'neutral',
+        jpText: jpParts.join(' '),
+        kanaText: kanaParts.join(''),
+        romajiText: romajiParts.join(' '),
+        enText: enParts.join(' '),
+        dmg: rawDmg,
+        block: rawBlock,
+        burn,
+        draw,
+        heal,
+        pierce,
+        cost: getForgeEnergyCost()
+      };
+    }
+
+    function castSentence() {
+      if (game.busy) return;
+      const result = evaluateSentence();
+      if (!result.valid) return;
+
+      game.busy = true;
+      game.energy -= result.cost;
+
+      // Speak full Japanese sentence aloud!
+      AudioEngine.speak(result.kanaText);
+      AudioEngine.castSpell(result.isFullCombo);
+
+      // Move played cards from hand to discard pile
+      const playedUids = new Set(getSlottedCards().map(c => c.uid));
+      const remainingHand = [];
+      game.hand.forEach(c => {
+        if (playedUids.has(c.uid)) {
+          game.discardPile.push(c);
+        } else {
+          remainingHand.push(c);
+        }
+      });
+      game.hand = remainingHand;
+      game.forge = { adj: null, noun: null, verb: null };
+
+      // Visual Particles on Enemy Box
+      const enemyBox = document.getElementById('enemy-box');
+      const rect = enemyBox.getBoundingClientRect();
+      const paletteMap = {
+        fire: ['#F97316', '#EF4444', '#FDE047'],
+        water: ['#38BDF8', '#3B82F6', '#E0F2FE'],
+        wind: ['#A855F7', '#FACC15', '#E9D5FF'],
+        steel: ['#F8FAFC', '#94A3B8', '#F59E0B'],
+        earth: ['#10B981', '#F59E0B', '#A7F3D0'],
+        neutral: ['#F59E0B', '#F43F5E', '#FDE68A']
+      };
+      ParticleFX.burst(
+        rect.left + rect.width / 2,
+        rect.top + rect.height / 2,
+        paletteMap[result.element] || paletteMap.neutral,
+        result.isFullCombo ? 45 : 26
+      );
+
+      // Apply Block & Heal to Player
+      if (result.block > 0) {
+        game.playerBlock += result.block;
+        spawnFloatingPopup('battlefield-panel', '20%', '45%', `+${result.block} 🛡️`, '#38BDF8');
+      }
+      if (result.heal > 0) {
+        game.hp = Math.min(game.maxHp, game.hp + result.heal);
+        spawnFloatingPopup('battlefield-panel', '20%', '30%', `+${result.heal} ❤️`, '#34D399');
+      }
+      if (result.draw > 0) {
+        drawCards(result.draw);
+      }
+
+      // Apply Damage, Pierce & Burn to Enemy
+      if (result.pierce && game.enemy.block > 0) {
+        game.enemy.block = Math.floor(game.enemy.block * 0.5);
+      }
+      if (result.burn > 0) {
+        game.enemy.burn += result.burn;
+      }
+
+      if (result.dmg > 0) {
+        let dmgLeft = result.dmg;
+        if (game.enemy.block > 0) {
+          const absorbed = Math.min(game.enemy.block, dmgLeft);
+          game.enemy.block -= absorbed;
+          dmgLeft -= absorbed;
+        }
+        game.enemy.hp = Math.max(0, game.enemy.hp - dmgLeft);
+
+        const sprite = document.getElementById('enemy-sprite');
+        sprite.classList.remove('animate-hit-flash');
+        void sprite.offsetWidth;
+        sprite.classList.add('animate-hit-flash');
+
+        const label = result.isWeaknessHit ? `CRIT -${result.dmg} 💥` : `-${result.dmg} ⚔️`;
+        spawnFloatingPopup('battlefield-panel', '80%', '42%', label, result.isWeaknessHit ? '#FDE047' : '#FB7185');
+      }
+
+      const tags = [];
+      if (result.isFullCombo) tags.push('✨ KOTODAMA COMBO');
+      if (result.isWeaknessHit) tags.push('💥 WEAKNESS CRIT');
+      setCombatLog(`Cast "${result.jpText}" (${result.enText})! ${tags.join(' • ')}`);
+
+      renderCombatUI();
+
+      setTimeout(() => {
+        if (game.enemy.hp <= 0) {
+          handleEnemyDefeated();
+        } else {
+          game.busy = false;
+          renderCombatUI();
+        }
+      }, 520);
+    }
+
+    /**
+     * 7. ENEMY TURN RESOLUTION
+     */
+    function endPlayerTurn() {
+      if (game.busy) return;
+      game.busy = true;
+
+      // Discard remaining hand & forge cards
+      game.hand.forEach(c => game.discardPile.push(c));
+      game.hand = [];
+      game.forge = { adj: null, noun: null, verb: null };
+      renderCombatUI();
+
+      // 1. Trigger Enemy Burn DOT first
+      if (game.enemy.burn > 0) {
+        const burnDmg = game.enemy.burn;
+        game.enemy.hp = Math.max(0, game.enemy.hp - burnDmg);
+        game.enemy.burn = Math.max(0, game.enemy.burn - 1);
+        spawnFloatingPopup('battlefield-panel', '80%', '35%', `🔥 -${burnDmg} Burn`, '#FB923C');
+        renderCombatUI();
+
+        if (game.enemy.hp <= 0) {
+          setTimeout(() => handleEnemyDefeated(), 500);
+          return;
+        }
+      }
+
+      // 2. Execute Telegraphed Yokai Intent
+      setTimeout(() => {
+        const intent = game.enemy.intents[game.enemy.intentIndex];
+        game.enemy.block = 0; // enemy block resets at start of its action
+
+        if (intent.type === 'defend') {
+          game.enemy.block += intent.value;
+          AudioEngine.shield();
+          spawnFloatingPopup('battlefield-panel', '80%', '45%', `+${intent.value} 🛡️`, '#38BDF8');
+          setCombatLog(`${game.enemy.name} used ${intent.label}!`);
+        } else {
+          let incoming = intent.value;
+          const blocked = Math.min(game.playerBlock, incoming);
+          game.playerBlock -= blocked;
+          incoming -= blocked;
+
+          if (incoming > 0) {
+            game.hp = Math.max(0, game.hp - incoming);
+            AudioEngine.enemyHit();
+            triggerShake();
+            spawnFloatingPopup('battlefield-panel', '20%', '42%', `-${incoming} 💔`, '#F43F5E');
+            setCombatLog(`${game.enemy.name} struck for ${incoming} damage! (${blocked} blocked)`);
+          } else {
+            AudioEngine.shield();
+            spawnFloatingPopup('battlefield-panel', '20%', '42%', `BLOCKED! 🛡️`, '#38BDF8');
+            setCombatLog(`You blocked all ${intent.value} damage from ${game.enemy.name}!`);
+          }
+        }
+
+        renderCombatUI();
+
+        // Check Player Defeat
+        if (game.hp <= 0) {
+          setTimeout(() => showEndScreen(false), 750);
+          return;
+        }
+
+        // Advance Enemy Intent & Start Next Player Turn
+        game.enemy.intentIndex = (game.enemy.intentIndex + 1) % game.enemy.intents.length;
+        game.turn += 1;
+
+        setTimeout(() => {
+          game.busy = false;
+          beginPlayerTurn(false);
+        }, 650);
+      }, 450);
+    }
+
+    /**
+     * 8. VICTORY, CARD DRAFTING & SHRINE UPGRADE SHOP
+     */
+    function handleEnemyDefeated() {
+      AudioEngine.victory();
+
+      // If final boss (Floor 6) defeated -> Run Victory!
+      if (game.floor >= YOKAI_FLOORS.length) {
+        setTimeout(() => showEndScreen(true), 600);
+        return;
+      }
+
+      const bonusYen = hasRelic('relic_abacus') ? 15 : 0;
+      const earned = game.enemy.yenReward + bonusYen;
+      game.yen += earned;
+      game.draftPicked = false;
+
+      document.getElementById('reward-title').textContent = `Floor ${game.floor} Cleared — ${game.enemy.name} Banished!`;
+      document.getElementById('reward-yen-earned').textContent = `+${earned} ¥`;
+      document.getElementById('reward-yen-total').textContent = `${game.yen} ¥`;
+      document.getElementById('draft-status-text').textContent = 'Choose 1 card to add to your deck';
+
+      // Generate 3 distinct draftable word cards (25% chance to be pre-upgraded +1!)
+      const pool = [...LANGUAGES.ja.cards].sort(() => Math.random() - 0.5).slice(0, 3);
+      const draftGrid = document.getElementById('draft-cards-grid');
+      draftGrid.innerHTML = pool.map((tpl, idx) => {
+        const isPlus = Math.random() < 0.28;
+        const card = createCardInstance(tpl.id, isPlus);
+        return renderCardHTML(card, `draftCard('${tpl.id}', ${isPlus}, this)`, idx);
+      }).join('');
+
+      // Pick 1 unowned Relic for the Shrine Shop
+      const unownedRelics = RELIC_POOL.filter(r => !hasRelic(r.id));
+      game.shopRelic = unownedRelics.length > 0
+        ? unownedRelics[Math.floor(Math.random() * unownedRelics.length)]
+        : null;
+
+      refreshShopUI();
+      switchScreen('screen-reward');
+    }
+
+    function draftCard(templateId, upgraded, btnEl) {
+      if (game.draftPicked) return;
+      game.draftPicked = true;
+      const newCard = createCardInstance(templateId, upgraded);
+      game.deck.push(newCard);
+
+      AudioEngine.speak(newCard.kana);
+      AudioEngine.coin();
+
+      document.getElementById('draft-status-text').innerHTML = `<span class="text-emerald-400">Added ${newCard.kanji} (${newCard.romaji})!</span>`;
+      const allDrafts = document.querySelectorAll('#draft-cards-grid > div');
+      allDrafts.forEach(el => {
+        if (el !== btnEl) el.classList.add('card-disabled');
+        else el.classList.add('ring-4', 'ring-emerald-400');
+      });
+      updateTopHUD();
+    }
+
+    function refreshShopUI() {
+      updateTopHUD();
+      document.getElementById('reward-yen-total').textContent = `${game.yen} ¥`;
+
+      const upgBtn = document.getElementById('btn-shop-upgrade');
+      const upgradableCount = game.deck.filter(c => !c.upgraded).length;
+      upgBtn.disabled = game.yen < 35 || upgradableCount === 0;
+      upgBtn.textContent = upgradableCount === 0 ? 'ALL CARDS MAXED' : 'UPGRADE A CARD (35 ¥)';
+
+      const healBtn = document.getElementById('btn-shop-heal');
+      healBtn.disabled = game.yen < 25 || game.hp >= game.maxHp;
+      healBtn.textContent = game.hp >= game.maxHp ? 'HP FULL' : 'HEAL +20 HP (25 ¥)';
+
+      const relicBox = document.getElementById('shop-relic-box');
+      if (game.shopRelic) {
+        const r = game.shopRelic;
+        const owned = hasRelic(r.id);
+        relicBox.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="font-fantasy font-bold text-purple-300 text-sm">${r.icon} ${r.name}</span>
+              <span class="text-xs font-black text-amber-200">${r.cost} ¥</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">${r.desc}</p>
+          </div>
+          <button onclick="buyShopRelic()" ${owned || game.yen < r.cost ? 'disabled' : ''}
+            class="shrine-btn w-full bg-purple-500/90 hover:bg-purple-400 text-white font-extrabold text-xs py-2.5">
+            ${owned ? 'RELIC ACQUIRED ✓' : `BUY RELIC (${r.cost} ¥)`}
+          </button>
+        `;
+      } else {
+        relicBox.innerHTML = `
+          <div class="text-xs text-slate-400 my-auto text-center">All Shrine Relics collected!</div>
+        `;
+      }
+    }
+
+    function buyHeal() {
+      if (game.yen < 25 || game.hp >= game.maxHp) return;
+      game.yen -= 25;
+      game.hp = Math.min(game.maxHp, game.hp + 20);
+      AudioEngine.coin();
+      refreshShopUI();
+    }
+
+    function buyShopRelic() {
+      const r = game.shopRelic;
+      if (!r || hasRelic(r.id) || game.yen < r.cost) return;
+      game.yen -= r.cost;
+      game.relics.push(r);
+      AudioEngine.victory();
+      refreshShopUI();
+    }
+
+    function openUpgradeModal() {
+      if (game.yen < 35) return;
+      const modal = document.getElementById('modal-overlay');
+      document.getElementById('modal-title').textContent = '⚒️ Blacksmith — Choose a Card to Upgrade (+1)';
+      document.getElementById('modal-subtitle').textContent = 'Costs 35 ¥ • Permanently boosts power, block, or multiplier';
+
+      const grid = document.getElementById('modal-cards-grid');
+      grid.innerHTML = game.deck.map((card, i) => {
+        if (card.upgraded) {
+          return `<div class="card-disabled">${renderCardHTML(card, '', i)}</div>`;
+        }
+        return renderCardHTML(card, `confirmUpgradeCard('${card.uid}')`, i);
+      }).join('');
+
+      modal.classList.remove('hidden');
+    }
+
+    function confirmUpgradeCard(uid) {
+      if (game.yen < 35) return;
+      const card = game.deck.find(c => c.uid === uid);
+      if (!card || card.upgraded) return;
+
+      game.yen -= 35;
+      card.upgraded = true;
+      AudioEngine.speak(card.kana);
+      AudioEngine.victory();
+      closeModal();
+      refreshShopUI();
+    }
+
+    function advanceToNextFloor() {
+      AudioEngine.cardClick();
+      startFloorBattle(game.floor + 1);
+    }
+
+    function showEndScreen(isVictory) {
+      switchScreen('screen-end');
+      document.getElementById('end-icon').textContent = isVictory ? '🏆' : '💀';
+      document.getElementById('end-subtitle').textContent = isVictory ? 'All 6 Shrine Floors Purified!' : `Fallen on Floor ${game.floor}`;
+      document.getElementById('end-title').textContent = isVictory ? 'KOTODAMA MASTER!' : 'DEFEATED';
+      document.getElementById('end-desc').textContent = isVictory
+        ? 'Your command of Japanese words shattered the Shrine Dragon and restored peace to the mountain!'
+        : `The ${game.enemy.name} overwhelmed your defenses. Review your Kanji deck and try a new run!`;
+
+      document.getElementById('end-stat-floors').textContent = `${isVictory ? 6 : game.floor} / 6`;
+      document.getElementById('end-stat-deck').textContent = game.deck.length;
+      document.getElementById('end-stat-relics').textContent = game.relics.length;
+    }
+
+    /**
+     * 9. DECK / KANJI DICTIONARY MODAL
+     */
+    function openDeckModal(useFullDictionary = false) {
+      AudioEngine.cardClick();
+      const modal = document.getElementById('modal-overlay');
+      const cardsToShow = (useFullDictionary || game.deck.length === 0)
+        ? LANGUAGES.ja.cards.map(c => createCardInstance(c.id, false))
+        : game.deck;
+
+      document.getElementById('modal-title').textContent = useFullDictionary
+        ? '📖 Complete Japanese Kanji Word Bank'
+        : `📜 Your Active Deck (${game.deck.length} Cards)`;
+      document.getElementById('modal-subtitle').textContent = 'Click any card to hear native Japanese pronunciation';
+
+      const grid = document.getElementById('modal-cards-grid');
+      grid.innerHTML = cardsToShow.map((card, i) =>
+        renderCardHTML(card, `AudioEngine.speak('${card.kana}'); AudioEngine.cardClick();`, i)
+      ).join('');
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeModal() {
+      AudioEngine.cardClick();
+      document.getElementById('modal-overlay').classList.add('hidden');
+    }
+
+    /**
+     * 10. UI RENDERING HELPERS
+     */
+    function updateTopHUD() {
+      document.getElementById('hud-floor').textContent = `${game.floor} / ${YOKAI_FLOORS.length}`;
+      document.getElementById('hud-hp-text').textContent = `${game.hp} / ${game.maxHp}`;
+      document.getElementById('hud-hp-bar').style.width = `${Math.max(0, (game.hp / game.maxHp) * 100)}%`;
+      document.getElementById('hud-yen').textContent = game.yen;
+      document.getElementById('hud-deck-count').textContent = game.deck.length;
+
+      const relicsContainer = document.getElementById('hud-relics');
+      relicsContainer.innerHTML = game.relics.map(r => `
+        <div title="${r.name} (${r.kanji}): ${r.desc}"
+          class="bg-purple-950/90 border border-amber-300/60 w-8 h-8 rounded-lg flex items-center justify-center text-base cursor-help shadow">
+          ${r.icon}
+        </div>
+      `).join('');
+    }
+
+    function renderCardHTML(card, onClickAttr, animIdx = 0, isSelected = false) {
+      const typeClass = card.type === 'adj' ? 'card-adj' : (card.type === 'noun' ? 'card-noun' : 'card-verb');
+      const badgeColor = card.type === 'adj'
+        ? 'bg-blue-600 text-white'
+        : (card.type === 'noun' ? 'bg-amber-600 text-white' : 'bg-rose-600 text-white');
+      const typeLabel = card.type === 'adj' ? 'ADJ' : (card.type === 'noun' ? `NOUN ${card.elementIcon}` : 'VERB');
+      const descText = card.upgraded ? card.upgDesc : card.desc;
+      const selectedStyle = isSelected ? 'ring-4 ring-emerald-400 -translate-y-2' : '';
+
+      return `
+        <div onclick="${onClickAttr}" style="animation-delay: ${animIdx * 45}ms"
+          class="parchment-card ${typeClass} ${card.upgraded ? 'card-upgraded' : ''} ${selectedStyle} animate-card-deal p-2.5 flex flex-col justify-between min-h-[152px] sm:min-h-[168px]">
+          
+          <!-- Card Header: Role Tag & Energy Cost -->
+          <div class="flex items-center justify-between gap-1">
+            <span class="${badgeColor} text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+              ${typeLabel}
+            </span>
+            <span class="w-6 h-6 rounded-full bg-slate-900 text-amber-300 font-fantasy font-black text-xs flex items-center justify-center border border-amber-400">
+              ${card.cost}
+            </span>
+          </div>
+
+          <!-- Center: Icon, Kanji, Romaji, English -->
+          <div class="text-center my-1">
+            <div class="text-2xl sm:text-3xl leading-none mb-1">${card.icon}</div>
+            <div class="font-jp font-black text-xl sm:text-2xl text-slate-900 leading-tight">
+              ${card.kanji}${card.upgraded ? '<span class="text-amber-600 text-sm ml-0.5">+1</span>' : ''}
+            </div>
+            <div class="font-extrabold text-xs text-indigo-700 leading-tight">${card.romaji}</div>
+            <div class="text-[11px] font-bold text-slate-600">(${card.en})</div>
+          </div>
+
+          <!-- Footer: Mechanical Effect -->
+          <div class="bg-slate-900/10 rounded-lg px-1.5 py-1 text-center text-[10px] sm:text-[11px] font-extrabold text-slate-800 leading-tight">
+            ${descText}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCombatUI() {
+      updateTopHUD();
+
+      // Player & Pile Counters
+      document.getElementById('combat-turn').textContent = game.turn;
+      document.getElementById('player-block').textContent = game.playerBlock;
+      document.getElementById('pile-draw').textContent = game.drawPile.length;
+      document.getElementById('pile-discard').textContent = game.discardPile.length;
+
+      const remainingEnergy = game.energy - getForgeEnergyCost();
+      document.getElementById('hud-energy').textContent = `${remainingEnergy} / ${game.maxEnergy}`;
+
+      // Enemy Panel
+      const e = game.enemy;
+      const intent = e.intents[e.intentIndex];
+      document.getElementById('enemy-intent-text').textContent = intent.label;
+      document.getElementById('enemy-sprite').textContent = e.sprite;
+      document.getElementById('enemy-weakness-badge').textContent = `Weak: ${e.weaknessIcon}`;
+      document.getElementById('enemy-kanji').textContent = e.kanji;
+      document.getElementById('enemy-name').textContent = e.name;
+      document.getElementById('enemy-hp-bar').style.width = `${Math.max(0, (e.hp / e.maxHp) * 100)}%`;
+      document.getElementById('enemy-hp-text').textContent = `${e.hp} / ${e.maxHp}`;
+
+      const statusRow = document.getElementById('enemy-statuses');
+      let statusesHTML = '';
+      if (e.block > 0) statusesHTML += `<span class="bg-sky-950 border border-sky-400 text-sky-200 px-2 py-0.5 rounded-full">🛡️ Block ${e.block}</span>`;
+      if (e.burn > 0) statusesHTML += `<span class="bg-orange-950 border border-orange-400 text-orange-200 px-2 py-0.5 rounded-full">🔥 Burn ${e.burn}</span>`;
+      statusRow.innerHTML = statusesHTML;
+
+      // Render 3 Forge Slots
+      renderForgeSlot('slot-adj', 'adj', '1. Adjective (Opt)', 'Modifier', 'filled-adj');
+      renderForgeSlot('slot-noun', 'noun', '2. Noun (Core)', 'Element / Shield', 'filled-noun');
+      renderForgeSlot('slot-verb', 'verb', '3. Verb (Opt)', 'Multiplier', 'filled-verb');
+
+      // Live Sentence Preview & Cast Button
+      const evalRes = evaluateSentence();
+      const previewJp = document.getElementById('preview-jp');
+      const previewStats = document.getElementById('preview-stats');
+      const castBtn = document.getElementById('btn-cast');
+      const comboBadge = document.getElementById('combo-badge');
+
+      if (evalRes.valid) {
+        previewJp.innerHTML = `${evalRes.jpText} <span class="text-xs font-bold text-amber-300/80 ml-1">(${evalRes.romajiText} — "${evalRes.enText}")</span>`;
+        const parts = [];
+        if (evalRes.dmg > 0) parts.push(`<span class="text-rose-400 font-black">⚔️ ${evalRes.dmg} DMG${evalRes.isWeaknessHit ? ' (1.5x WEAKNESS!)' : ''}</span>`);
+        if (evalRes.block > 0) parts.push(`<span class="text-sky-400 font-black">🛡️ +${evalRes.block} Block</span>`);
+        if (evalRes.burn > 0) parts.push(`<span class="text-orange-400 font-black">🔥 +${evalRes.burn} Burn</span>`);
+        if (evalRes.heal > 0) parts.push(`<span class="text-emerald-400 font-black">❤️ +${evalRes.heal} HP</span>`);
+        if (evalRes.draw > 0) parts.push(`<span class="text-purple-300 font-black">🃏 Draw ${evalRes.draw}</span>`);
+        previewStats.innerHTML = parts.join(' • ');
+        castBtn.disabled = game.busy;
+        comboBadge.classList.toggle('hidden', !evalRes.isFullCombo);
+      } else {
+        previewJp.textContent = '— Slot cards to build a Japanese phrase —';
+        previewStats.textContent = evalRes.reason;
+        castBtn.disabled = true;
+        comboBadge.classList.add('hidden');
+      }
+
+      // Render Player Hand
+      const slottedUids = new Set(getSlottedCards().map(c => c.uid));
+      const handEl = document.getElementById('player-hand');
+      handEl.innerHTML = game.hand.map((card, idx) => {
+        const isSlotted = slottedUids.has(card.uid);
+        const prevInSlot = game.forge[card.type];
+        const projectedCost = getForgeEnergyCost() - (prevInSlot ? prevInSlot.cost : 0) + card.cost;
+        const unaffordable = !isSlotted && projectedCost > game.energy;
+
+        return `<div class="${unaffordable ? 'card-disabled' : ''}">
+          ${renderCardHTML(card, `clickHandCard('${card.uid}')`, idx, isSlotted)}
+        </div>`;
+      }).join('');
+    }
+
+    function renderForgeSlot(elId, type, title, emptySub, filledClass) {
+      const el = document.getElementById(elId);
+      const card = game.forge[type];
+      el.classList.remove('filled-adj', 'filled-noun', 'filled-verb');
+
+      if (card) {
+        el.classList.add(filledClass);
+        el.innerHTML = `
+          <div class="flex items-center gap-1.5">
+            <span class="text-xl">${card.icon}</span>
+            <span class="font-jp font-black text-lg sm:text-xl text-white">${card.kanji}</span>
+          </div>
+          <div class="text-xs font-extrabold text-amber-200">${card.romaji} <span class="text-slate-300 font-normal">(${card.en})</span></div>
+          <div class="text-[10px] text-slate-300 mt-0.5">Click to remove</div>
+        `;
+      } else {
+        el.innerHTML = `
+          <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">${title}</span>
+          <span class="text-xs text-slate-500 mt-1">${emptySub}</span>
+        `;
+      }
+    }
+
+    function setCombatLog(text) {
+      document.getElementById('combat-log').textContent = text;
+    }
+
+    function spawnFloatingPopup(parentId, leftPct, topPct, text, color) {
+      const parent = document.getElementById(parentId);
+      if (!parent) return;
+      const div = document.createElement('div');
+      div.className = 'floating-popup text-lg sm:text-2xl';
+      div.style.left = leftPct;
+      div.style.top = topPct;
+      div.style.color = color;
+      div.textContent = text;
+      parent.appendChild(div);
+      setTimeout(() => div.remove(), 1050);
+    }
+
+    function triggerShake() {
+      const root = document.getElementById('game-root');
+      root.classList.remove('animate-shake');
+      void root.offsetWidth;
+      root.classList.add('animate-shake');
+    }
+
+    function toggleTTS() {
+      const on = AudioEngine.toggleTts();
+      document.getElementById('tts-label').textContent = on ? 'TTS ON' : 'TTS OFF';
+      document.getElementById('btn-tts').style.opacity = on ? '1' : '0.5';
+    }
+
+    function toggleSFX() {
+      const on = AudioEngine.toggleSfx();
+      document.getElementById('btn-sfx').textContent = on ? '🔊' : '🔇';
+    }
+  </script>
+</body>
+</html>
