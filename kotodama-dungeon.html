@@ -40,10 +40,11 @@
       color: #F8FAFC;
       margin: 0;
       padding: 0;
-      min-height: 100dvh;
+      height: 100dvh;
+      max-height: 100dvh;
       display: flex;
       flex-direction: column;
-      overflow-x: hidden;
+      overflow: hidden;
     }
 
     .font-fantasy {
@@ -56,10 +57,11 @@
 
     /* Shrine Frames & Parchment Cards */
     .shrine-panel {
-      background: linear-gradient(180deg, rgba(28, 24, 48, 0.94) 0%, rgba(18, 15, 32, 0.97) 100%);
-      border: 2px solid rgba(245, 158, 11, 0.45);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(253, 230, 138, 0.18);
-      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(24, 21, 42, 0.88) 0%, rgba(14, 12, 26, 0.94) 100%);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+      border-radius: 20px;
     }
 
     .parchment-card {
@@ -106,25 +108,43 @@
 
     /* Forge Slots */
     .forge-slot {
-      border: 2px dashed rgba(253, 230, 138, 0.4);
-      background: rgba(15, 13, 26, 0.65);
-      border-radius: 14px;
+      border: 2px dashed rgba(253, 230, 138, 0.35);
+      background: rgba(15, 13, 26, 0.55);
+      border-radius: 16px;
+      min-height: 128px;
       transition: all 0.18s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
-    .forge-slot.filled-adj {
-      border: 2px solid #3B82F6;
-      background: rgba(37, 99, 235, 0.18);
-      box-shadow: 0 0 14px rgba(59, 130, 246, 0.3);
+    @media (min-width: 640px) {
+      .forge-slot {
+        min-height: 140px;
+      }
     }
-    .forge-slot.filled-noun {
-      border: 2px solid #F59E0B;
-      background: rgba(217, 119, 6, 0.18);
-      box-shadow: 0 0 14px rgba(245, 158, 11, 0.3);
+    .forge-slot.filled-slot {
+      border: none;
+      background: transparent;
+      padding: 0;
     }
-    .forge-slot.filled-verb {
-      border: 2px solid #F43F5E;
-      background: rgba(225, 29, 72, 0.18);
-      box-shadow: 0 0 14px rgba(244, 63, 94, 0.3);
+
+    /* Compact card layout when slotted inside the middle forge */
+    .forge-slot .parchment-card {
+      min-height: 128px !important;
+      padding: 0.45rem 0.55rem !important;
+    }
+    @media (min-width: 640px) {
+      .forge-slot .parchment-card {
+        min-height: 140px !important;
+      }
+    }
+    .forge-slot .parchment-card .card-emoji {
+      font-size: 1.45rem !important;
+      margin-bottom: 0.1rem !important;
+    }
+    .forge-slot .parchment-card .card-kanji {
+      font-size: 1.25rem !important;
     }
 
     /* Arcade / Action Buttons */
@@ -175,6 +195,39 @@
       animation: screenShake 0.36s ease-in-out;
     }
 
+    @keyframes enemyLunge {
+      0% { transform: translateY(0) scale(1); }
+      25% { transform: translateY(-14px) scale(0.92); }
+      52% { transform: translateY(42px) scale(1.26); filter: drop-shadow(0 14px 24px rgba(225, 29, 72, 0.85)); }
+      75% { transform: translateY(8px) scale(1.04); }
+      100% { transform: translateY(0) scale(1); }
+    }
+    .animate-enemy-lunge {
+      animation: enemyLunge 0.46s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes comboSurge {
+      0% { transform: scale(1); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55); }
+      30% { transform: scale(1.025); box-shadow: 0 0 36px rgba(251, 191, 36, 0.85), inset 0 0 24px rgba(251, 191, 36, 0.35); border-color: #FDE047; }
+      100% { transform: scale(1); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55); }
+    }
+    .animate-combo-surge {
+      animation: comboSurge 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @keyframes slashSweep {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4) rotate(-25deg); }
+      30% { opacity: 1; transform: translate(-50%, -50%) scale(1.15) rotate(-18deg); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(1.45) rotate(-12deg); }
+    }
+    .slash-overlay {
+      position: fixed;
+      left: 50%;
+      pointer-events: none;
+      z-index: 45;
+      animation: slashSweep 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
     @keyframes floatUpFade {
       0% { transform: translate(-50%, 0) scale(0.7); opacity: 0; }
       20% { transform: translate(-50%, -14px) scale(1.15); opacity: 1; }
@@ -208,336 +261,382 @@
   <!-- Particle & Spell Effect Overlay -->
   <canvas id="fx-canvas" class="fixed inset-0 pointer-events-none z-40"></canvas>
 
+  <!-- Floating Side Hamburger Button & Slide-Out Drawer -->
+  <button id="btn-hamburger" onclick="toggleSideMenu()" title="Menu & Settings"
+    class="hidden fixed top-3 right-3 sm:top-5 sm:right-5 z-50 shrine-btn bg-slate-900/90 hover:bg-slate-800 border border-amber-400/40 text-amber-200 w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-lg backdrop-blur-md">
+    ☰
+  </button>
+
+  <div id="side-menu-backdrop" onclick="closeSideMenu()" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-40"></div>
+  <aside id="side-menu-drawer" class="fixed top-0 right-0 h-full w-64 shrine-panel rounded-none rounded-l-2xl border-r-0 p-5 z-50 transform translate-x-full transition-transform duration-200 flex flex-col justify-between">
+    <div class="flex flex-col gap-4">
+      <div class="flex items-center justify-between border-b border-amber-400/30 pb-3">
+        <span class="font-fantasy font-black text-base text-amber-300 tracking-wider">⛩️ SHRINE MENU</span>
+        <button onclick="closeSideMenu()" class="shrine-btn bg-white/10 hover:bg-white/20 text-slate-200 w-7 h-7 rounded-full text-xs">✕</button>
+      </div>
+
+      <!-- Purse & Relics Summary -->
+      <div class="bg-slate-950/70 border border-white/10 rounded-xl p-3 flex flex-col gap-2">
+        <div class="flex items-center justify-between text-xs font-extrabold">
+          <span class="text-slate-400">Purse</span>
+          <span class="text-amber-300 font-fantasy text-sm">🪙 <span id="menu-yen">40</span> ¥</span>
+        </div>
+        <div class="flex items-center justify-between text-xs font-extrabold">
+          <span class="text-slate-400">Deck Size</span>
+          <span class="text-amber-200">📜 <span id="menu-deck-count">10</span> Cards</span>
+        </div>
+        <div id="menu-relics" class="flex flex-wrap gap-1.5 pt-1 border-t border-white/10"></div>
+      </div>
+
+      <!-- Menu Actions -->
+      <div class="flex flex-col gap-2">
+        <button onclick="closeSideMenu(); openDeckModal();"
+          class="shrine-btn w-full bg-white/10 hover:bg-white/15 border border-white/15 px-3.5 py-2.5 text-xs font-bold text-amber-200 flex items-center justify-between">
+          <span>📜 View Deck &amp; Kanji</span>
+          <span id="hud-deck-count" class="bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded-full">10</span>
+        </button>
+
+        <button id="btn-tts" onclick="toggleTTS()"
+          class="shrine-btn w-full bg-white/10 hover:bg-white/15 border border-white/15 px-3.5 py-2.5 text-xs font-bold text-sky-300 flex items-center justify-between">
+          <span>🗣️ Japanese Voice</span>
+          <span id="tts-label" class="bg-sky-400/20 px-2 py-0.5 rounded-full">ON</span>
+        </button>
+
+        <button id="btn-sfx" onclick="toggleSFX()"
+          class="shrine-btn w-full bg-white/10 hover:bg-white/15 border border-white/15 px-3.5 py-2.5 text-xs font-bold text-emerald-300 flex items-center justify-between">
+          <span>🔊 Sound Effects</span>
+          <span id="sfx-label" class="bg-emerald-400/20 px-2 py-0.5 rounded-full">ON</span>
+        </button>
+      </div>
+    </div>
+
+    <button onclick="closeSideMenu(); switchScreen('screen-title');"
+      class="shrine-btn w-full bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-200 text-xs font-bold py-2.5">
+      🏠 Exit to Title
+    </button>
+  </aside>
+
   <!-- Main App Wrapper -->
-  <div id="game-root" class="w-full max-w-5xl mx-auto flex-1 flex flex-col justify-between gap-2.5">
+  <div id="game-root" class="w-full max-w-5xl mx-auto h-full max-h-full flex flex-col justify-between gap-2 overflow-hidden">
 
     <!-- ===================================================================== -->
-    <!-- TOP GLOBAL HUD BAR                                                    -->
+    <!-- COMPACT RESOURCE PILL BAR (Shown on Map & Reward Screens)             -->
     <!-- ===================================================================== -->
-    <header id="hud-bar" class="hidden shrine-panel px-3 py-2 sm:px-5 sm:py-2.5 flex flex-wrap items-center justify-between gap-2 z-20">
-      <!-- Left: Floor & Player HP -->
-      <div class="flex items-center gap-3 sm:gap-4">
-        <div class="bg-[#E11D48] border border-amber-300/60 px-3 py-1 rounded-xl text-center shadow">
-          <div class="text-[10px] font-extrabold uppercase tracking-wider text-amber-100">Floor</div>
-          <div id="hud-floor" class="font-fantasy font-black text-base sm:text-lg leading-none">1 / 6</div>
+    <header id="hud-bar" class="hidden shrink-0 px-2 py-1 pr-12 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-1.5 bg-slate-900/80 border border-amber-400/35 px-3 py-1 rounded-full">
+          <span class="text-xs">⛩️</span>
+          <span id="hud-floor-pill" class="font-fantasy font-black text-xs text-amber-300 tracking-wide">1 / 6</span>
         </div>
-
-        <!-- HP Bar -->
-        <div class="min-w-[125px] sm:min-w-[165px]">
-          <div class="flex items-center justify-between text-xs font-extrabold mb-1">
-            <span class="text-rose-300 flex items-center gap-1">❤️ HP</span>
-            <span id="hud-hp-text" class="text-amber-100">50 / 50</span>
-          </div>
-          <div class="w-full h-3 bg-slate-900 rounded-full border border-amber-400/40 overflow-hidden">
-            <div id="hud-hp-bar" class="h-full bg-gradient-to-r from-rose-600 to-rose-400 transition-all duration-300" style="width: 100%;"></div>
-          </div>
+        <div class="flex items-center gap-1.5 bg-slate-900/80 border border-rose-400/35 px-3 py-1 rounded-full">
+          <span class="text-xs">❤️</span>
+          <span id="hud-hp-pill" class="text-xs font-extrabold text-slate-200 tabular-nums">50/50</span>
         </div>
-
-        <!-- Yen Currency -->
-        <div class="bg-amber-500/15 border border-amber-400/40 px-3 py-1 rounded-xl flex items-center gap-1.5">
-          <span class="text-amber-300 font-black text-sm sm:text-base">¥</span>
-          <span id="hud-yen" class="font-extrabold text-sm sm:text-base text-amber-200">40</span>
+        <div class="flex items-center gap-1 bg-slate-900/80 border border-amber-400/35 px-3 py-1 rounded-full text-amber-300 font-fantasy font-black text-xs">
+          <span>🪙</span>
+          <span id="hud-yen">40</span>
+          <span class="text-[10px] opacity-75">¥</span>
         </div>
       </div>
 
-      <!-- Center: Active Relics Bar -->
-      <div id="hud-relics" class="flex items-center gap-1.5 flex-wrap">
-        <!-- Relic icons populated dynamically -->
-      </div>
-
-      <!-- Right: Deck Glossary & Audio Toggles -->
-      <div class="flex items-center gap-1.5 sm:gap-2">
-        <button onclick="openDeckModal()" class="shrine-btn bg-indigo-900/90 hover:bg-indigo-800 border border-amber-300/40 px-2.5 py-1.5 text-xs sm:text-sm flex items-center gap-1.5 text-amber-100">
-          <span>📜</span>
-          <span>Deck (<span id="hud-deck-count">10</span>)</span>
-        </button>
-        <button id="btn-tts" onclick="toggleTTS()" title="Toggle Japanese Voice Pronunciation"
-          class="shrine-btn bg-slate-800 border border-slate-600 px-2.5 py-1.5 text-xs sm:text-sm text-amber-200">
-          🗣️ <span class="hidden md:inline" id="tts-label">TTS ON</span>
-        </button>
-        <button id="btn-sfx" onclick="toggleSFX()" title="Toggle Sound Effects"
-          class="shrine-btn bg-slate-800 border border-slate-600 px-2.5 py-1.5 text-xs sm:text-sm text-amber-200">
-          🔊
-        </button>
-      </div>
+      <div id="hud-relics" class="flex items-center gap-1" title="Equipped Relics"></div>
     </header>
 
     <!-- ===================================================================== -->
-    <!-- SCREEN 1: TITLE / SHRINE ENTRANCE                                     -->
+    <!-- SCREEN 1: TITLE & HOW TO PLAY                                         -->
     <!-- ===================================================================== -->
-    <main id="screen-title" class="shrine-panel p-6 sm:p-10 my-auto max-w-2xl mx-auto text-center flex flex-col items-center gap-5">
-      <div class="inline-flex items-center gap-2 bg-rose-600/25 border border-rose-400/60 px-4 py-1 rounded-full text-xs sm:text-sm font-extrabold tracking-widest uppercase text-rose-200">
-        <span>⛩️</span> 言霊ダンジョン • Kotodama Roguelike
+    <main id="screen-title" class="shrine-panel p-6 sm:p-10 my-auto text-center flex flex-col items-center gap-6">
+      <div class="inline-flex items-center gap-2 bg-rose-950/80 border border-rose-500/50 px-4 py-1 rounded-full text-xs font-extrabold tracking-widest uppercase text-rose-300">
+        ⛩️ Roguelike Deckbuilder • Japanese Kotodama
       </div>
 
       <div>
-        <h1 class="font-fantasy font-black text-4xl sm:text-6xl tracking-wide text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-400 to-rose-500 drop-shadow">
-          KOTODAMA DUNGEON
+        <div class="font-jp font-black text-3xl sm:text-4xl text-amber-400 tracking-widest mb-1">言霊ダンジョン</div>
+        <h1 class="font-fantasy font-black text-4xl sm:text-6xl tracking-tight text-white drop-shadow-[0_4px_12px_rgba(245,158,11,0.35)]">
+          KOTODAMA <span class="text-amber-400">DUNGEON</span>
         </h1>
-        <p class="mt-3 text-sm sm:text-base text-slate-300 max-w-lg mx-auto leading-relaxed">
-          Forge real <strong class="text-amber-300">Japanese sentences</strong> out of Kanji &amp; Romaji word cards to banish Yokai spirits, exploit elemental weaknesses, and upgrade your deck across 6 cursed floors.
+        <p class="mt-3 text-sm sm:text-base text-slate-300 max-w-xl mx-auto leading-relaxed">
+          Climb 6 Yokai-infested shrine floors by forging <strong class="text-amber-300">Japanese Word Cards</strong> into elemental sentences. Combine <span class="text-blue-400 font-bold">Adjective</span> + <span class="text-amber-400 font-bold">Noun</span> + <span class="text-rose-400 font-bold">Verb</span> to trigger <strong class="text-amber-200">Kotodama Combos</strong> and <strong class="text-sky-300">Elemental Reactions</strong>!
         </p>
       </div>
 
-      <!-- Grammar Formula Visual Guide -->
-      <div class="w-full grid grid-cols-3 gap-2 sm:gap-3 bg-slate-950/70 border border-amber-400/30 rounded-2xl p-3 sm:p-4 text-left">
-        <div class="border-l-4 border-blue-500 pl-2.5">
-          <div class="text-[11px] font-black uppercase text-blue-400">1. Adjective</div>
-          <div class="font-jp font-black text-base sm:text-lg text-white">鋭い <span class="text-xs font-normal text-blue-300">surudoi</span></div>
-          <div class="text-[11px] text-slate-400">Modifies power, block, or draw</div>
+      <!-- Visual Grammar Formula Guide -->
+      <div class="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
+        <div class="bg-blue-950/40 border border-blue-500/40 rounded-2xl p-3">
+          <div class="text-[11px] font-black uppercase text-blue-400">1. Adjective (Modifier)</div>
+          <div class="font-jp font-black text-lg text-white mt-0.5">鋭い <span class="text-xs font-normal text-blue-200">surudoi (Sharp)</span></div>
+          <div class="text-xs text-slate-300 mt-1">Adds bonus Power, Block, Burn, or Draw.</div>
         </div>
-        <div class="border-l-4 border-amber-500 pl-2.5">
-          <div class="text-[11px] font-black uppercase text-amber-400">2. Noun</div>
-          <div class="font-jp font-black text-base sm:text-lg text-white">刀 <span class="text-xs font-normal text-amber-300">katana</span></div>
-          <div class="text-[11px] text-slate-400">Sets Element (⚔️🔥💧⚡) or Shield</div>
+        <div class="bg-amber-950/40 border border-amber-500/40 rounded-2xl p-3">
+          <div class="text-[11px] font-black uppercase text-amber-400">2. Noun (Core Element)</div>
+          <div class="font-jp font-black text-lg text-white mt-0.5">刀 <span class="text-xs font-normal text-amber-200">katana (Sword)</span></div>
+          <div class="text-xs text-slate-300 mt-1">Sets attack element (⚔️🔥💧⚡🛡️) &amp; base damage.</div>
         </div>
-        <div class="border-l-4 border-rose-500 pl-2.5">
-          <div class="text-[11px] font-black uppercase text-rose-400">3. Verb</div>
-          <div class="font-jp font-black text-base sm:text-lg text-white">切る <span class="text-xs font-normal text-rose-300">kiru</span></div>
-          <div class="text-[11px] text-slate-400">Multiplies effect &amp; adds bonus!</div>
+        <div class="bg-rose-950/40 border border-rose-500/40 rounded-2xl p-3">
+          <div class="text-[11px] font-black uppercase text-rose-400">3. Verb (Multiplier)</div>
+          <div class="font-jp font-black text-lg text-white mt-0.5">切る <span class="text-xs font-normal text-rose-200">kiru (Slash)</span></div>
+          <div class="text-xs text-slate-300 mt-1">Multiplies sentence power &amp; triggers special effects.</div>
         </div>
       </div>
 
-      <div class="flex flex-col sm:flex-row gap-3 w-full max-w-md mt-1">
+      <div class="flex flex-col sm:flex-row gap-3 w-full max-w-md">
         <button onclick="startNewRun()"
-          class="shrine-btn flex-1 bg-gradient-to-r from-rose-600 to-amber-500 text-slate-950 font-fantasy font-black text-lg sm:text-xl py-3.5 px-6 shadow-lg shadow-rose-950/50">
+          class="shrine-btn flex-1 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 text-slate-950 font-fantasy font-black text-xl py-4 px-6 shadow-[0_5px_0_#92400E]">
           ENTER THE SHRINE ⚔️
         </button>
         <button onclick="openDeckModal(true)"
-          class="shrine-btn bg-slate-800 hover:bg-slate-700 border border-amber-300/40 text-amber-200 font-bold text-sm py-3.5 px-5">
-          📖 STUDY KANJI
+          class="shrine-btn bg-slate-800 hover:bg-slate-700 border border-amber-300/40 text-amber-200 font-bold text-sm py-4 px-5">
+          📖 WORD BANK
         </button>
-      </div>
-
-      <div class="text-xs text-slate-400">
-        Active Language: <span class="text-amber-300 font-bold">🇯🇵 Japanese (Kanji + Romaji + TTS)</span> • Multi-language ready architecture
       </div>
     </main>
 
     <!-- ===================================================================== -->
-    <!-- SCREEN 2: COMBAT ARENA                                                -->
+    <!-- SCREEN 2: ACTIVE DUNGEON COMBAT & SENTENCE FORGE                      -->
     <!-- ===================================================================== -->
-    <main id="screen-combat" class="hidden flex-1 flex-col justify-between gap-2.5">
+    <main id="screen-combat" class="hidden flex-1 min-h-0 flex-col justify-between gap-2 overflow-hidden">
 
-      <!-- TOP HALF: BATTLEFIELD (PLAYER STATUS vs YOKAI ENEMY) -->
-      <section id="battlefield-panel" class="shrine-panel p-3 sm:p-5 grid grid-cols-1 md:grid-cols-12 gap-3 items-center relative overflow-hidden">
-        
-        <!-- Left: Player Guardian Avatar & Active Block / Status -->
-        <div class="md:col-span-4 flex md:flex-col items-center justify-between md:justify-center bg-slate-950/60 border border-indigo-400/25 rounded-2xl p-3 text-center">
-          <div class="flex items-center md:flex-col gap-2.5">
-            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-indigo-950 border-2 border-amber-400/60 flex items-center justify-center text-3xl sm:text-4xl shadow-inner">
-              🥷
-            </div>
-            <div class="text-left md:text-center">
-              <div class="font-fantasy font-bold text-sm sm:text-base text-amber-200">Kotodama Mage</div>
-              <div class="text-[11px] text-slate-400">Turn <span id="combat-turn">1</span></div>
-            </div>
-          </div>
-
-          <!-- Player Block & Buff Badges -->
-          <div class="flex items-center gap-2 mt-0 md:mt-2.5">
-            <div id="player-block-badge" class="bg-sky-950/90 border border-sky-400/60 px-3 py-1 rounded-xl flex items-center gap-1.5">
-              <span>🛡️</span>
-              <span class="text-xs font-extrabold text-sky-200">Block: <strong id="player-block" class="text-base text-white">0</strong></span>
-            </div>
-          </div>
+      <!-- TOP ARENA: CENTERED YOKAI ENEMY WITH TOP-LEFT LEVEL BADGE -->
+      <section id="battlefield-panel" class="shrink-0 shrine-panel px-4 py-2 sm:px-6 sm:py-2.5 relative overflow-hidden">
+        <!-- Top-Left Floor / Level Badge -->
+        <div class="absolute top-2.5 left-3 sm:top-3 sm:left-4 flex items-center gap-1.5 bg-amber-500/15 border border-amber-400/40 px-3 py-1 rounded-full z-10">
+          <span class="text-xs">⛩️</span>
+          <span id="hud-floor" class="font-fantasy font-black text-xs sm:text-sm text-amber-300 tracking-wide">1 / 6</span>
         </div>
 
-        <!-- Center: Turn Log / Combat Feedback Banner -->
-        <div class="md:col-span-4 flex flex-col items-center justify-center text-center px-2">
-          <div id="combat-log" class="bg-slate-950/80 border border-amber-300/30 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-amber-100 w-full min-h-[54px] flex items-center justify-center">
-            Select word cards below to forge a Japanese phrase!
-          </div>
-          <div class="mt-2 flex items-center gap-2 text-[11px] text-slate-400">
-            <span>Draw Pile: <strong id="pile-draw" class="text-amber-300">5</strong></span>
-            <span>•</span>
-            <span>Discard: <strong id="pile-discard" class="text-slate-300">0</strong></span>
-          </div>
-        </div>
-
-        <!-- Right: Yokai Enemy Card -->
-        <div id="enemy-box" class="md:col-span-4 bg-slate-950/75 border-2 border-rose-500/50 rounded-2xl p-3 relative flex flex-col items-center text-center">
-          <!-- Telegraphed Next Intent Pill -->
-          <div id="enemy-intent-badge" class="w-full mb-2 bg-rose-950/90 border border-rose-400/70 rounded-xl px-2.5 py-1 flex items-center justify-between text-xs font-extrabold">
-            <span class="text-rose-300 uppercase tracking-wider text-[10px]">Next Intent</span>
-            <span id="enemy-intent-text" class="text-white">⚔️ Attack 9</span>
-          </div>
-
-          <!-- Yokai Sprite + Weakness Badge -->
-          <div class="relative my-1">
-            <div id="enemy-sprite" class="text-5xl sm:text-6xl animate-yokai-bob select-none">👺</div>
-            <div id="enemy-weakness-badge" title="Elemental Weakness (1.5x Crit Damage!)"
-              class="absolute -right-7 -top-1 bg-amber-500 text-slate-950 font-black text-[11px] px-2 py-0.5 rounded-full border border-white shadow">
-              Weak: 💧
-            </div>
-          </div>
-
-          <!-- Yokai Name & HP -->
-          <div class="w-full mt-1">
-            <div class="flex items-baseline justify-center gap-1.5">
-              <span id="enemy-kanji" class="font-jp font-black text-base sm:text-lg text-rose-200">河童</span>
-              <span id="enemy-name" class="font-fantasy font-bold text-xs sm:text-sm text-amber-300">Kappa</span>
-            </div>
-
-            <!-- Enemy HP Bar -->
-            <div class="w-full h-3.5 bg-slate-900 rounded-full border border-rose-400/40 overflow-hidden mt-1.5 relative">
-              <div id="enemy-hp-bar" class="h-full bg-gradient-to-r from-rose-600 to-amber-500 transition-all duration-300" style="width: 100%;"></div>
-              <span id="enemy-hp-text" class="absolute inset-0 text-[10px] font-black flex items-center justify-center text-white drop-shadow">
-                36 / 36
-              </span>
-            </div>
-
-            <!-- Enemy Block & Burn Status -->
-            <div id="enemy-statuses" class="flex items-center justify-center gap-2 mt-1.5 min-h-[20px] text-[11px] font-extrabold">
-              <!-- Dynamically populated -->
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- MIDDLE: THE 3-SLOT SENTENCE FORGE -->
-      <section class="shrine-panel p-3 sm:p-4 flex flex-col gap-2.5">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <div class="flex items-center gap-2">
-            <span class="font-fantasy font-bold text-sm sm:text-base text-amber-300">⛩️ SENTENCE FORGE</span>
-            <span id="combo-badge" class="hidden bg-gradient-to-r from-amber-400 to-rose-500 text-slate-950 text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
-              ✨ KOTODAMA COMBO (+25%)
+        <div id="enemy-box" class="flex flex-col items-center text-center max-w-md mx-auto">
+          <!-- Intent & Weakness Badges -->
+          <div class="flex items-center justify-center gap-2 mb-0.5">
+            <span id="enemy-intent-text" class="bg-rose-500/20 border border-rose-400/60 text-rose-200 text-xs font-extrabold px-2.5 py-0.5 rounded-full">
+              ⚔️ Claw 7
+            </span>
+            <span id="enemy-weakness-badge" class="bg-amber-500/15 border border-amber-400/50 text-amber-200 text-xs font-bold px-2 py-0.5 rounded-full">
+              Weak: ⚡
             </span>
           </div>
 
-          <!-- Energy Orbs & Turn Controls -->
-          <div class="flex items-center gap-2 sm:gap-3">
-            <div class="bg-slate-950 border border-amber-400/50 px-3 py-1 rounded-xl flex items-center gap-1.5">
-              <span class="text-xs font-extrabold text-amber-300">⚡ ENERGY</span>
-              <span id="hud-energy" class="font-fantasy font-black text-base sm:text-lg text-white">3 / 3</span>
+          <!-- Centered Yokai Sprite & Name -->
+          <div class="flex flex-col items-center justify-center my-1">
+            <div id="enemy-sprite" class="text-6xl sm:text-8xl leading-none animate-yokai-bob select-none drop-shadow-[0_6px_16px_rgba(244,63,94,0.35)]">🥒</div>
+            <div class="flex items-baseline justify-center gap-2 mt-1">
+              <span id="enemy-kanji" class="font-jp font-black text-lg sm:text-2xl text-amber-300">河童</span>
+              <span id="enemy-name" class="font-fantasy font-bold text-sm sm:text-base text-white">River Kappa</span>
             </div>
-            <button onclick="clearForge()" class="shrine-btn bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2.5 py-1.5 text-xs text-slate-300">
-              Clear
-            </button>
+            <div id="enemy-statuses" class="flex items-center justify-center gap-2 text-xs font-extrabold mt-0.5"></div>
+          </div>
+
+          <!-- Enlarged Enemy Health Bar -->
+          <div class="w-full max-w-sm mt-1">
+            <div class="w-full h-3.5 sm:h-4 bg-slate-950/90 rounded-full overflow-hidden border border-rose-400/50 shadow-inner">
+              <div id="enemy-hp-bar" class="h-full bg-gradient-to-r from-rose-600 via-rose-500 to-orange-400 transition-all duration-300" style="width: 100%;"></div>
+            </div>
+            <div id="enemy-hp-text" class="text-xs font-black text-rose-200 mt-0.5 tabular-nums">34 / 34</div>
           </div>
         </div>
 
-        <!-- 3 Grammatical Slots -->
-        <div class="grid grid-cols-3 gap-2 sm:gap-3">
-          <!-- Slot 1: Adjective -->
-          <div id="slot-adj" onclick="unslotCard('adj')" class="forge-slot p-2 sm:p-2.5 min-h-[78px] sm:min-h-[86px] flex flex-col items-center justify-center text-center cursor-pointer">
-            <span class="text-[10px] font-black uppercase tracking-wider text-blue-400">1. Adjective (Opt)</span>
-            <span class="text-xs text-slate-500 mt-1">Modifier</span>
-          </div>
-
-          <!-- Slot 2: Noun -->
-          <div id="slot-noun" onclick="unslotCard('noun')" class="forge-slot p-2 sm:p-2.5 min-h-[78px] sm:min-h-[86px] flex flex-col items-center justify-center text-center cursor-pointer">
-            <span class="text-[10px] font-black uppercase tracking-wider text-amber-400">2. Noun (Core)</span>
-            <span class="text-xs text-slate-500 mt-1">Element / Shield</span>
-          </div>
-
-          <!-- Slot 3: Verb -->
-          <div id="slot-verb" onclick="unslotCard('verb')" class="forge-slot p-2 sm:p-2.5 min-h-[78px] sm:min-h-[86px] flex flex-col items-center justify-center text-center cursor-pointer">
-            <span class="text-[10px] font-black uppercase tracking-wider text-rose-400">3. Verb (Opt)</span>
-            <span class="text-xs text-slate-500 mt-1">Multiplier</span>
-          </div>
-        </div>
-
-        <!-- Live Japanese Phrase Preview + Cast & End Turn Buttons -->
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-slate-950/75 border border-amber-400/25 rounded-2xl p-2.5">
-          <div class="flex-1 text-center sm:text-left px-1">
-            <div id="preview-jp" class="font-jp font-black text-base sm:text-lg text-amber-200">
-              — Slot cards to build a phrase —
-            </div>
-            <div id="preview-stats" class="text-xs font-bold text-slate-400 mt-0.5">
-              Play a Noun, or combine Adjective + Noun + Verb for bonus power!
-            </div>
-          </div>
-
-          <div class="flex items-center gap-2 shrink-0">
-            <button id="btn-cast" onclick="castSentence()" disabled
-              class="shrine-btn flex-1 sm:flex-initial bg-gradient-to-r from-amber-500 to-rose-600 text-slate-950 font-fantasy font-black text-sm sm:text-base px-5 py-2.5 shadow-md">
-              CAST SPELL 🔥
-            </button>
-            <button id="btn-end-turn" onclick="endPlayerTurn()"
-              class="shrine-btn bg-slate-800 hover:bg-slate-700 border border-amber-300/40 text-amber-200 font-bold text-xs sm:text-sm px-3.5 py-2.5">
-              End Turn ⏭️
-            </button>
-          </div>
+        <!-- Single-Line Battle Ticker -->
+        <div id="combat-log" class="text-center text-xs text-slate-300/90 font-semibold truncate pt-1 mt-1 border-t border-white/10">
+          Slot cards below to forge a Japanese phrase!
         </div>
       </section>
 
-      <!-- BOTTOM: PLAYER HAND (5-6 WORD CARDS) -->
-      <section class="pb-1">
-        <div id="player-hand" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-2.5">
-          <!-- Word cards rendered dynamically -->
+      <!-- MIDDLE ARENA: EXPANDED SENTENCE FORGE WITH BOTTOM CONTROLS -->
+      <section id="forge-panel" class="shrink-0 w-full shrine-panel px-4 py-2.5 sm:px-6 sm:py-3 flex flex-col justify-between gap-2 overflow-hidden">
+        <!-- Forge Top Row: Energy Orbs + Inline Preview -->
+        <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 min-h-[30px]">
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5 bg-sky-500/15 border border-sky-400/40 px-2.5 py-1 rounded-full">
+              <span class="text-xs">⚡</span>
+              <span id="hud-energy" class="font-fantasy font-black text-xs sm:text-sm text-sky-300">3 / 3</span>
+            </div>
+            <span id="combo-badge" class="hidden bg-amber-400 text-slate-950 text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase shadow-[0_0_12px_rgba(251,191,36,0.5)]">
+              ✨ COMBO +25%
+            </span>
+          </div>
+
+          <!-- Compact Fixed-Height Preview Strip -->
+          <div id="preview-banner" class="hidden flex-1 min-w-[200px] bg-slate-950/90 border border-amber-400/60 rounded-xl px-3 py-1 flex items-center justify-center gap-2.5 text-center">
+            <div id="preview-jp" class="font-jp font-black text-sm sm:text-base text-white tracking-wide truncate"></div>
+            <div id="preview-stats" class="flex flex-wrap items-center justify-center gap-1.5 text-xs sm:text-sm font-black text-slate-400"></div>
+          </div>
+        </div>
+
+        <!-- 3 Card-Sized Table Slots -->
+        <div class="grid grid-cols-3 gap-2 sm:gap-3 max-w-xl mx-auto w-full">
+          <div id="slot-adj" onclick="unslotCard('adj')" class="forge-slot px-2 py-1 text-center cursor-pointer">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-300/70">1. Adjective</span>
+            <span class="text-[11px] text-slate-500 mt-0.5">Modifier</span>
+          </div>
+          <div id="slot-noun" onclick="unslotCard('noun')" class="forge-slot px-2 py-1 text-center cursor-pointer">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-300/70">2. Noun</span>
+            <span class="text-[11px] text-slate-500 mt-0.5">Element</span>
+          </div>
+          <div id="slot-verb" onclick="unslotCard('verb')" class="forge-slot px-2 py-1 text-center cursor-pointer">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-rose-300/70">3. Verb</span>
+            <span class="text-[11px] text-slate-500 mt-0.5">Multiplier</span>
+          </div>
+        </div>
+
+        <!-- Forge Bottom Action Bar -->
+        <div class="shrink-0 flex items-center justify-center gap-3 pt-1">
+          <button onclick="clearForge()" title="Clear Forge Slots" class="shrine-btn bg-white/5 hover:bg-white/10 border border-white/15 text-slate-300 text-xs sm:text-sm px-3.5 py-2.5 rounded-xl">
+            ✕
+          </button>
+          <button id="btn-cast" onclick="castSentence()" disabled
+            class="shrine-btn bg-gradient-to-r from-rose-500 via-orange-400 to-amber-400 text-slate-950 font-fantasy font-black text-base sm:text-xl tracking-wider px-10 sm:px-14 py-2.5 sm:py-3 rounded-2xl shadow-[0_4px_0_#9F1239,0_8px_20px_rgba(244,63,94,0.4)]">
+            CAST 🔥
+          </button>
+          <button id="btn-end-turn" onclick="endPlayerTurn()"
+            class="shrine-btn bg-slate-800 hover:bg-slate-700 border border-slate-500/50 text-slate-200 text-xs sm:text-sm px-4 py-2.5 rounded-xl">
+            END TURN ⏭️
+          </button>
+        </div>
+      </section>
+
+      <!-- BOTTOM ARENA: PLAYER HEALTH, BLOCK & LARGE HAND CARDS -->
+      <section class="shrink-0 px-1 pb-1 flex flex-col justify-end gap-2">
+        <!-- Player Avatar, Health Bar, Block & Deck Counters -->
+        <div id="player-status-bar" class="shrink-0 shrine-panel px-4 py-1.5 grid grid-cols-3 items-center gap-2 max-w-3xl mx-auto w-full relative">
+          <!-- Left: Player Avatar, Health Bar & Turn -->
+          <div class="flex items-center gap-2 justify-start">
+            <div class="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-400/45 flex items-center justify-center text-lg shrink-0">
+              🥷
+            </div>
+            <div class="flex flex-col gap-0.5 min-w-[96px] sm:min-w-[130px]">
+              <div class="flex items-center justify-between text-[11px] font-extrabold leading-none">
+                <span class="text-rose-300 flex items-center gap-1">❤️ <span id="hud-hp-text" class="tabular-nums">50/50</span></span>
+                <span class="text-indigo-300/80 uppercase">T<span id="combat-turn">1</span></span>
+              </div>
+              <div class="w-full h-2.5 bg-slate-950/90 rounded-full overflow-hidden border border-rose-400/40">
+                <div id="hud-hp-bar" class="h-full bg-gradient-to-r from-rose-500 to-emerald-400 transition-all duration-300" style="width: 100%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Center: Prominent Persistent Block Badge -->
+          <div class="flex items-center justify-center">
+            <div class="inline-flex items-center gap-2 bg-gradient-to-r from-sky-950/90 via-sky-900/90 to-sky-950/90 border-2 border-sky-400/80 px-4 py-1 rounded-full shadow-[0_0_16px_rgba(56,189,248,0.3)]">
+              <span class="text-base sm:text-lg leading-none">🛡️</span>
+              <span id="player-block" class="font-fantasy font-black text-base sm:text-xl text-sky-200 tabular-nums leading-none">0</span>
+              <span class="text-[10px] font-black uppercase tracking-widest text-sky-300/80">BLOCK</span>
+            </div>
+          </div>
+
+          <!-- Right: Purse & Draw/Discard Counters -->
+          <div class="flex items-center justify-end gap-1.5 text-[11px] font-bold text-slate-400">
+            <span class="hidden sm:inline-flex items-center gap-1 bg-amber-500/10 border border-amber-400/30 text-amber-300 px-2 py-0.5 rounded-full font-fantasy font-black">
+              🪙<span id="player-yen">40</span>¥
+            </span>
+            <span class="bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+              Draw <strong id="pile-draw" class="text-slate-200">5</strong>
+            </span>
+            <span class="bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
+              Disc <strong id="pile-discard" class="text-slate-200">0</strong>
+            </span>
+          </div>
+        </div>
+
+        <div id="player-hand" class="flex flex-nowrap justify-center items-end gap-2 sm:gap-3 overflow-x-auto sm:overflow-visible pb-0.5 w-full">
+          <!-- Hand cards rendered here -->
         </div>
       </section>
     </main>
 
     <!-- ===================================================================== -->
-    <!-- SCREEN 3: VICTORY REWARD & SHRINE BLACKSMITH / SHOP                   -->
+    <!-- SCREEN 3: VICTORY REWARDS, CARD DRAFT & BLACKSMITH SHOP               -->
     <!-- ===================================================================== -->
-    <main id="screen-reward" class="hidden shrine-panel p-4 sm:p-6 my-auto flex-col gap-4">
-      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-400/30 pb-3">
-        <div>
-          <span class="text-xs font-black uppercase tracking-widest text-emerald-400">Yokai Banished!</span>
-          <h2 id="reward-title" class="font-fantasy font-black text-2xl sm:text-3xl text-amber-200">Floor 1 Cleared</h2>
+    <main id="screen-reward" class="hidden shrine-panel p-4 sm:p-6 my-auto flex-col justify-between gap-4 overflow-hidden">
+      <!-- Compact Victory Header -->
+      <div class="flex items-center justify-between gap-2 border-b border-amber-400/25 pb-2.5">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🏆</span>
+          <h2 id="reward-title" class="font-fantasy font-black text-lg sm:text-2xl text-white">Floor 1 Cleared!</h2>
         </div>
-        <div class="bg-amber-500/20 border border-amber-400 px-3.5 py-1.5 rounded-xl text-sm font-extrabold text-amber-200">
-          Earned <span id="reward-yen-earned" class="text-white">+35 ¥</span> • Wallet: <span id="reward-yen-total" class="text-amber-300">75 ¥</span>
+        <div class="flex items-center gap-2">
+          <span id="reward-yen-earned" class="bg-emerald-500/15 border border-emerald-400/50 text-emerald-300 text-xs font-black px-3 py-1 rounded-full">
+            +32 ¥
+          </span>
+          <span class="bg-amber-500/15 border border-amber-400/50 text-amber-300 text-xs sm:text-sm font-black px-3 py-1 rounded-full">
+            🪙 <span id="reward-yen-total">72 ¥</span>
+          </span>
         </div>
       </div>
 
-      <!-- STEP 1: DRAFT 1 OF 3 NEW JAPANESE WORD CARDS -->
+      <!-- Draft 1 of 3 New Vocabulary Cards -->
       <div>
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="font-fantasy font-bold text-base sm:text-lg text-amber-300">📜 Draft a New Word Card (Choose 1)</h3>
-          <span id="draft-status-text" class="text-xs font-bold text-slate-400">Free reward</span>
+        <div class="flex flex-col items-center justify-center text-center mb-2.5">
+          <span class="font-fantasy font-black text-xs sm:text-sm uppercase tracking-wider text-amber-300">🃏 Pick 1 New Word Card</span>
+          <span id="draft-status-text" class="text-xs font-bold text-emerald-400"></span>
         </div>
-        <div id="draft-cards-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <!-- 3 Draftable Cards -->
+        <div id="draft-cards-grid" class="grid grid-cols-3 gap-2.5 sm:gap-3.5 max-w-2xl mx-auto w-full">
+          <!-- 3 draft cards injected here -->
         </div>
       </div>
 
-      <!-- STEP 2: SHRINE UPGRADES (BLACKSMITH, HOT SPRING, RELIC) -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
-        <!-- Blacksmith Card Upgrade -->
-        <div class="bg-slate-950/75 border border-amber-400/35 rounded-2xl p-3.5 flex flex-col justify-between gap-2">
-          <div>
-            <div class="flex items-center justify-between">
-              <span class="font-fantasy font-bold text-amber-300 text-sm">⚒️ Blacksmith (鍛冶屋)</span>
-              <span class="text-xs font-black text-amber-200">35 ¥</span>
-            </div>
-            <p class="text-xs text-slate-400 mt-1">Upgrade any card in your deck to <strong class="text-amber-300">+1</strong> for stronger damage, block, or multipliers.</p>
-          </div>
-          <button id="btn-shop-upgrade" onclick="openUpgradeModal()"
-            class="shrine-btn w-full bg-amber-500/90 hover:bg-amber-400 text-slate-950 font-extrabold text-xs py-2.5">
-            UPGRADE A CARD (35 ¥)
-          </button>
-        </div>
+      <!-- Streamlined Shrine Altars (Icon-First, Zero Paragraph Clutter) -->
+      <div class="grid grid-cols-3 gap-2.5 sm:gap-3.5 max-w-2xl mx-auto w-full">
+        <!-- Blacksmith Upgrade -->
+        <button id="btn-shop-upgrade" onclick="openUpgradeModal()"
+          class="shrine-btn bg-slate-950/80 hover:bg-slate-900 border border-amber-400/40 rounded-2xl p-3 flex flex-col items-center justify-center gap-1 text-center">
+          <span class="text-2xl sm:text-3xl leading-none">⚒️</span>
+          <span class="font-fantasy font-black text-xs sm:text-sm text-amber-300 mt-0.5">UPGRADE +1</span>
+          <span id="shop-upgrade-price" class="text-[11px] font-black bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-full mt-0.5">35 ¥</span>
+        </button>
 
         <!-- Hot Spring Heal -->
-        <div class="bg-slate-950/75 border border-emerald-400/35 rounded-2xl p-3.5 flex flex-col justify-between gap-2">
-          <div>
-            <div class="flex items-center justify-between">
-              <span class="font-fantasy font-bold text-emerald-300 text-sm">♨️ Hot Spring (温泉)</span>
-              <span class="text-xs font-black text-amber-200">25 ¥</span>
-            </div>
-            <p class="text-xs text-slate-400 mt-1">Rest in sacred waters to restore <strong class="text-emerald-300">+20 HP</strong> before climbing higher.</p>
-          </div>
-          <button id="btn-shop-heal" onclick="buyHeal()"
-            class="shrine-btn w-full bg-emerald-500/90 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs py-2.5">
-            HEAL +20 HP (25 ¥)
-          </button>
-        </div>
+        <button id="btn-shop-heal" onclick="buyHeal()"
+          class="shrine-btn bg-slate-950/80 hover:bg-slate-900 border border-emerald-400/40 rounded-2xl p-3 flex flex-col items-center justify-center gap-1 text-center">
+          <span class="text-2xl sm:text-3xl leading-none">♨️</span>
+          <span class="font-fantasy font-black text-xs sm:text-sm text-emerald-300 mt-0.5">HEAL +20 HP</span>
+          <span id="shop-heal-price" class="text-[11px] font-black bg-emerald-400 text-slate-950 px-2.5 py-0.5 rounded-full mt-0.5">25 ¥</span>
+        </button>
 
-        <!-- Shrine Relic -->
-        <div id="shop-relic-box" class="bg-slate-950/75 border border-purple-400/45 rounded-2xl p-3.5 flex flex-col justify-between gap-2">
-          <!-- Populated dynamically with an unowned relic -->
+        <!-- Relic Pedestal -->
+        <div id="shop-relic-box" class="flex">
+          <!-- Relic injected here -->
         </div>
       </div>
 
-      <!-- Proceed to Next Floor -->
       <button onclick="advanceToNextFloor()"
-        class="shrine-btn w-full bg-gradient-to-r from-rose-600 to-amber-500 text-slate-950 font-fantasy font-black text-lg py-3.5 mt-1">
-        ASCEND TO NEXT FLOOR ⛩️
+        class="shrine-btn w-full max-w-2xl mx-auto bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 text-white font-fantasy font-black text-base sm:text-lg py-3 shadow-[0_4px_0_#312E81]">
+        CONTINUE TO MAP 🗺️
       </button>
+    </main>
+
+    <!-- ===================================================================== -->
+    <!-- SCREEN 3B: VISUAL SHRINE MAP & ENCOUNTERS                             -->
+    <!-- ===================================================================== -->
+    <main id="screen-map" class="hidden shrine-panel p-4 sm:p-6 my-auto max-w-4xl mx-auto flex-col gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-400/30 pb-3">
+        <div>
+          <div class="text-[11px] font-black uppercase tracking-widest text-amber-400">Shrine Ascension Map</div>
+          <h2 id="map-title" class="font-fantasy font-black text-xl sm:text-2xl text-white">Select a Connected Node</h2>
+        </div>
+        <!-- Compact Map Legend -->
+        <div class="flex flex-wrap items-center gap-2 text-[11px] font-bold text-slate-300 bg-slate-950/70 px-3 py-1.5 rounded-xl border border-amber-400/25">
+          <span>⚔️ Battle</span>
+          <span>👹 Elite</span>
+          <span>⛩️ Purify</span>
+          <span>🦝 Mystery</span>
+          <span>🐉 Boss</span>
+        </div>
+      </div>
+
+      <!-- Interactive Visual SVG + Node Graph Map -->
+      <div id="visual-map-wrapper" class="w-full overflow-x-auto bg-slate-950/85 border-2 border-amber-400/35 rounded-2xl p-3 sm:p-4">
+        <div id="visual-map-container" class="relative min-w-[640px] h-[250px] sm:h-[270px] mx-auto">
+          <svg id="visual-map-svg" class="absolute inset-0 w-full h-full pointer-events-none"></svg>
+          <div id="visual-map-nodes" class="absolute inset-0"></div>
+        </div>
+      </div>
+
+      <!-- Optional Event Sub-Panel (for Mystery Events) -->
+      <div id="map-event-panel" class="hidden bg-slate-950/90 border-2 border-purple-400/50 rounded-2xl p-4 sm:p-5 flex-col gap-3 text-center">
+        <div id="event-icon" class="text-4xl">🦝</div>
+        <h3 id="event-title" class="font-fantasy font-black text-xl text-amber-300">Tanuki Bargain</h3>
+        <p id="event-desc" class="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto"></p>
+        <div id="event-actions" class="flex flex-col sm:flex-row justify-center gap-2.5 mt-1"></div>
+      </div>
     </main>
 
     <!-- ===================================================================== -->
@@ -559,8 +658,8 @@
           <div id="end-stat-floors" class="font-fantasy font-black text-2xl text-amber-300">6 / 6</div>
         </div>
         <div>
-          <div class="text-[11px] uppercase text-slate-400 font-bold">Deck Size</div>
-          <div id="end-stat-deck" class="font-fantasy font-black text-2xl text-sky-300">14</div>
+          <div class="text-[11px] uppercase text-slate-400 font-bold">Reactions</div>
+          <div id="end-stat-reactions" class="font-fantasy font-black text-2xl text-sky-300">0</div>
         </div>
         <div>
           <div class="text-[11px] uppercase text-slate-400 font-bold">Relics</div>
@@ -599,6 +698,32 @@
 
       <div id="modal-cards-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 overflow-y-auto pr-1">
         <!-- Cards injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL: RELIC INSPECTION & PURCHASE CONFIRMATION                         -->
+  <!-- ======================================================================= -->
+  <div id="relic-confirm-overlay" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 p-4 flex items-center justify-center">
+    <div class="shrine-panel w-full max-w-sm p-6 text-center flex flex-col items-center gap-4 border-purple-400/50">
+      <div id="relic-confirm-icon" class="text-6xl leading-none drop-shadow-[0_4px_14px_rgba(168,85,247,0.5)]">📜</div>
+      <div>
+        <div id="relic-confirm-kanji" class="font-jp font-black text-sm text-purple-300">文法の巻物</div>
+        <h3 id="relic-confirm-name" class="font-fantasy font-black text-2xl text-white mt-0.5">Grammar Scroll</h3>
+      </div>
+      <p id="relic-confirm-desc" class="text-sm text-slate-200 bg-slate-950/75 border border-purple-400/30 rounded-2xl p-3.5 leading-relaxed w-full">
+        Full 3-card sentences deal +6 bonus DMG!
+      </p>
+      <div class="grid grid-cols-2 gap-3 w-full pt-1">
+        <button onclick="closeRelicConfirm()"
+          class="shrine-btn bg-slate-800 hover:bg-slate-700 border border-white/15 text-slate-200 text-xs sm:text-sm py-3">
+          CANCEL
+        </button>
+        <button id="relic-confirm-buy-btn" onclick="confirmBuyShopRelic()"
+          class="shrine-btn bg-gradient-to-r from-purple-500 to-amber-400 text-slate-950 font-fantasy font-black text-xs sm:text-sm py-3">
+          BUY (45 ¥)
+        </button>
       </div>
     </div>
   </div>
@@ -658,6 +783,27 @@
             upgPowerBonus: 16, upgBlockBonus: 0, upgBurnBonus: 0, upgDrawBonus: 0,
             desc: '+11 DMG', upgDesc: '+16 DMG'
           },
+          {
+            id: 'adj_heavy', type: 'adj', cost: 1,
+            kanji: '重い', kana: 'おもい', romaji: 'omoi', en: 'Heavy',
+            icon: '⚓', powerBonus: 4, blockBonus: 4, burnBonus: 0, drawBonus: 0,
+            upgPowerBonus: 7, upgBlockBonus: 7, upgBurnBonus: 0, upgDrawBonus: 0,
+            desc: '+4 DMG & +4 Block', upgDesc: '+7 DMG & +7 Block'
+          },
+          {
+            id: 'adj_sacred', type: 'adj', cost: 1,
+            kanji: '神聖な', kana: 'しんせいな', romaji: 'shinseina', en: 'Sacred',
+            icon: '⛩️', powerBonus: 4, blockBonus: 0, burnBonus: 0, drawBonus: 0, healBonus: 3,
+            upgPowerBonus: 6, upgBlockBonus: 0, upgBurnBonus: 0, upgDrawBonus: 0, upgHealBonus: 5,
+            desc: '+4 DMG & Heal 3 HP', upgDesc: '+6 DMG & Heal 5 HP'
+          },
+          {
+            id: 'adj_dark', type: 'adj', cost: 1,
+            kanji: '暗い', kana: 'くらい', romaji: 'kurai', en: 'Dark',
+            icon: '🌑', powerBonus: 6, blockBonus: 0, burnBonus: 2, drawBonus: 0,
+            upgPowerBonus: 9, upgBlockBonus: 0, upgBurnBonus: 4, upgDrawBonus: 0,
+            desc: '+6 DMG & +2 Burn', upgDesc: '+9 DMG & +4 Burn'
+          },
 
           // --- NOUNS (Core Elements & Targets) ---
           {
@@ -702,6 +848,34 @@
             upgBaseDmg: 8, upgBaseBlock: 6, upgBurn: 0,
             desc: '5 Storm DMG +4 Block', upgDesc: '8 Storm DMG +6 Block'
           },
+          {
+            id: 'noun_ice', type: 'noun', cost: 1, element: 'water', elementIcon: '💧',
+            kanji: '氷', kana: 'こおり', romaji: 'kōri', en: 'Ice',
+            icon: '❄️', baseDmg: 5, baseBlock: 5, burn: 0,
+            upgBaseDmg: 8, upgBaseBlock: 8, upgBurn: 0,
+            desc: '5 Water DMG +5 Block', upgDesc: '8 Water DMG +8 Block'
+          },
+          {
+            id: 'noun_stone', type: 'noun', cost: 1, element: 'earth', elementIcon: '🛡️',
+            kanji: '岩', kana: 'いわ', romaji: 'iwa', en: 'Stone',
+            icon: '🪨', baseDmg: 4, baseBlock: 7, burn: 0,
+            upgBaseDmg: 7, upgBaseBlock: 10, upgBurn: 0,
+            desc: '4 Earth DMG +7 Block', upgDesc: '7 Earth DMG +10 Block'
+          },
+          {
+            id: 'noun_poison', type: 'noun', cost: 1, element: 'fire', elementIcon: '🔥',
+            kanji: '毒', kana: 'どく', romaji: 'doku', en: 'Poison',
+            icon: '☠️', baseDmg: 3, baseBlock: 0, burn: 5,
+            upgBaseDmg: 5, upgBaseBlock: 0, upgBurn: 7,
+            desc: '3 DMG +5 Burn DOT', upgDesc: '5 DMG +7 Burn DOT'
+          },
+          {
+            id: 'noun_wind', type: 'noun', cost: 0, element: 'wind', elementIcon: '⚡',
+            kanji: '風', kana: 'かぜ', romaji: 'kaze', en: 'Wind',
+            icon: '🍃', baseDmg: 4, baseBlock: 0, burn: 0,
+            upgBaseDmg: 7, upgBaseBlock: 0, upgBurn: 0,
+            desc: '0 Cost • 4 Storm DMG', upgDesc: '0 Cost • 7 Storm DMG'
+          },
 
           // --- VERBS (Action Multipliers & Special Effects) ---
           {
@@ -738,6 +912,27 @@
             icon: '💥', mult: 2.0, upgMult: 2.4, special: 'unleash',
             desc: '2.0x Massive Sentence DMG',
             upgDesc: '2.4x Massive Sentence DMG'
+          },
+          {
+            id: 'verb_slam', type: 'verb', cost: 1,
+            kanji: '体当たり', kana: 'たいあたり', romaji: 'taiatari', en: 'Body Slam',
+            icon: '🦏', mult: 1.2, upgMult: 1.5, special: 'bodyslam',
+            desc: 'Deals DMG equal to your current Block!',
+            upgDesc: 'Deals 1.3x your current Block as DMG!'
+          },
+          {
+            id: 'verb_freeze', type: 'verb', cost: 1,
+            kanji: '凍らせる', kana: 'こおらせる', romaji: 'kōraseru', en: 'Freeze',
+            icon: '🧊', mult: 1.3, upgMult: 1.6, special: 'freeze',
+            desc: '1.3x DMG & Weakens Enemy (-50% ATK)',
+            upgDesc: '1.6x DMG & Weakens Enemy (-50% ATK)'
+          },
+          {
+            id: 'verb_drain', type: 'verb', cost: 1,
+            kanji: '吸う', kana: 'すう', romaji: 'suu', en: 'Drain',
+            icon: '🧛', mult: 1.3, upgMult: 1.6, special: 'drain',
+            desc: '1.3x DMG & Gain Block equal to half DMG',
+            upgDesc: '1.6x DMG & Gain Block equal to half DMG'
           }
         ],
         starterDeckIds: [
@@ -846,6 +1041,34 @@
           { type: 'attack', value: 24, label: '⚡ Calamity Roar 24' }
         ]
       }
+    ];
+
+    const ELITE_ENEMIES = [
+      {
+        kanji: '鬼将軍', romaji: 'Oni Shōgun', name: 'Elite Oni Warlord', sprite: '👹',
+        isElite: true, weakness: 'water', weaknessIcon: '💧', yenReward: 65,
+        intents: [
+          { type: 'defend', value: 12, label: '🛡️ Iron Armor 12' },
+          { type: 'attack', value: 15, label: '⚔️ Cleave 15' },
+          { type: 'attack', value: 19, label: '🔥 Hellfire Smash 19' }
+        ]
+      },
+      {
+        kanji: '雷獣', romaji: 'Raijū', name: 'Elite Thunder Beast', sprite: '🐺',
+        isElite: true, weakness: 'earth', weaknessIcon: '🛡️', yenReward: 65,
+        intents: [
+          { type: 'attack', value: 14, label: '⚡ Volt Fang 14' },
+          { type: 'attack', value: 18, label: '🌪️ Tempest Howl 18' },
+          { type: 'defend', value: 11, label: '🛡️ Static Cloak 11' }
+        ]
+      }
+    ];
+
+    const ELEMENT_CYCLE = [
+      { element: 'fire', icon: '🔥' },
+      { element: 'water', icon: '💧' },
+      { element: 'steel', icon: '⚔️' },
+      { element: 'wind', icon: '⚡' }
     ];
 
     /**
@@ -1019,6 +1242,11 @@
       enemy: null,
       draftPicked: false,
       shopRelic: null,
+      reactionsTriggered: 0,
+      mapColumns: [],
+      currentNodeId: 'n_1_0',
+      visitedNodeIds: ['n_1_0'],
+      pendingTargetFloor: 2,
       busy: false
     };
 
@@ -1039,11 +1267,11 @@
      * 5. RUN LIFECYCLE & SCREEN MANAGEMENT
      */
     function switchScreen(screenId) {
-      ['screen-title', 'screen-combat', 'screen-reward', 'screen-end'].forEach(id => {
+      ['screen-title', 'screen-combat', 'screen-reward', 'screen-map', 'screen-end'].forEach(id => {
         const el = document.getElementById(id);
         if (id === screenId) {
           el.classList.remove('hidden');
-          if (id !== 'screen-title') el.classList.add('flex');
+          el.classList.add('flex');
         } else {
           el.classList.add('hidden');
           el.classList.remove('flex');
@@ -1051,11 +1279,39 @@
       });
 
       const hud = document.getElementById('hud-bar');
+      const hamburger = document.getElementById('btn-hamburger');
       if (screenId === 'screen-title') {
         hud.classList.add('hidden');
+        hamburger.classList.add('hidden');
       } else {
-        hud.classList.remove('hidden');
+        hamburger.classList.remove('hidden');
+        if (screenId === 'screen-combat') {
+          hud.classList.add('hidden');
+        } else {
+          hud.classList.remove('hidden');
+        }
       }
+      closeSideMenu();
+    }
+
+    function toggleSideMenu() {
+      const drawer = document.getElementById('side-menu-drawer');
+      const backdrop = document.getElementById('side-menu-backdrop');
+      const isClosed = drawer.classList.contains('translate-x-full');
+      if (isClosed) {
+        updateTopHUD();
+        drawer.classList.remove('translate-x-full');
+        backdrop.classList.remove('hidden');
+      } else {
+        closeSideMenu();
+      }
+    }
+
+    function closeSideMenu() {
+      const drawer = document.getElementById('side-menu-drawer');
+      const backdrop = document.getElementById('side-menu-backdrop');
+      if (drawer) drawer.classList.add('translate-x-full');
+      if (backdrop) backdrop.classList.add('hidden');
     }
 
     function startNewRun() {
@@ -1065,26 +1321,126 @@
       game.hp = 50;
       game.yen = 40;
       game.maxEnergy = 3;
+      game.reactionsTriggered = 0;
       game.relics = [];
       game.deck = LANGUAGES.ja.starterDeckIds.map(id => createCardInstance(id, false));
-      startFloorBattle(1);
+      generateRunMap();
+      game.currentNodeId = 'n_1_0';
+      game.visitedNodeIds = ['n_1_0'];
+      startFloorBattle(1, false);
     }
 
-    function startFloorBattle(floorNum) {
+    /**
+     * Generates a 6-floor branching Shrine Map with connected paths
+     */
+    function generateRunMap() {
+      const nodeTypes = [
+        { type: 'standard', icon: '⚔️', label: 'Battle' },
+        { type: 'elite', icon: '👹', label: 'Elite' },
+        { type: 'purify', icon: '⛩️', label: 'Purify' },
+        { type: 'mystery', icon: '🦝', label: 'Mystery' }
+      ];
+
+      const cols = [];
+      // Floor 1: Starting Shrine Gate
+      cols.push([
+        { id: 'n_1_0', floor: 1, row: 1, type: 'standard', icon: '⚔️', label: 'Start', next: [] }
+      ]);
+
+      // Floors 2 to 5: 2 or 3 branching nodes per floor
+      for (let f = 2; f <= 5; f++) {
+        const count = f === 3 || f === 4 ? 3 : 2;
+        const rowSlots = count === 3 ? [0, 1, 2] : [0.4, 1.6];
+        const shuffled = [...nodeTypes].sort(() => Math.random() - 0.5);
+        const colNodes = [];
+
+        for (let i = 0; i < count; i++) {
+          const picked = i === 0
+            ? { type: 'standard', icon: '⚔️', label: 'Battle' }
+            : shuffled[i % shuffled.length];
+          colNodes.push({
+            id: `n_${f}_${i}`,
+            floor: f,
+            row: rowSlots[i],
+            type: picked.type,
+            icon: picked.icon,
+            label: picked.label,
+            next: []
+          });
+        }
+        cols.push(colNodes);
+      }
+
+      // Floor 6: Final Boss (Yamata-no-Orochi)
+      cols.push([
+        { id: 'n_6_0', floor: 6, row: 1, type: 'boss', icon: '🐉', label: 'Dragon', next: [] }
+      ]);
+
+      // Wire directional edges between adjacent columns so every node has forward paths & incoming paths
+      for (let c = 0; c < cols.length - 1; c++) {
+        const curr = cols[c];
+        const next = cols[c + 1];
+
+        curr.forEach((node, idx) => {
+          const primaryIdx = Math.min(next.length - 1, Math.round((idx / Math.max(1, curr.length - 1)) * (next.length - 1)));
+          node.next.push(next[primaryIdx].id);
+
+          // Add a second branching path when multiple targets exist
+          if (next.length > 1) {
+            const altIdx = primaryIdx === 0 ? 1 : (primaryIdx === next.length - 1 ? primaryIdx - 1 : primaryIdx + (Math.random() < 0.5 ? -1 : 1));
+            if (next[altIdx] && !node.next.includes(next[altIdx].id)) {
+              node.next.push(next[altIdx].id);
+            }
+          }
+        });
+
+        // Ensure every node in next column has at least one incoming edge
+        next.forEach((targetNode, tIdx) => {
+          const hasIncoming = curr.some(n => n.next.includes(targetNode.id));
+          if (!hasIncoming) {
+            const feeder = curr[Math.min(curr.length - 1, tIdx)];
+            feeder.next.push(targetNode.id);
+          }
+        });
+      }
+
+      game.mapColumns = cols;
+    }
+
+    function startFloorBattle(floorNum, isElite = false) {
       game.floor = floorNum;
       game.turn = 1;
       game.playerBlock = 0;
       game.forge = { adj: null, noun: null, verb: null };
       game.busy = false;
 
-      const template = YOKAI_FLOORS[floorNum - 1];
-      game.enemy = {
-        ...template,
-        hp: template.maxHp,
-        block: 0,
-        burn: 0,
-        intentIndex: 0
-      };
+      if (isElite) {
+        const eliteTpl = ELITE_ENEMIES[(floorNum + Math.floor(Math.random() * 2)) % ELITE_ENEMIES.length];
+        const scaledHp = 46 + floorNum * 9;
+        game.enemy = {
+          ...eliteTpl,
+          floor: floorNum,
+          maxHp: scaledHp,
+          hp: scaledHp,
+          block: 0,
+          burn: 0,
+          wet: false,
+          stunned: false,
+          intentIndex: 0
+        };
+      } else {
+        const template = YOKAI_FLOORS[floorNum - 1];
+        game.enemy = {
+          ...template,
+          isElite: false,
+          hp: template.maxHp,
+          block: 0,
+          burn: 0,
+          wet: false,
+          stunned: false,
+          intentIndex: 0
+        };
+      }
 
       // Shuffle full deck into draw pile
       game.drawPile = [...game.deck].sort(() => Math.random() - 0.5);
@@ -1233,12 +1589,15 @@
       let draw = 0;
       let heal = 0;
       let pierce = false;
+      let freezeEnemy = false;
+      let drainShield = false;
 
       if (adj) {
         rawDmg += adj.upgraded ? adj.upgPowerBonus : adj.powerBonus;
         rawBlock += adj.upgraded ? adj.upgBlockBonus : adj.blockBonus;
         burn += adj.upgraded ? adj.upgBurnBonus : adj.burnBonus;
         draw += adj.upgraded ? adj.upgDrawBonus : adj.drawBonus;
+        if (adj.healBonus) heal += (adj.upgraded ? adj.upgHealBonus : adj.healBonus);
       }
 
       if (noun) {
@@ -1255,6 +1614,10 @@
           const converted = Math.round((rawDmg + rawBlock) * mult) + (verb.upgraded ? 7 : 4);
           rawBlock = converted;
           rawDmg = 0;
+        } else if (verb.special === 'bodyslam') {
+          // Body Slam adds your current Block directly into damage!
+          const slamFactor = verb.upgraded ? 1.3 : 1.0;
+          rawDmg = Math.round((rawDmg + game.playerBlock * slamFactor) * mult);
         } else {
           rawDmg = Math.round(rawDmg * mult);
           if (rawBlock > 0) rawBlock = Math.round(rawBlock * 1.25);
@@ -1263,6 +1626,8 @@
         if (verb.special === 'pierce') pierce = true;
         if (verb.special === 'burn') burn += (verb.upgraded ? 6 : 4);
         if (verb.special === 'lifesteal') heal += (verb.upgraded ? 5 : 3);
+        if (verb.special === 'freeze') freezeEnemy = true;
+        if (verb.special === 'drain') drainShield = true;
       }
 
       // Full 3-Card Kotodama Combo Bonus (+25% power + Grammar Scroll relic)
@@ -1278,11 +1643,28 @@
         if (hasRelic('relic_bell')) heal += 4;
       }
 
+      // Preview Elemental Reaction Combos!
+      let reactionName = null;
+      const el = noun ? noun.element : 'neutral';
+      if (noun && rawDmg > 0) {
+        if (el === 'wind' && game.enemy.burn > 0) {
+          reactionName = '🌪️ WILDFIRE DETONATION';
+        } else if ((el === 'wind' && game.enemy.wet) || (el === 'water' && game.enemy.stunned)) {
+          reactionName = '⚡ CONDUCTIVE STUN';
+        } else if (el === 'steel' && game.enemy.block > 0) {
+          reactionName = '💥 ARMOR SHATTER';
+        }
+      }
+      if (noun && el === 'earth' && game.playerBlock > 0) {
+        reactionName = '🛡️ TEMPERED AEGIS';
+      }
+
       return {
         valid: true,
         isFullCombo,
         isWeaknessHit,
-        element: noun ? noun.element : 'neutral',
+        reactionName,
+        element: el,
         jpText: jpParts.join(' '),
         kanaText: kanaParts.join(''),
         romajiText: romajiParts.join(' '),
@@ -1293,6 +1675,8 @@
         draw,
         heal,
         pierce,
+        freezeEnemy,
+        drainShield,
         cost: getForgeEnergyCost()
       };
     }
@@ -1337,32 +1721,92 @@
         rect.left + rect.width / 2,
         rect.top + rect.height / 2,
         paletteMap[result.element] || paletteMap.neutral,
-        result.isFullCombo ? 45 : 26
+        result.isFullCombo || result.reactionName ? 56 : 26
       );
+
+      // Dramatic Combo Surge & Kotodama Kanji Seal Flash on Full 3-Card Combos or Reactions
+      if (result.isFullCombo || result.reactionName) {
+        const forgePanel = document.getElementById('forge-panel');
+        if (forgePanel) {
+          forgePanel.classList.remove('animate-combo-surge');
+          void forgePanel.offsetWidth;
+          forgePanel.classList.add('animate-combo-surge');
+        }
+        spawnComboSealEffect(
+          rect.top + rect.height / 2,
+          result.reactionName ? result.reactionName : '言霊 COMBO!'
+        );
+      }
+
+      // Apply Elemental Reactions & Status Priming
+      let bonusReactionDmg = 0;
+      let reactionLog = '';
+
+      if (result.element === 'earth' && game.playerBlock > 0) {
+        const bonusShield = Math.min(12, Math.ceil(game.playerBlock * 0.5));
+        game.playerBlock += bonusShield;
+        game.reactionsTriggered += 1;
+        reactionLog = `🛡️ TEMPERED AEGIS (+${bonusShield} Block)!`;
+      }
 
       // Apply Block & Heal to Player
       if (result.block > 0) {
         game.playerBlock += result.block;
-        spawnFloatingPopup('battlefield-panel', '20%', '45%', `+${result.block} 🛡️`, '#38BDF8');
+        spawnFloatingPopup('player-status-bar', '50%', '-25%', `+${result.block} 🛡️`, '#38BDF8');
       }
       if (result.heal > 0) {
         game.hp = Math.min(game.maxHp, game.hp + result.heal);
-        spawnFloatingPopup('battlefield-panel', '20%', '30%', `+${result.heal} ❤️`, '#34D399');
+        spawnFloatingPopup('player-status-bar', '22%', '-25%', `+${result.heal} ❤️`, '#34D399');
       }
       if (result.draw > 0) {
         drawCards(result.draw);
       }
 
-      // Apply Damage, Pierce & Burn to Enemy
+      // Apply Damage, Pierce, Burn & Elemental Reactions to Enemy
       if (result.pierce && game.enemy.block > 0) {
         game.enemy.block = Math.floor(game.enemy.block * 0.5);
+      }
+      if (result.freezeEnemy) {
+        game.enemy.stunned = true;
       }
       if (result.burn > 0) {
         game.enemy.burn += result.burn;
       }
 
       if (result.dmg > 0) {
-        let dmgLeft = result.dmg;
+        if (result.element === 'wind' && game.enemy.burn > 0) {
+          // WILDFIRE: Detonate all remaining Burn immediately for 2.5x burst!
+          bonusReactionDmg += game.enemy.burn * 3;
+          game.enemy.burn = 0;
+          game.reactionsTriggered += 1;
+          reactionLog = `🌪️ WILDFIRE! +${bonusReactionDmg} Burst DMG!`;
+        } else if (result.element === 'wind' && game.enemy.wet) {
+          // CONDUCTIVE: Stun enemy (halves next attack) & deal +6 bonus shock!
+          game.enemy.wet = false;
+          game.enemy.stunned = true;
+          bonusReactionDmg += 6;
+          game.reactionsTriggered += 1;
+          reactionLog = `⚡ CONDUCTIVE! Enemy Weakened (-50% ATK)!`;
+        } else if (result.element === 'steel' && game.enemy.block > 0) {
+          // SHATTER: Destroy all enemy block & deal +5 bonus damage!
+          game.enemy.block = 0;
+          bonusReactionDmg += 5;
+          game.reactionsTriggered += 1;
+          reactionLog = `💥 SHATTER! Enemy Block Destroyed!`;
+        }
+
+        // Prime Wet status when hitting with Water
+        if (result.element === 'water') {
+          game.enemy.wet = true;
+        }
+
+        const totalDmg = result.dmg + bonusReactionDmg;
+        if (result.drainShield) {
+          const gainedShield = Math.max(3, Math.floor(totalDmg * 0.5));
+          game.playerBlock += gainedShield;
+          spawnFloatingPopup('player-status-bar', '50%', '-25%', `+${gainedShield} 🛡️`, '#38BDF8');
+        }
+        let dmgLeft = totalDmg;
         if (game.enemy.block > 0) {
           const absorbed = Math.min(game.enemy.block, dmgLeft);
           game.enemy.block -= absorbed;
@@ -1375,12 +1819,15 @@
         void sprite.offsetWidth;
         sprite.classList.add('animate-hit-flash');
 
-        const label = result.isWeaknessHit ? `CRIT -${result.dmg} 💥` : `-${result.dmg} ⚔️`;
-        spawnFloatingPopup('battlefield-panel', '80%', '42%', label, result.isWeaknessHit ? '#FDE047' : '#FB7185');
+        const label = reactionLog
+          ? `${reactionLog} (-${totalDmg})`
+          : (result.isWeaknessHit ? `CRIT -${totalDmg} 💥` : `-${totalDmg} ⚔️`);
+        spawnFloatingPopup('battlefield-panel', '50%', '40%', label, reactionLog || result.isWeaknessHit ? '#FDE047' : '#FB7185');
       }
 
       const tags = [];
-      if (result.isFullCombo) tags.push('✨ KOTODAMA COMBO');
+      if (reactionLog) tags.push(reactionLog);
+      else if (result.isFullCombo) tags.push('✨ KOTODAMA COMBO');
       if (result.isWeaknessHit) tags.push('💥 WEAKNESS CRIT');
       setCombatLog(`Cast "${result.jpText}" (${result.enText})! ${tags.join(' • ')}`);
 
@@ -1393,7 +1840,7 @@
           game.busy = false;
           renderCombatUI();
         }
-      }, 520);
+      }, 540);
     }
 
     /**
@@ -1414,7 +1861,7 @@
         const burnDmg = game.enemy.burn;
         game.enemy.hp = Math.max(0, game.enemy.hp - burnDmg);
         game.enemy.burn = Math.max(0, game.enemy.burn - 1);
-        spawnFloatingPopup('battlefield-panel', '80%', '35%', `🔥 -${burnDmg} Burn`, '#FB923C');
+        spawnFloatingPopup('battlefield-panel', '50%', '32%', `🔥 -${burnDmg} Burn`, '#FB923C');
         renderCombatUI();
 
         if (game.enemy.hp <= 0) {
@@ -1431,10 +1878,35 @@
         if (intent.type === 'defend') {
           game.enemy.block += intent.value;
           AudioEngine.shield();
-          spawnFloatingPopup('battlefield-panel', '80%', '45%', `+${intent.value} 🛡️`, '#38BDF8');
+          spawnFloatingPopup('battlefield-panel', '50%', '42%', `+${intent.value} 🛡️`, '#38BDF8');
           setCombatLog(`${game.enemy.name} used ${intent.label}!`);
         } else {
-          let incoming = intent.value;
+          // Trigger Enemy Lunge & Claw Slash Animation
+          const sprite = document.getElementById('enemy-sprite');
+          if (sprite) {
+            sprite.classList.remove('animate-yokai-bob', 'animate-enemy-lunge');
+            void sprite.offsetWidth;
+            sprite.classList.add('animate-enemy-lunge');
+            setTimeout(() => {
+              sprite.classList.remove('animate-enemy-lunge');
+              sprite.classList.add('animate-yokai-bob');
+            }, 480);
+          }
+
+          const playerBar = document.getElementById('player-status-bar');
+          if (playerBar) {
+            const pRect = playerBar.getBoundingClientRect();
+            spawnEnemySlashEffect(pRect.top + pRect.height / 2);
+            ParticleFX.burst(
+              pRect.left + pRect.width / 2,
+              pRect.top + pRect.height / 2,
+              ['#F43F5E', '#FB923C', '#FDE047'],
+              22
+            );
+          }
+
+          const rawAtk = game.enemy.stunned ? Math.ceil(intent.value * 0.5) : intent.value;
+          let incoming = rawAtk;
           const blocked = Math.min(game.playerBlock, incoming);
           game.playerBlock -= blocked;
           incoming -= blocked;
@@ -1443,13 +1915,23 @@
             game.hp = Math.max(0, game.hp - incoming);
             AudioEngine.enemyHit();
             triggerShake();
-            spawnFloatingPopup('battlefield-panel', '20%', '42%', `-${incoming} 💔`, '#F43F5E');
+            spawnFloatingPopup('player-status-bar', '50%', '-25%', `-${incoming} 💔`, '#F43F5E');
             setCombatLog(`${game.enemy.name} struck for ${incoming} damage! (${blocked} blocked)`);
           } else {
             AudioEngine.shield();
-            spawnFloatingPopup('battlefield-panel', '20%', '42%', `BLOCKED! 🛡️`, '#38BDF8');
-            setCombatLog(`You blocked all ${intent.value} damage from ${game.enemy.name}!`);
+            spawnFloatingPopup('player-status-bar', '50%', '-25%', `BLOCKED! 🛡️`, '#38BDF8');
+            setCombatLog(`You blocked all ${rawAtk} damage from ${game.enemy.name}!`);
           }
+        }
+        game.enemy.stunned = false;
+
+        // Boss Mechanic: Shrine Dragon shifts elemental weakness every 2 turns!
+        if (game.floor === YOKAI_FLOORS.length && game.turn % 2 === 0) {
+          const others = ELEMENT_CYCLE.filter(ec => ec.element !== game.enemy.weakness);
+          const nextEl = others[Math.floor(Math.random() * others.length)];
+          game.enemy.weakness = nextEl.element;
+          game.enemy.weaknessIcon = nextEl.icon;
+          spawnFloatingPopup('battlefield-panel', '50%', '20%', `Weakness → ${nextEl.icon}`, '#FDE047');
         }
 
         renderCombatUI();
@@ -1488,10 +1970,21 @@
       game.yen += earned;
       game.draftPicked = false;
 
-      document.getElementById('reward-title').textContent = `Floor ${game.floor} Cleared — ${game.enemy.name} Banished!`;
-      document.getElementById('reward-yen-earned').textContent = `+${earned} ¥`;
+      // Elite enemies drop a guaranteed free Relic!
+      let eliteRelicNote = '';
+      if (game.enemy.isElite) {
+        const unowned = RELIC_POOL.filter(r => !hasRelic(r.id));
+        if (unowned.length > 0) {
+          const trophyRelic = unowned[Math.floor(Math.random() * unowned.length)];
+          game.relics.push(trophyRelic);
+          eliteRelicNote = ` • Elite Trophy: ${trophyRelic.icon} ${trophyRelic.name}!`;
+        }
+      }
+
+      document.getElementById('reward-title').textContent = `Floor ${game.floor} Cleared!`;
+      document.getElementById('reward-yen-earned').textContent = `+${earned} ¥${eliteRelicNote}`;
       document.getElementById('reward-yen-total').textContent = `${game.yen} ¥`;
-      document.getElementById('draft-status-text').textContent = 'Choose 1 card to add to your deck';
+      document.getElementById('draft-status-text').textContent = '';
 
       // Generate 3 distinct draftable word cards (25% chance to be pre-upgraded +1!)
       const pool = [...LANGUAGES.ja.cards].sort(() => Math.random() - 0.5).slice(0, 3);
@@ -1521,7 +2014,7 @@
       AudioEngine.speak(newCard.kana);
       AudioEngine.coin();
 
-      document.getElementById('draft-status-text').innerHTML = `<span class="text-emerald-400">Added ${newCard.kanji} (${newCard.romaji})!</span>`;
+      document.getElementById('draft-status-text').textContent = `✓ Added ${newCard.kanji}`;
       const allDrafts = document.querySelectorAll('#draft-cards-grid > div');
       allDrafts.forEach(el => {
         if (el !== btnEl) el.classList.add('card-disabled');
@@ -1535,34 +2028,36 @@
       document.getElementById('reward-yen-total').textContent = `${game.yen} ¥`;
 
       const upgBtn = document.getElementById('btn-shop-upgrade');
+      const upgPrice = document.getElementById('shop-upgrade-price');
       const upgradableCount = game.deck.filter(c => !c.upgraded).length;
       upgBtn.disabled = game.yen < 35 || upgradableCount === 0;
-      upgBtn.textContent = upgradableCount === 0 ? 'ALL CARDS MAXED' : 'UPGRADE A CARD (35 ¥)';
+      upgPrice.textContent = upgradableCount === 0 ? 'MAXED' : '35 ¥';
 
       const healBtn = document.getElementById('btn-shop-heal');
+      const healPrice = document.getElementById('shop-heal-price');
       healBtn.disabled = game.yen < 25 || game.hp >= game.maxHp;
-      healBtn.textContent = game.hp >= game.maxHp ? 'HP FULL' : 'HEAL +20 HP (25 ¥)';
+      healPrice.textContent = game.hp >= game.maxHp ? 'FULL HP' : '25 ¥';
 
       const relicBox = document.getElementById('shop-relic-box');
       if (game.shopRelic) {
         const r = game.shopRelic;
         const owned = hasRelic(r.id);
         relicBox.innerHTML = `
-          <div>
-            <div class="flex items-center justify-between">
-              <span class="font-fantasy font-bold text-purple-300 text-sm">${r.icon} ${r.name}</span>
-              <span class="text-xs font-black text-amber-200">${r.cost} ¥</span>
-            </div>
-            <p class="text-xs text-slate-400 mt-1">${r.desc}</p>
-          </div>
-          <button onclick="buyShopRelic()" ${owned || game.yen < r.cost ? 'disabled' : ''}
-            class="shrine-btn w-full bg-purple-500/90 hover:bg-purple-400 text-white font-extrabold text-xs py-2.5">
-            ${owned ? 'RELIC ACQUIRED ✓' : `BUY RELIC (${r.cost} ¥)`}
+          <button onclick="openRelicConfirm()" ${owned ? 'disabled' : ''}
+            class="shrine-btn w-full bg-slate-950/80 hover:bg-slate-900 border border-purple-400/40 rounded-2xl p-3 flex flex-col items-center justify-center gap-1 text-center">
+            <span class="text-2xl sm:text-3xl leading-none">${r.icon}</span>
+            <span class="font-fantasy font-black text-xs sm:text-sm text-purple-300 mt-0.5 truncate max-w-full">${r.name}</span>
+            <span class="text-[11px] font-black ${owned ? 'bg-emerald-400 text-slate-950' : 'bg-purple-400 text-slate-950'} px-2.5 py-0.5 rounded-full mt-0.5">
+              ${owned ? 'OWNED ✓' : `${r.cost} ¥`}
+            </span>
           </button>
         `;
       } else {
         relicBox.innerHTML = `
-          <div class="text-xs text-slate-400 my-auto text-center">All Shrine Relics collected!</div>
+          <div class="w-full bg-slate-950/50 border border-white/10 rounded-2xl p-3 flex flex-col items-center justify-center text-center text-xs font-bold text-slate-500">
+            <span class="text-2xl mb-1 opacity-50">⛩️</span>
+            <span>SOLD OUT</span>
+          </div>
         `;
       }
     }
@@ -1575,12 +2070,36 @@
       refreshShopUI();
     }
 
-    function buyShopRelic() {
+    function openRelicConfirm() {
+      const r = game.shopRelic;
+      if (!r || hasRelic(r.id)) return;
+      AudioEngine.cardClick();
+
+      document.getElementById('relic-confirm-icon').textContent = r.icon;
+      document.getElementById('relic-confirm-kanji').textContent = r.kanji;
+      document.getElementById('relic-confirm-name').textContent = r.name;
+      document.getElementById('relic-confirm-desc').textContent = r.desc;
+
+      const buyBtn = document.getElementById('relic-confirm-buy-btn');
+      const canAfford = game.yen >= r.cost;
+      buyBtn.disabled = !canAfford;
+      buyBtn.textContent = canAfford ? `BUY (${r.cost} ¥)` : `NEED ${r.cost} ¥`;
+
+      document.getElementById('relic-confirm-overlay').classList.remove('hidden');
+    }
+
+    function closeRelicConfirm() {
+      AudioEngine.cardClick();
+      document.getElementById('relic-confirm-overlay').classList.add('hidden');
+    }
+
+    function confirmBuyShopRelic() {
       const r = game.shopRelic;
       if (!r || hasRelic(r.id) || game.yen < r.cost) return;
       game.yen -= r.cost;
       game.relics.push(r);
       AudioEngine.victory();
+      document.getElementById('relic-confirm-overlay').classList.add('hidden');
       refreshShopUI();
     }
 
@@ -1616,7 +2135,251 @@
 
     function advanceToNextFloor() {
       AudioEngine.cardClick();
-      startFloorBattle(game.floor + 1);
+      openPathMap();
+    }
+
+    /**
+     * 8B. VISUAL BRANCHING SHRINE MAP (Connected Node Graph)
+     */
+    function openPathMap() {
+      const nextFloor = game.floor + 1;
+      game.pendingTargetFloor = nextFloor;
+      document.getElementById('map-title').textContent = nextFloor === YOKAI_FLOORS.length
+        ? 'Ascend to the Shrine Dragon (Floor 6)'
+        : `Floor ${game.floor} Complete — Choose a Connected Shrine Node`;
+
+      const eventPanel = document.getElementById('map-event-panel');
+      eventPanel.classList.add('hidden');
+      eventPanel.classList.remove('flex');
+
+      const mapWrapper = document.getElementById('visual-map-wrapper');
+      mapWrapper.classList.remove('hidden');
+
+      renderVisualMap();
+      switchScreen('screen-map');
+    }
+
+    function renderVisualMap() {
+      const svgEl = document.getElementById('visual-map-svg');
+      const nodesEl = document.getElementById('visual-map-nodes');
+      const cols = game.mapColumns;
+      if (!cols || cols.length === 0) return;
+
+      // Find current node and its directly reachable next node IDs
+      let currentNode = null;
+      cols.forEach(col => col.forEach(n => {
+        if (n.id === game.currentNodeId) currentNode = n;
+      }));
+      const reachableIds = new Set(currentNode ? currentNode.next : []);
+
+      // Helper to convert (floor 1..6, row 0..2) into percentage coordinates
+      const getCoords = (node) => {
+        const xPct = 8 + ((node.floor - 1) / (cols.length - 1)) * 84;
+        const yPct = 20 + (node.row / 2) * 60;
+        return { xPct, yPct };
+      };
+
+      // Lookup map by node id
+      const nodeById = {};
+      cols.forEach(col => col.forEach(n => { nodeById[n.id] = n; }));
+
+      // Draw SVG connecting lines
+      let linesHTML = '';
+      cols.forEach(col => {
+        col.forEach(fromNode => {
+          const p1 = getCoords(fromNode);
+          fromNode.next.forEach(toId => {
+            const toNode = nodeById[toId];
+            if (!toNode) return;
+            const p2 = getCoords(toNode);
+            const isReachableEdge = fromNode.id === game.currentNodeId && reachableIds.has(toId);
+            const isVisitedEdge = game.visitedNodeIds.includes(fromNode.id) && game.visitedNodeIds.includes(toId);
+
+            const stroke = isReachableEdge
+              ? '#F59E0B'
+              : (isVisitedEdge ? '#10B981' : 'rgba(148, 163, 184, 0.28)');
+            const width = isReachableEdge ? '4' : (isVisitedEdge ? '3' : '2');
+            const dash = isReachableEdge ? '' : (isVisitedEdge ? '' : 'stroke-dasharray="5,5"');
+
+            linesHTML += `<line x1="${p1.xPct}%" y1="${p1.yPct}%" x2="${p2.xPct}%" y2="${p2.yPct}%" stroke="${stroke}" stroke-width="${width}" ${dash} stroke-linecap="round" />`;
+          });
+        });
+      });
+      svgEl.innerHTML = linesHTML;
+
+      // Render interactive Map Nodes
+      let nodesHTML = '';
+      cols.forEach(col => {
+        col.forEach(node => {
+          const { xPct, yPct } = getCoords(node);
+          const isCurrent = node.id === game.currentNodeId;
+          const isVisited = game.visitedNodeIds.includes(node.id);
+          const isReachable = reachableIds.has(node.id);
+
+          let ringClass = 'bg-slate-900 border-slate-600 text-slate-400 opacity-60 cursor-not-allowed';
+          if (isCurrent) {
+            ringClass = 'bg-emerald-950 border-emerald-400 text-white ring-4 ring-emerald-400/30';
+          } else if (isReachable) {
+            ringClass = 'bg-amber-950 border-amber-400 text-white ring-4 ring-amber-400/40 animate-pulse cursor-pointer hover:scale-110';
+          } else if (isVisited) {
+            ringClass = 'bg-slate-800 border-emerald-500/70 text-emerald-200 opacity-85';
+          }
+
+          const clickAttr = isReachable ? `onclick="selectVisualMapNode('${node.id}')"` : '';
+
+          nodesHTML += `
+            <div ${clickAttr} style="left: ${xPct}%; top: ${yPct}%; transform: translate(-50%, -50%);"
+              class="absolute flex flex-col items-center transition-transform select-none">
+              <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 ${ringClass} flex items-center justify-center text-2xl sm:text-3xl shadow-lg">
+                ${isCurrent ? '🥷' : node.icon}
+              </div>
+              <span class="mt-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${isReachable ? 'bg-amber-400 text-slate-950' : 'bg-slate-950/90 text-slate-300 border border-slate-700'}">
+                F${node.floor} ${isCurrent ? 'YOU' : node.label}
+              </span>
+            </div>
+          `;
+        });
+      });
+      nodesEl.innerHTML = nodesHTML;
+    }
+
+    function selectVisualMapNode(nodeId) {
+      let chosenNode = null;
+      game.mapColumns.forEach(col => col.forEach(n => {
+        if (n.id === nodeId) chosenNode = n;
+      }));
+      if (!chosenNode) return;
+
+      AudioEngine.cardClick();
+      game.currentNodeId = chosenNode.id;
+      if (!game.visitedNodeIds.includes(chosenNode.id)) {
+        game.visitedNodeIds.push(chosenNode.id);
+      }
+
+      const targetFloor = chosenNode.floor;
+      if (chosenNode.type === 'standard' || chosenNode.type === 'boss') {
+        startFloorBattle(targetFloor, false);
+      } else if (chosenNode.type === 'elite') {
+        startFloorBattle(targetFloor, true);
+      } else if (chosenNode.type === 'purify') {
+        openPurifyModal(targetFloor);
+      } else if (chosenNode.type === 'mystery') {
+        triggerMysteryEvent(targetFloor);
+      }
+    }
+
+    function openPurifyModal(targetFloor) {
+      if (game.deck.length <= 5) {
+        startFloorBattle(targetFloor, false);
+        return;
+      }
+      const modal = document.getElementById('modal-overlay');
+      document.getElementById('modal-title').textContent = '⛩️ Purification Shrine — Banish 1 Card';
+      document.getElementById('modal-subtitle').textContent = 'Permanently remove a card to keep your draws lean and deadly';
+
+      const grid = document.getElementById('modal-cards-grid');
+      grid.innerHTML = game.deck.map((card, i) =>
+        renderCardHTML(card, `confirmPurifyCard('${card.uid}', ${targetFloor})`, i)
+      ).join('');
+      modal.classList.remove('hidden');
+    }
+
+    function confirmPurifyCard(uid, targetFloor) {
+      game.deck = game.deck.filter(c => c.uid !== uid);
+      AudioEngine.victory();
+      closeModal();
+      startFloorBattle(targetFloor, false);
+    }
+
+    function triggerMysteryEvent(targetFloor) {
+      document.getElementById('visual-map-wrapper').classList.add('hidden');
+      const panel = document.getElementById('map-event-panel');
+      panel.classList.remove('hidden');
+      panel.classList.add('flex');
+
+      const events = [
+        {
+          icon: '🪞',
+          title: 'Mirror of Kotodama',
+          desc: 'A sacred spirit pond reflects your strongest words. Duplicate a card in your deck, or meditate for +15 Max HP!',
+          actions: [
+            {
+              label: '🪞 Duplicate a Card',
+              style: 'bg-sky-500 text-slate-950',
+              fn: () => {
+                const modal = document.getElementById('modal-overlay');
+                document.getElementById('modal-title').textContent = '🪞 Mirror — Choose a Card to Duplicate';
+                document.getElementById('modal-subtitle').textContent = 'Adds an exact copy to your deck';
+                document.getElementById('modal-cards-grid').innerHTML = game.deck.map((card, i) =>
+                  renderCardHTML(card, `confirmDuplicateCard('${card.uid}', ${targetFloor})`, i)
+                ).join('');
+                modal.classList.remove('hidden');
+              }
+            },
+            {
+              label: '❤️ +15 Max HP & Full Heal',
+              style: 'bg-emerald-500 text-slate-950',
+              fn: () => {
+                game.maxHp += 15;
+                game.hp = game.maxHp;
+                AudioEngine.victory();
+                startFloorBattle(targetFloor, false);
+              }
+            }
+          ]
+        },
+        {
+          icon: '🦝',
+          title: 'Tanuki Blood Pact',
+          desc: 'A grinning Tanuki offers +1 Permanent Max Energy every turn in exchange for 14 HP!',
+          actions: [
+            {
+              label: '⚡ Accept Pact (-14 HP → +1 Max Energy)',
+              style: 'bg-amber-500 text-slate-950',
+              fn: () => {
+                game.hp = Math.max(1, game.hp - 14);
+                game.maxEnergy += 1;
+                AudioEngine.victory();
+                startFloorBattle(targetFloor, false);
+              }
+            },
+            {
+              label: '💰 Refuse & Take +30 ¥',
+              style: 'bg-slate-700 text-white',
+              fn: () => {
+                game.yen += 30;
+                AudioEngine.coin();
+                startFloorBattle(targetFloor, false);
+              }
+            }
+          ]
+        }
+      ];
+
+      const chosen = events[Math.floor(Math.random() * events.length)];
+      document.getElementById('event-icon').textContent = chosen.icon;
+      document.getElementById('event-title').textContent = chosen.title;
+      document.getElementById('event-desc').textContent = chosen.desc;
+
+      const actionsEl = document.getElementById('event-actions');
+      actionsEl.innerHTML = '';
+      chosen.actions.forEach(act => {
+        const btn = document.createElement('button');
+        btn.className = `shrine-btn ${act.style} font-extrabold text-xs sm:text-sm px-4 py-3`;
+        btn.textContent = act.label;
+        btn.onclick = act.fn;
+        actionsEl.appendChild(btn);
+      });
+    }
+
+    function confirmDuplicateCard(uid, targetFloor) {
+      const orig = game.deck.find(c => c.uid === uid);
+      if (orig) {
+        game.deck.push(createCardInstance(orig.id, orig.upgraded));
+      }
+      AudioEngine.victory();
+      closeModal();
+      startFloorBattle(targetFloor, false);
     }
 
     function showEndScreen(isVictory) {
@@ -1629,7 +2392,7 @@
         : `The ${game.enemy.name} overwhelmed your defenses. Review your Kanji deck and try a new run!`;
 
       document.getElementById('end-stat-floors').textContent = `${isVictory ? 6 : game.floor} / 6`;
-      document.getElementById('end-stat-deck').textContent = game.deck.length;
+      document.getElementById('end-stat-reactions').textContent = game.reactionsTriggered;
       document.getElementById('end-stat-relics').textContent = game.relics.length;
     }
 
@@ -1665,19 +2428,31 @@
      * 10. UI RENDERING HELPERS
      */
     function updateTopHUD() {
-      document.getElementById('hud-floor').textContent = `${game.floor} / ${YOKAI_FLOORS.length}`;
-      document.getElementById('hud-hp-text').textContent = `${game.hp} / ${game.maxHp}`;
-      document.getElementById('hud-hp-bar').style.width = `${Math.max(0, (game.hp / game.maxHp) * 100)}%`;
-      document.getElementById('hud-yen').textContent = game.yen;
-      document.getElementById('hud-deck-count').textContent = game.deck.length;
+      const floorStr = `${game.floor} / ${YOKAI_FLOORS.length}`;
+      const hpStr = `${game.hp}/${game.maxHp}`;
 
-      const relicsContainer = document.getElementById('hud-relics');
-      relicsContainer.innerHTML = game.relics.map(r => `
+      document.getElementById('hud-floor').textContent = floorStr;
+      document.getElementById('hud-floor-pill').textContent = floorStr;
+      document.getElementById('hud-hp-text').textContent = hpStr;
+      document.getElementById('hud-hp-pill').textContent = hpStr;
+      document.getElementById('hud-hp-bar').style.width = `${Math.max(0, (game.hp / game.maxHp) * 100)}%`;
+
+      document.getElementById('hud-yen').textContent = game.yen;
+      document.getElementById('player-yen').textContent = game.yen;
+      document.getElementById('menu-yen').textContent = game.yen;
+
+      document.getElementById('hud-deck-count').textContent = game.deck.length;
+      document.getElementById('menu-deck-count').textContent = game.deck.length;
+
+      const relicsHTML = game.relics.map(r => `
         <div title="${r.name} (${r.kanji}): ${r.desc}"
-          class="bg-purple-950/90 border border-amber-300/60 w-8 h-8 rounded-lg flex items-center justify-center text-base cursor-help shadow">
+          class="bg-white/10 border border-amber-300/40 w-7 h-7 rounded-full flex items-center justify-center text-sm cursor-help">
           ${r.icon}
         </div>
       `).join('');
+
+      document.getElementById('hud-relics').innerHTML = relicsHTML;
+      document.getElementById('menu-relics').innerHTML = relicsHTML || '<span class="text-[11px] text-slate-500">No relics equipped yet</span>';
     }
 
     function renderCardHTML(card, onClickAttr, animIdx = 0, isSelected = false) {
@@ -1691,30 +2466,29 @@
 
       return `
         <div onclick="${onClickAttr}" style="animation-delay: ${animIdx * 45}ms"
-          class="parchment-card ${typeClass} ${card.upgraded ? 'card-upgraded' : ''} ${selectedStyle} animate-card-deal p-2.5 flex flex-col justify-between min-h-[152px] sm:min-h-[168px]">
+          class="parchment-card ${typeClass} ${card.upgraded ? 'card-upgraded' : ''} ${selectedStyle} animate-card-deal p-3 sm:p-3.5 flex flex-col justify-between min-h-[178px] sm:min-h-[202px]">
           
           <!-- Card Header: Role Tag & Energy Cost -->
           <div class="flex items-center justify-between gap-1">
-            <span class="${badgeColor} text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">
+            <span class="${badgeColor} text-[10px] sm:text-[11px] font-black px-2 py-0.5 rounded uppercase tracking-wider">
               ${typeLabel}
             </span>
-            <span class="w-6 h-6 rounded-full bg-slate-900 text-amber-300 font-fantasy font-black text-xs flex items-center justify-center border border-amber-400">
+            <span class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-900 text-amber-300 font-fantasy font-black text-xs sm:text-sm flex items-center justify-center border border-amber-400">
               ${card.cost}
             </span>
           </div>
 
           <!-- Center: Icon, Kanji, Romaji, English -->
           <div class="text-center my-1">
-            <div class="text-2xl sm:text-3xl leading-none mb-1">${card.icon}</div>
-            <div class="font-jp font-black text-xl sm:text-2xl text-slate-900 leading-tight">
-              ${card.kanji}${card.upgraded ? '<span class="text-amber-600 text-sm ml-0.5">+1</span>' : ''}
+            <div class="card-emoji text-3xl sm:text-4xl leading-none mb-1">${card.icon}</div>
+            <div class="card-kanji font-jp font-black text-2xl sm:text-[26px] text-slate-900 leading-tight">
+              ${card.kanji}${card.upgraded ? '<span class="text-amber-600 text-xs ml-0.5">+1</span>' : ''}
             </div>
-            <div class="font-extrabold text-xs text-indigo-700 leading-tight">${card.romaji}</div>
-            <div class="text-[11px] font-bold text-slate-600">(${card.en})</div>
+            <div class="font-extrabold text-xs sm:text-sm text-indigo-700 leading-tight mt-0.5">${card.romaji} <span class="font-bold text-slate-600">(${card.en})</span></div>
           </div>
 
           <!-- Footer: Mechanical Effect -->
-          <div class="bg-slate-900/10 rounded-lg px-1.5 py-1 text-center text-[10px] sm:text-[11px] font-extrabold text-slate-800 leading-tight">
+          <div class="bg-slate-900/10 rounded-lg px-2 py-1.5 text-center text-xs font-extrabold text-slate-800 leading-tight">
             ${descText}
           </div>
         </div>
@@ -1746,74 +2520,106 @@
 
       const statusRow = document.getElementById('enemy-statuses');
       let statusesHTML = '';
-      if (e.block > 0) statusesHTML += `<span class="bg-sky-950 border border-sky-400 text-sky-200 px-2 py-0.5 rounded-full">🛡️ Block ${e.block}</span>`;
-      if (e.burn > 0) statusesHTML += `<span class="bg-orange-950 border border-orange-400 text-orange-200 px-2 py-0.5 rounded-full">🔥 Burn ${e.burn}</span>`;
+      if (e.block > 0) statusesHTML += `<span class="text-sky-300">🛡️${e.block}</span>`;
+      if (e.burn > 0) statusesHTML += `<span class="text-orange-400">🔥${e.burn}</span>`;
+      if (e.wet) statusesHTML += `<span class="text-blue-300">💧</span>`;
+      if (e.stunned) statusesHTML += `<span class="text-yellow-300">⚡</span>`;
       statusRow.innerHTML = statusesHTML;
 
       // Render 3 Forge Slots
-      renderForgeSlot('slot-adj', 'adj', '1. Adjective (Opt)', 'Modifier', 'filled-adj');
-      renderForgeSlot('slot-noun', 'noun', '2. Noun (Core)', 'Element / Shield', 'filled-noun');
-      renderForgeSlot('slot-verb', 'verb', '3. Verb (Opt)', 'Multiplier', 'filled-verb');
+      renderForgeSlot('slot-adj', 'adj', 'Adjective', 'Modifier', 'filled-adj');
+      renderForgeSlot('slot-noun', 'noun', 'Noun', 'Element', 'filled-noun');
+      renderForgeSlot('slot-verb', 'verb', 'Verb', 'Multiplier', 'filled-verb');
 
       // Live Sentence Preview & Cast Button
       const evalRes = evaluateSentence();
+      const previewBanner = document.getElementById('preview-banner');
       const previewJp = document.getElementById('preview-jp');
       const previewStats = document.getElementById('preview-stats');
       const castBtn = document.getElementById('btn-cast');
       const comboBadge = document.getElementById('combo-badge');
 
       if (evalRes.valid) {
-        previewJp.innerHTML = `${evalRes.jpText} <span class="text-xs font-bold text-amber-300/80 ml-1">(${evalRes.romajiText} — "${evalRes.enText}")</span>`;
-        const parts = [];
-        if (evalRes.dmg > 0) parts.push(`<span class="text-rose-400 font-black">⚔️ ${evalRes.dmg} DMG${evalRes.isWeaknessHit ? ' (1.5x WEAKNESS!)' : ''}</span>`);
-        if (evalRes.block > 0) parts.push(`<span class="text-sky-400 font-black">🛡️ +${evalRes.block} Block</span>`);
-        if (evalRes.burn > 0) parts.push(`<span class="text-orange-400 font-black">🔥 +${evalRes.burn} Burn</span>`);
-        if (evalRes.heal > 0) parts.push(`<span class="text-emerald-400 font-black">❤️ +${evalRes.heal} HP</span>`);
-        if (evalRes.draw > 0) parts.push(`<span class="text-purple-300 font-black">🃏 Draw ${evalRes.draw}</span>`);
-        previewStats.innerHTML = parts.join(' • ');
+        previewBanner.classList.remove('hidden');
+        previewBanner.classList.add('flex');
+        previewJp.innerHTML = `${evalRes.jpText} <span class="text-xs font-bold text-amber-300/90 ml-1">(${evalRes.enText})</span>`;
+
+        const pills = [];
+        if (evalRes.reactionName) {
+          pills.push(`<span class="bg-amber-400/20 border border-amber-400 text-amber-300 px-2 py-0.5 rounded-lg text-[11px] font-black tracking-wide animate-pulse">${evalRes.reactionName}</span>`);
+        }
+        if (evalRes.dmg > 0) {
+          const critTag = evalRes.isWeaknessHit ? ' <span class="text-amber-300 ml-0.5">CRIT!</span>' : '';
+          pills.push(`<span class="bg-rose-500/20 border border-rose-400/60 text-rose-200 px-2.5 py-0.5 rounded-lg text-xs sm:text-sm font-fantasy font-black">⚔️ ${evalRes.dmg} DMG${critTag}</span>`);
+        }
+        if (evalRes.block > 0) {
+          pills.push(`<span class="bg-sky-500/20 border border-sky-400/60 text-sky-200 px-2.5 py-0.5 rounded-lg text-xs sm:text-sm font-fantasy font-black">🛡️ +${evalRes.block}</span>`);
+        }
+        if (evalRes.burn > 0) {
+          pills.push(`<span class="bg-orange-500/20 border border-orange-400/60 text-orange-200 px-2 py-0.5 rounded-lg text-xs font-black">🔥 +${evalRes.burn}</span>`);
+        }
+        if (evalRes.heal > 0) {
+          pills.push(`<span class="bg-emerald-500/20 border border-emerald-400/60 text-emerald-200 px-2 py-0.5 rounded-lg text-xs font-black">❤️ +${evalRes.heal}</span>`);
+        }
+        if (evalRes.draw > 0) {
+          pills.push(`<span class="bg-purple-500/20 border border-purple-400/60 text-purple-200 px-2 py-0.5 rounded-lg text-xs font-black">🃏 +${evalRes.draw}</span>`);
+        }
+        if (evalRes.pierce) {
+          pills.push(`<span class="bg-slate-700/70 border border-slate-400/50 text-slate-200 px-2 py-0.5 rounded-lg text-[11px] font-extrabold">💥 PIERCE</span>`);
+        }
+        if (evalRes.freezeEnemy) {
+          pills.push(`<span class="bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 px-2 py-0.5 rounded-lg text-[11px] font-extrabold">🧊 WEAKEN</span>`);
+        }
+
+        previewStats.innerHTML = pills.join('');
         castBtn.disabled = game.busy;
         comboBadge.classList.toggle('hidden', !evalRes.isFullCombo);
       } else {
-        previewJp.textContent = '— Slot cards to build a Japanese phrase —';
-        previewStats.textContent = evalRes.reason;
+        previewBanner.classList.add('hidden');
+        previewBanner.classList.remove('flex');
+        previewJp.textContent = '';
+        previewStats.innerHTML = '';
         castBtn.disabled = true;
         comboBadge.classList.add('hidden');
       }
 
-      // Render Player Hand
+      // Render Player Hand (hide cards currently laid in the middle forge!)
       const slottedUids = new Set(getSlottedCards().map(c => c.uid));
       const handEl = document.getElementById('player-hand');
-      handEl.innerHTML = game.hand.map((card, idx) => {
-        const isSlotted = slottedUids.has(card.uid);
+      const unslottedHand = game.hand.filter(card => !slottedUids.has(card.uid));
+
+      handEl.innerHTML = unslottedHand.map((card, idx) => {
         const prevInSlot = game.forge[card.type];
         const projectedCost = getForgeEnergyCost() - (prevInSlot ? prevInSlot.cost : 0) + card.cost;
-        const unaffordable = !isSlotted && projectedCost > game.energy;
+        const unaffordable = projectedCost > game.energy;
 
-        return `<div class="${unaffordable ? 'card-disabled' : ''}">
-          ${renderCardHTML(card, `clickHandCard('${card.uid}')`, idx, isSlotted)}
+        return `<div class="flex-1 min-w-[140px] max-w-[196px] ${unaffordable ? 'card-disabled' : ''}">
+          ${renderCardHTML(card, `clickHandCard('${card.uid}')`, idx, false)}
         </div>`;
       }).join('');
     }
 
-    function renderForgeSlot(elId, type, title, emptySub, filledClass) {
+    function renderForgeSlot(elId, type, title, emptySub) {
       const el = document.getElementById(elId);
       const card = game.forge[type];
-      el.classList.remove('filled-adj', 'filled-noun', 'filled-verb');
+      el.classList.remove('filled-slot');
 
       if (card) {
-        el.classList.add(filledClass);
+        el.classList.add('filled-slot');
         el.innerHTML = `
-          <div class="flex items-center gap-1.5">
-            <span class="text-xl">${card.icon}</span>
-            <span class="font-jp font-black text-lg sm:text-xl text-white">${card.kanji}</span>
+          <div class="w-full">
+            ${renderCardHTML(card, '', 0, false)}
           </div>
-          <div class="text-xs font-extrabold text-amber-200">${card.romaji} <span class="text-slate-300 font-normal">(${card.en})</span></div>
-          <div class="text-[10px] text-slate-300 mt-0.5">Click to remove</div>
         `;
       } else {
+        const accentMap = {
+          adj: 'text-blue-300/70',
+          noun: 'text-amber-300/70',
+          verb: 'text-rose-300/70'
+        };
         el.innerHTML = `
-          <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">${title}</span>
-          <span class="text-xs text-slate-500 mt-1">${emptySub}</span>
+          <span class="text-[10px] font-bold uppercase tracking-wider ${accentMap[type] || 'text-slate-400'}">${title}</span>
+          <span class="text-[11px] text-slate-500 mt-0.5">${emptySub}</span>
         `;
       }
     }
@@ -1842,15 +2648,45 @@
       root.classList.add('animate-shake');
     }
 
+    function spawnEnemySlashEffect(centerY) {
+      const slash = document.createElement('div');
+      slash.className = 'slash-overlay flex items-center justify-center';
+      slash.style.top = `${centerY}px`;
+      slash.innerHTML = `
+        <svg width="240" height="90" viewBox="0 0 240 90" fill="none">
+          <path d="M10 75 Q 120 10 230 20 Q 125 42 10 75 Z" fill="#F43F5E" opacity="0.92"/>
+          <path d="M30 85 Q 130 28 220 35 Q 132 52 30 85 Z" fill="#FDE047" opacity="0.85"/>
+        </svg>
+      `;
+      document.body.appendChild(slash);
+      setTimeout(() => slash.remove(), 500);
+    }
+
+    function spawnComboSealEffect(centerY, labelText) {
+      const seal = document.createElement('div');
+      seal.className = 'slash-overlay flex flex-col items-center justify-center text-center';
+      seal.style.top = `${centerY}px`;
+      seal.innerHTML = `
+        <div class="w-36 h-36 sm:w-44 sm:h-44 rounded-full border-4 border-amber-300/90 bg-amber-400/15 shadow-[0_0_40px_rgba(251,191,36,0.9)] flex items-center justify-center">
+          <span class="font-jp font-black text-2xl sm:text-3xl text-amber-200 drop-shadow-[0_3px_8px_rgba(0,0,0,0.95)] tracking-wider">
+            ${labelText}
+          </span>
+        </div>
+      `;
+      document.body.appendChild(seal);
+      setTimeout(() => seal.remove(), 520);
+    }
+
     function toggleTTS() {
       const on = AudioEngine.toggleTts();
-      document.getElementById('tts-label').textContent = on ? 'TTS ON' : 'TTS OFF';
-      document.getElementById('btn-tts').style.opacity = on ? '1' : '0.5';
+      document.getElementById('tts-label').textContent = on ? 'ON' : 'OFF';
+      document.getElementById('btn-tts').style.opacity = on ? '1' : '0.6';
     }
 
     function toggleSFX() {
       const on = AudioEngine.toggleSfx();
-      document.getElementById('btn-sfx').textContent = on ? '🔊' : '🔇';
+      document.getElementById('sfx-label').textContent = on ? 'ON' : 'OFF';
+      document.getElementById('btn-sfx').style.opacity = on ? '1' : '0.6';
     }
   </script>
 </body>
